@@ -1,6 +1,6 @@
 "use client";
 
-import { Minus, Plus, ShoppingBag } from "lucide-react";
+import { Minus, Plus, Printer, ShoppingBag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { enviarComandaParaCozinha, fecharMesaAction } from "@/actions/pedidos.actions";
@@ -168,7 +168,14 @@ export default function MesaModal({
                     {pedidosAbertos.map((o) => (
                       <div key={o.id} className="flex items-center justify-between text-sm">
                         <span>{o.itemCount} item(ns)</span>
-                        <StatusBadge status={o.status} />
+                        <div className="flex items-center gap-2">
+                          <StatusBadge status={o.status} />
+                          <a href={`/imprimir/${o.id}`} target="_blank" rel="noopener noreferrer">
+                            <Button size="icon-sm" variant="outline" aria-label="Imprimir comanda">
+                              <Printer />
+                            </Button>
+                          </a>
+                        </div>
                       </div>
                     ))}
                   </div>

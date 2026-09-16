@@ -1,7 +1,9 @@
 "use client";
 
+import { Printer } from "lucide-react";
 import { useState } from "react";
 import StatusBadge from "@/components/StatusBadge";
+import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
@@ -142,6 +144,12 @@ export default function PedidosHistoricoTable({
               <p className="text-sm text-muted-foreground">
                 Pagamento: {selecionado.pedido.formaPagamento ? PAGAMENTO_LABEL[selecionado.pedido.formaPagamento] : "—"}
               </p>
+
+              <a href={`/imprimir/${selecionado.pedido.id}`} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" className="w-full">
+                  <Printer /> Reimprimir comanda
+                </Button>
+              </a>
             </div>
           )}
         </SheetContent>

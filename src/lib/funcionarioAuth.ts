@@ -54,6 +54,18 @@ export async function requireFuncionarioAccess(papelEsperado: Papel) {
   return funcionario;
 }
 
+/** Pra telas que qualquer funcionário pode acessar, de qualquer papel —
+ * hoje só a impressão de comanda, que tanto atendente quanto cozinha (e a
+ * dona) podem disparar. Não faz sentido restringir por papel específico
+ * aqui, só confirma que a pessoa é funcionária ativa de algum restaurante. */
+export async function requireQualquerFuncionario() {
+  const { userId } = await auth();
+  if (!userId) redirect("/entrar");
+  const funcionario = await getFuncionarioByClerkId(userId);
+  if (!funcionario || !funcionario.ativo) redirect("/sem-acesso");
+  return funcionario;
+}
+
 /** Usado dentro de Server Actions de qualquer área da equipe — elas são
  * endpoints públicos, então cada uma precisa revalidar autenticação e papel
  * por conta própria, sem depender só do layout que a chamou. */

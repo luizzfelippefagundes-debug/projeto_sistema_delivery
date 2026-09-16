@@ -161,3 +161,16 @@
 .num {
   font-variant-numeric: tabular-nums;
 }
+
+/* Comanda impressa — pensado pra bobina térmica de 80mm (a maioria das
+ * impressoras de restaurante). Se a impressora for de 58mm, o navegador
+ * ainda encaixa o conteúdo, só fica com mais espaço em branco na lateral. */
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 2mm;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import { Printer } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useTransition } from "react";
 import { avancarStatusCozinha } from "@/actions/pedidos.actions";
@@ -56,7 +57,14 @@ export default function CozinhaBoard({ pedidos }: { pedidos: PedidoCozinha[] }) 
                   <CardContent className="flex flex-col gap-3 px-4">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-bold">{origemLabel(o)}</span>
-                      <span className="text-xs text-muted-foreground">{minAgo(o.criadoEm)}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">{minAgo(o.criadoEm)}</span>
+                        <a href={`/imprimir/${o.id}`} target="_blank" rel="noopener noreferrer">
+                          <Button size="icon-sm" variant="outline" aria-label="Imprimir comanda">
+                            <Printer />
+                          </Button>
+                        </a>
+                      </div>
                     </div>
                     <ul className="list-disc pl-4 text-xs text-muted-foreground">
                       {o.itens.map((i) => (
