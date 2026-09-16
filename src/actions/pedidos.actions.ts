@@ -1,9 +1,10 @@
 "use server";
 
+import { auth } from "@clerk/nextjs/server";
 import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "../db";
-import { itensCardapio, itensPedido, pedidos, restaurantes } from "../db/schema";
+import { clientes, itensCardapio, itensPedido, pedidos, restaurantes } from "../db/schema";
 import { assertFuncionario } from "../lib/funcionarioAuth";
 import { enviarMensagemWhatsapp } from "../lib/evolutionApi";
 import type { OrderStatus, Pagamento } from "../lib/types";
@@ -164,6 +165,7 @@ export async function criarPedidoCliente(dados: {
   restauranteId: string;
   itens: ItemDoPedidoCliente[];
   endereco: string;
+  telefone?: string;
   pagamento: Pagamento;
   clienteNome: string;
 }) {
@@ -183,13 +185,39 @@ export async function criarPedidoCliente(dados: {
   });
 
   const total = itensParaSalvar.reduce((s, i) => s + i.preco * i.quantidade, 0);
+  const nomeLimpo = dados.clienteNome.trim();
+  const telefoneLimpo = dados.telefone?.trim() || null;
+
+  // Liga o pedido à conta do cliente (se logado) — é o que permite a tela
+  // "Meus pedidos" e o acompanhamento depois, sem depender só do nome pra
+  // achar o histórico dele.
+  const { userId } = await auth();
+  let clienteId: string | null = null;
+  if (userId) {
+    const [existente] = await db.select().from(clientes).where(eq(clientes.clerkUserId, userId));
+    if (existente) {
+      clienteId = existente.id;
+      await db
+        .update(clientes)
+        .set({ nome: nomeLimpo, telefone: telefoneLimpo ?? existente.telefone })
+        .where(eq(clientes.id, existente.id));
+    } else {
+      const [novo] = await db
+        .insert(clientes)
+        .values({ restauranteId: dados.restauranteId, clerkUserId: userId, nome: nomeLimpo, telefone: telefoneLimpo })
+        .returning();
+      clienteId = novo.id;
+    }
+  }
 
   const [pedido] = await db
     .insert(pedidos)
     .values({
       restauranteId: dados.restauranteId,
       origem: "delivery",
-      clienteNome: dados.clienteNome,
+      clienteId,
+      clienteNome: nomeLimpo,
+      telefoneCliente: telefoneLimpo,
       endereco: dados.endereco,
       status: "novo",
       formaPagamento: dados.pagamento,

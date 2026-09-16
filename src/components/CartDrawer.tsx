@@ -1,11 +1,13 @@
 "use client";
 
 import { Show, SignInButton, useUser } from "@clerk/nextjs";
+import Link from "next/link";
 import { Minus, Plus } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { criarPedidoCliente } from "@/actions/pedidos.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Sheet,
   SheetContent,
@@ -17,8 +19,29 @@ import { fmtBRL } from "@/lib/data";
 import { useCart } from "@/lib/cart";
 import type { Pagamento } from "@/lib/types";
 
-type Passo = "carrinho" | "pagamento" | "confirmado";
+type Passo = "carrinho" | "entrega" | "pagamento" | "confirmado";
 type Tipo = "retirada" | "delivery";
+
+const STORAGE_KEY = "dashi-sushi-checkout-v1";
+
+interface DadosEntrega {
+  telefone: string;
+  rua: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  referencia: string;
+}
+
+const ENTREGA_VAZIA: DadosEntrega = { telefone: "", rua: "", numero: "", complemento: "", bairro: "", referencia: "" };
+
+function montarEndereco(d: DadosEntrega): string {
+  let linha = `${d.rua.trim()}, ${d.numero.trim()}`;
+  if (d.complemento.trim()) linha += ` - ${d.complemento.trim()}`;
+  linha += ` - ${d.bairro.trim()}`;
+  if (d.referencia.trim()) linha += ` (Ref: ${d.referencia.trim()})`;
+  return linha;
+}
 
 export default function CartDrawer({
   restauranteId,
@@ -34,22 +57,59 @@ export default function CartDrawer({
 
   const [passo, setPasso] = useState<Passo>("carrinho");
   const [tipo, setTipo] = useState<Tipo>("delivery");
-  const [endereco, setEndereco] = useState("");
+  const [entrega, setEntrega] = useState<DadosEntrega>(ENTREGA_VAZIA);
   const [pagamento, setPagamento] = useState<Pagamento>("pix");
   const [pedidoId, setPedidoId] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) setEntrega((prev) => ({ ...prev, ...JSON.parse(raw) }));
+    } catch {
+      // sem dado salvo, começa em branco
+    }
+  }, []);
+
+  function atualizarEntrega(campo: keyof DadosEntrega, valor: string) {
+    setEntrega((prev) => ({ ...prev, [campo]: valor }));
+  }
+
+  function irParaEntrega() {
+    setErro(null);
+    setPasso("entrega");
+  }
+
+  function confirmarEntrega() {
+    if (!entrega.telefone.trim()) {
+      setErro("Informe um telefone pra contato.");
+      return;
+    }
+    if (tipo === "delivery" && (!entrega.rua.trim() || !entrega.numero.trim() || !entrega.bairro.trim())) {
+      setErro("Preencha rua, número e bairro.");
+      return;
+    }
+    setErro(null);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entrega));
+    } catch {
+      // localStorage indisponível, segue sem salvar
+    }
+    setPasso("pagamento");
+  }
+
   function confirmarPagamento() {
     setErro(null);
     const cliente = user?.fullName || user?.username || "Cliente do site";
-    const enderecoFinal = tipo === "retirada" ? "Retirada no balcão" : endereco || "Endereço não informado";
+    const enderecoFinal = tipo === "retirada" ? "Retirada no balcão" : montarEndereco(entrega);
     startTransition(async () => {
       try {
         const { pedidoId } = await criarPedidoCliente({
           restauranteId,
           itens: items.map((i) => ({ itemCardapioId: i.itemCardapioId, quantidade: i.qtd })),
           endereco: enderecoFinal,
+          telefone: entrega.telefone,
           pagamento,
           clienteNome: cliente,
         });
@@ -75,6 +135,7 @@ export default function CartDrawer({
         <SheetHeader>
           <SheetTitle>
             {passo === "carrinho" && "Sua sacola"}
+            {passo === "entrega" && "Dados de entrega"}
             {passo === "pagamento" && "Pagamento"}
             {passo === "confirmado" && "Pedido confirmado"}
           </SheetTitle>
@@ -105,45 +166,14 @@ export default function CartDrawer({
 
               {items.length > 0 && (
                 <>
-                  <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Como vai ser?
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant={tipo === "delivery" ? "default" : "outline"}
-                        onClick={() => setTipo("delivery")}
-                      >
-                        🛵 Delivery
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={tipo === "retirada" ? "default" : "outline"}
-                        onClick={() => setTipo("retirada")}
-                      >
-                        🏠 Retirar no local
-                      </Button>
-                    </div>
-                  </div>
-
-                  {tipo === "delivery" && (
-                    <div>
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Endereço de entrega
-                      </p>
-                      <Input value={endereco} onChange={(e) => setEndereco(e.target.value)} placeholder="Rua, número, bairro" />
-                    </div>
-                  )}
-
                   <div className="flex justify-between border-t border-border pt-3 text-sm font-semibold">
                     <span>Total</span>
                     <span className="num">{fmtBRL(total)}</span>
                   </div>
 
                   <Show when="signed-in">
-                    <Button className="w-full" disabled={tipo === "delivery" && !endereco.trim()} onClick={() => setPasso("pagamento")}>
-                      Continuar pro pagamento
+                    <Button className="w-full" onClick={irParaEntrega}>
+                      Continuar
                     </Button>
                   </Show>
                   <Show when="signed-out">
@@ -157,8 +187,94 @@ export default function CartDrawer({
             </>
           )}
 
+          {passo === "entrega" && (
+            <>
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Como vai ser?
+                </p>
+                <div className="flex gap-2">
+                  <Button size="sm" variant={tipo === "delivery" ? "default" : "outline"} onClick={() => setTipo("delivery")}>
+                    🛵 Delivery
+                  </Button>
+                  <Button size="sm" variant={tipo === "retirada" ? "default" : "outline"} onClick={() => setTipo("retirada")}>
+                    🏠 Retirar no local
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="telefone">Telefone pra contato</Label>
+                <Input
+                  id="telefone"
+                  value={entrega.telefone}
+                  onChange={(e) => atualizarEntrega("telefone", e.target.value)}
+                  placeholder="(27) 99999-9999"
+                  inputMode="tel"
+                />
+              </div>
+
+              {tipo === "delivery" && (
+                <div className="flex flex-col gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Endereço de entrega
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2 flex flex-col gap-1.5">
+                      <Label htmlFor="rua">Rua / Avenida</Label>
+                      <Input id="rua" value={entrega.rua} onChange={(e) => atualizarEntrega("rua", e.target.value)} placeholder="Rua das Palmeiras" />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="numero">Número</Label>
+                      <Input id="numero" value={entrega.numero} onChange={(e) => atualizarEntrega("numero", e.target.value)} placeholder="120" />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="bairro">Bairro</Label>
+                    <Input id="bairro" value={entrega.bairro} onChange={(e) => atualizarEntrega("bairro", e.target.value)} placeholder="Centro" />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="complemento">Complemento (opcional)</Label>
+                    <Input
+                      id="complemento"
+                      value={entrega.complemento}
+                      onChange={(e) => atualizarEntrega("complemento", e.target.value)}
+                      placeholder="Apto, bloco, casa dos fundos…"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="referencia">Ponto de referência (opcional)</Label>
+                    <Input
+                      id="referencia"
+                      value={entrega.referencia}
+                      onChange={(e) => atualizarEntrega("referencia", e.target.value)}
+                      placeholder="Perto do mercado tal…"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {erro && <p className="text-sm text-destructive">{erro}</p>}
+            </>
+          )}
+
           {passo === "pagamento" && (
             <>
+              <div className="flex flex-col gap-1 rounded-lg border border-border p-3 text-sm">
+                {items.map((i) => (
+                  <div key={i.itemCardapioId} className="flex justify-between text-muted-foreground">
+                    <span>
+                      {i.qtd}x {i.nome}
+                    </span>
+                    <span className="num">{fmtBRL(i.preco * i.qtd)}</span>
+                  </div>
+                ))}
+                <div className="mt-1 flex justify-between border-t border-border pt-2 font-semibold text-foreground">
+                  <span>Total</span>
+                  <span className="num">{fmtBRL(total)}</span>
+                </div>
+              </div>
+
               <div>
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Forma de pagamento
@@ -169,6 +285,9 @@ export default function CartDrawer({
                   </Button>
                   <Button size="sm" variant={pagamento === "cartao" ? "default" : "outline"} onClick={() => setPagamento("cartao")}>
                     Cartão
+                  </Button>
+                  <Button size="sm" variant={pagamento === "dinheiro" ? "default" : "outline"} onClick={() => setPagamento("dinheiro")}>
+                    Dinheiro
                   </Button>
                 </div>
               </div>
@@ -196,43 +315,59 @@ export default function CartDrawer({
                 </div>
               )}
 
+              {pagamento === "dinheiro" && (
+                <p className="rounded-xl border border-border p-4 text-center text-sm text-muted-foreground">
+                  Pague em dinheiro na hora da {tipo === "retirada" ? "retirada" : "entrega"}.
+                </p>
+              )}
+
               <p className="text-xs text-muted-foreground">
                 Pagamento simulado nessa demonstração — a cobrança real via Asaas entra na próxima etapa do projeto.
               </p>
 
               {erro && <p className="text-sm text-destructive">{erro}</p>}
-
-              <div className="flex justify-between border-t border-border pt-3 text-sm font-semibold">
-                <span>Total a pagar</span>
-                <span className="num">{fmtBRL(total)}</span>
-              </div>
             </>
           )}
 
           {passo === "confirmado" && (
             <div className="flex flex-col items-center gap-2 py-6 text-center">
               <div className="text-4xl">🍣</div>
-              <h3 className="font-heading text-lg font-semibold">Pedido #{pedidoId} recebido!</h3>
+              <h3 className="font-heading text-lg font-semibold">Pedido #{pedidoId?.slice(0, 8)} recebido!</h3>
               <p className="text-sm text-muted-foreground">
-                Já mandamos pra cozinha. Você pode acompanhar o preparo pelo painel da equipe.
+                Já mandamos pra cozinha. Acompanhe o status do seu pedido em tempo real.
               </p>
             </div>
           )}
         </div>
 
+        {passo === "entrega" && (
+          <SheetFooter>
+            <Button onClick={confirmarEntrega}>Continuar pro pagamento</Button>
+            <Button variant="outline" onClick={() => setPasso("carrinho")}>
+              Voltar
+            </Button>
+          </SheetFooter>
+        )}
         {passo === "pagamento" && (
           <SheetFooter>
             <Button disabled={pending} onClick={confirmarPagamento}>
-              {pending ? "Confirmando…" : "Confirmar pagamento"}
+              {pending ? "Confirmando…" : "Confirmar pedido"}
             </Button>
-            <Button variant="outline" onClick={() => setPasso("carrinho")}>
+            <Button variant="outline" onClick={() => setPasso("entrega")}>
               Voltar
             </Button>
           </SheetFooter>
         )}
         {passo === "confirmado" && (
           <SheetFooter>
-            <Button onClick={() => handleOpenChange(false)}>Fechar</Button>
+            {pedidoId && (
+              <Link href={`/pedido/${pedidoId}`} className="w-full">
+                <Button className="w-full">Acompanhar pedido</Button>
+              </Link>
+            )}
+            <Button variant="outline" onClick={() => handleOpenChange(false)}>
+              Fechar
+            </Button>
           </SheetFooter>
         )}
       </SheetContent>

@@ -82,6 +82,12 @@ export async function getItensDoPedido(pedidoId: string) {
   return getDb().select().from(itensPedido).where(eq(itensPedido.pedidoId, pedidoId));
 }
 
+/** Histórico de pedidos de um cliente logado (site), pelo clienteId real —
+ * alimenta "Meus pedidos" e o acompanhamento. */
+export async function getPedidosPorClienteId(clienteId: string) {
+  return getDb().select().from(pedidos).where(eq(pedidos.clienteId, clienteId)).orderBy(desc(pedidos.criadoEm));
+}
+
 /** Pedido + itens pra montar a comanda impressa — uma consulta só, já que
  * a tela de impressão só precisa desse pedido específico. */
 export async function getPedidoComItens(pedidoId: string) {

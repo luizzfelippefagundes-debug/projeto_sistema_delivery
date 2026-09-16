@@ -1,6 +1,7 @@
 "use client";
 
 import { Show, SignInButton, UserButton } from "@clerk/nextjs";
+import { ClipboardList } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -38,6 +39,9 @@ export default function CustomerHeader({ nomeRestaurante = "Dashi Sushi" }: { no
           </SignInButton>
         </Show>
         <Show when="signed-in">
+          <Link href="/meus-pedidos" className="flex items-center gap-1 text-xs text-muted-foreground underline-offset-4 hover:underline">
+            <ClipboardList className="size-3.5" /> Meus pedidos
+          </Link>
           <UserButton />
         </Show>
       </div>

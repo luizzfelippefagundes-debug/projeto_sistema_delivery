@@ -1,6 +1,11 @@
 import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { getDb } from "../index";
-import { itensPedido, pedidos } from "../schema";
+import { clientes, itensPedido, pedidos } from "../schema";
+
+export async function getClientePorClerkId(clerkUserId: string) {
+  const [row] = await getDb().select().from(clientes).where(eq(clientes.clerkUserId, clerkUserId));
+  return row ?? null;
+}
 
 /** Resumo por cliente de delivery, montado a partir do nome informado no
  * pedido (`pedidos.clienteNome`) — hoje o checkout do site ainda não liga
