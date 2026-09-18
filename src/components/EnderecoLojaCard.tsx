@@ -46,8 +46,8 @@ export default function EnderecoLojaCard({ enderecoAtual }: { enderecoAtual: str
           </div>
         ) : (
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm">{enderecoAtual || "Não definido"}</p>
-            <Button size="sm" variant="outline" onClick={() => setEditando(true)}>
+            <p className="min-w-0 flex-1 text-sm break-words">{enderecoAtual || "Não definido"}</p>
+            <Button size="sm" variant="outline" className="shrink-0" onClick={() => setEditando(true)}>
               {enderecoAtual ? "Editar" : "Definir"}
             </Button>
           </div>

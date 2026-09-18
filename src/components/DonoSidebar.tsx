@@ -97,8 +97,8 @@ export default function DonoSidebar({
         <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4">
           <SidebarTrigger className="hidden md:inline-flex" />
           <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base leading-none md:hidden">🍣</span>
-          <span className="font-heading text-lg font-semibold">{TITLES[pathname] ?? "Dashi Sushi"}</span>
-          <div className="ml-auto flex items-center gap-2 md:hidden">
+          <span className="min-w-0 truncate font-heading text-lg font-semibold">{TITLES[pathname] ?? "Dashi Sushi"}</span>
+          <div className="ml-auto flex shrink-0 items-center gap-2 md:hidden">
             <ThemeToggle />
             <UserButton />
           </div>
