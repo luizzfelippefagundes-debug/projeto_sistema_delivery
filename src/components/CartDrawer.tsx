@@ -6,15 +6,14 @@ import { Minus, Plus } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { criarPedidoCliente } from "@/actions/pedidos.actions";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { fmtBRL } from "@/lib/data";
 import { useCart } from "@/lib/cart";
 import type { Pagamento } from "@/lib/types";
@@ -130,16 +129,16 @@ export default function CartDrawer({
   }
 
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent className="flex w-full flex-col gap-0 sm:max-w-md">
-        <SheetHeader>
-          <SheetTitle>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="flex max-h-[85vh] w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+        <DialogHeader className="p-4">
+          <DialogTitle>
             {passo === "carrinho" && "Sua sacola"}
             {passo === "entrega" && "Dados de entrega"}
             {passo === "pagamento" && "Pagamento"}
             {passo === "confirmado" && "Pedido confirmado"}
-          </SheetTitle>
-        </SheetHeader>
+          </DialogTitle>
+        </DialogHeader>
 
         <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-4 pb-4">
           {passo === "carrinho" && (
@@ -341,25 +340,25 @@ export default function CartDrawer({
         </div>
 
         {passo === "entrega" && (
-          <SheetFooter>
+          <div className="mt-auto flex flex-col gap-2 border-t border-border p-4">
             <Button onClick={confirmarEntrega}>Continuar pro pagamento</Button>
             <Button variant="outline" onClick={() => setPasso("carrinho")}>
               Voltar
             </Button>
-          </SheetFooter>
+          </div>
         )}
         {passo === "pagamento" && (
-          <SheetFooter>
+          <div className="mt-auto flex flex-col gap-2 border-t border-border p-4">
             <Button disabled={pending} onClick={confirmarPagamento}>
               {pending ? "Confirmando…" : "Confirmar pedido"}
             </Button>
             <Button variant="outline" onClick={() => setPasso("entrega")}>
               Voltar
             </Button>
-          </SheetFooter>
+          </div>
         )}
         {passo === "confirmado" && (
-          <SheetFooter>
+          <div className="mt-auto flex flex-col gap-2 border-t border-border p-4">
             {pedidoId && (
               <Link href={`/pedido/${pedidoId}`} className="w-full">
                 <Button className="w-full">Acompanhar pedido</Button>
@@ -368,9 +367,9 @@ export default function CartDrawer({
             <Button variant="outline" onClick={() => handleOpenChange(false)}>
               Fechar
             </Button>
-          </SheetFooter>
+          </div>
         )}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
