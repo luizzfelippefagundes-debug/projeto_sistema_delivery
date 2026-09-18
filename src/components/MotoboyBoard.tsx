@@ -149,7 +149,7 @@ export default function MotoboyBoard({
                   <button
                     type="button"
                     onClick={() => setMapaExpandido({ endereco: o.endereco!, nome: o.clienteNome ?? "Cliente" })}
-                    className="group relative mx-4 my-3 block aspect-[16/10] w-auto overflow-hidden rounded-lg border border-border"
+                    className="group relative mx-4 my-3 block aspect-[4/3] w-auto overflow-hidden rounded-lg border border-border"
                   >
                     <iframe
                       title={`Mapa — ${o.endereco}`}
