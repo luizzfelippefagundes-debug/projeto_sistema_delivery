@@ -1,4 +1,4 @@
-import { Banknote, CheckCircle2, Package } from "lucide-react";
+import { Banknote, CheckCircle2, Inbox, MapPin, Package } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { fmtBRL, fmtHora } from "@/lib/data";
 
@@ -54,36 +54,47 @@ export default function MotoboyHistorico({ pedidosEmAndamento, historico }: { pe
       </div>
 
       <div>
-        <h2 className="mb-3 font-heading text-lg font-semibold">Minhas entregas de hoje</h2>
-        <div className="overflow-x-auto rounded-xl border border-border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="px-4 py-2 font-medium">Hora</th>
-                <th className="px-4 py-2 font-medium">Cliente</th>
-                <th className="px-4 py-2 font-medium">Endereço</th>
-                <th className="px-4 py-2 text-right font-medium">Valor</th>
-              </tr>
-            </thead>
-            <tbody>
-              {historico.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
-                    Nenhuma entrega concluída hoje ainda.
-                  </td>
-                </tr>
-              )}
-              {historico.map((p) => (
-                <tr key={p.id} className="border-b border-border last:border-0">
-                  <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">{fmtHora(p.criadoEm.getTime())}</td>
-                  <td className="px-4 py-2.5 font-medium">{p.clienteNome ?? "Cliente"}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground">{p.endereco ?? "—"}</td>
-                  <td className="num px-4 py-2.5 text-right">{fmtBRL(p.total)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-heading text-lg font-semibold">Minhas entregas de hoje</h2>
+          {historico.length > 0 && (
+            <span className="text-xs font-medium text-muted-foreground">
+              {historico.length} entrega{historico.length === 1 ? "" : "s"}
+            </span>
+          )}
         </div>
+
+        {historico.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border py-10 text-center">
+            <div className="flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <Inbox className="size-5" />
+            </div>
+            <p className="text-sm font-medium">Nenhuma entrega concluída hoje ainda</p>
+            <p className="text-xs text-muted-foreground">Suas entregas finalizadas aparecem aqui em tempo real.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {historico.map((p) => (
+              <Card key={p.id} className="py-3">
+                <CardContent className="flex items-center gap-3 px-4">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-status-ok-bg text-status-ok-fg">
+                    <CheckCircle2 className="size-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{p.clienteNome ?? "Cliente"}</p>
+                    <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                      <MapPin className="size-3 shrink-0" />
+                      {p.endereco ?? "Endereço não informado"}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="num text-sm font-semibold">{fmtBRL(p.total)}</p>
+                    <p className="text-xs text-muted-foreground">{fmtHora(p.criadoEm.getTime())}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
