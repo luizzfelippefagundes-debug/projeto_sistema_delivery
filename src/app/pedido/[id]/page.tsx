@@ -3,6 +3,7 @@ import { Banknote, MapPinned, Store } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import CustomerHeader from "@/components/CustomerHeader";
+import CustomerTabBar from "@/components/CustomerTabBar";
 import OrderTimeline from "@/components/OrderTimeline";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,7 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
     <div className="flex min-h-screen flex-col bg-background">
       <CustomerHeader nomeRestaurante={restaurante?.nome} />
 
-      <div className="mx-auto flex w-full max-w-lg flex-col gap-5 p-4 md:p-6">
+      <div className="mx-auto flex w-full max-w-lg flex-col gap-5 p-4 pb-24 md:p-6">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Pedido #{pedido.id.slice(0, 8)}
@@ -103,6 +104,12 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
           </Link>
         )}
       </div>
+
+      {restaurante && (
+        <div className="fixed inset-x-0 bottom-0 z-40">
+          <CustomerTabBar slug={restaurante.slug} />
+        </div>
+      )}
     </div>
   );
 }

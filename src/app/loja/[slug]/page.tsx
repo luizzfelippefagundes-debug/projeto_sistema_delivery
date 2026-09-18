@@ -26,6 +26,7 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
   return (
     <CardapioClient
       restauranteId={restaurante.id}
+      slug={restaurante.slug}
       nomeRestaurante={restaurante.nome}
       itensPorCategoria={itensPorCategoria}
     />

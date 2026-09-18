@@ -2,11 +2,12 @@ import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import CustomerHeader from "@/components/CustomerHeader";
+import CustomerTabBar from "@/components/CustomerTabBar";
 import StatusBadge from "@/components/StatusBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { getClientePorClerkId } from "@/db/queries/clientes";
 import { getPedidosPorClienteId } from "@/db/queries/pedidos";
-import { getRestaurantePorId } from "@/db/queries/restaurantes";
+import { getRestaurantePorId, getRestaurantePrincipal } from "@/db/queries/restaurantes";
 import { fmtBRL } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
@@ -17,13 +18,13 @@ export default async function MeusPedidosPage() {
 
   const cliente = await getClientePorClerkId(userId);
   const pedidos = cliente ? await getPedidosPorClienteId(cliente.id) : [];
-  const restaurante = cliente ? await getRestaurantePorId(cliente.restauranteId) : null;
+  const restaurante = cliente ? await getRestaurantePorId(cliente.restauranteId) : await getRestaurantePrincipal();
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <CustomerHeader nomeRestaurante={restaurante?.nome} />
 
-      <div className="mx-auto flex w-full max-w-lg flex-col gap-4 p-4 md:p-6">
+      <div className="mx-auto flex w-full max-w-lg flex-col gap-4 p-4 pb-24 md:p-6">
         <h1 className="font-heading text-xl font-semibold">Meus pedidos</h1>
 
         {pedidos.length === 0 && (
@@ -51,6 +52,12 @@ export default async function MeusPedidosPage() {
           ))}
         </div>
       </div>
+
+      {restaurante && (
+        <div className="fixed inset-x-0 bottom-0 z-40">
+          <CustomerTabBar slug={restaurante.slug} />
+        </div>
+      )}
     </div>
   );
 }

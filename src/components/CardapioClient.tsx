@@ -4,6 +4,7 @@ import { CupSoda, Fish, Minus, Package, Plus, Sandwich, ShoppingBag, Soup, Utens
 import { useState } from "react";
 import CartDrawer from "@/components/CartDrawer";
 import CustomerHeader from "@/components/CustomerHeader";
+import CustomerTabBar from "@/components/CustomerTabBar";
 import { Button } from "@/components/ui/button";
 import { fmtBRL } from "@/lib/data";
 import { useCart } from "@/lib/cart";
@@ -95,10 +96,12 @@ function ItemCard({ item, categoria, tint }: { item: ItemDoCardapio; categoria: 
 
 export default function CardapioClient({
   restauranteId,
+  slug,
   nomeRestaurante,
   itensPorCategoria,
 }: {
   restauranteId: string;
+  slug: string;
   nomeRestaurante?: string;
   itensPorCategoria: Record<string, ItemDoCardapio[]>;
 }) {
@@ -136,7 +139,7 @@ export default function CardapioClient({
             </div>
           </div>
 
-          <div className={`mx-auto w-full max-w-2xl flex-1 px-4 md:px-6 ${count ? "pb-24 lg:pb-8" : "pb-8"}`}>
+          <div className={`mx-auto w-full max-w-2xl flex-1 px-4 md:px-6 ${count ? "pb-40" : "pb-24"}`}>
             <h2 className="pt-5 font-heading text-lg font-semibold">{categoria}</h2>
             <div className="flex flex-col">
               {itensPorCategoria[categoria]?.map((item) => (
@@ -147,20 +150,23 @@ export default function CardapioClient({
         </>
       )}
 
-      {count > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background p-3">
-          <button
-            type="button"
-            onClick={() => setSacolaAberta(true)}
-            className="mx-auto flex w-full max-w-2xl items-center justify-between rounded-xl bg-primary px-4 py-3 text-primary-foreground shadow-lg transition-opacity hover:opacity-90"
-          >
-            <span className="flex items-center gap-2 text-sm font-semibold">
-              <ShoppingBag className="size-4" /> Ver sacola · {count} {count === 1 ? "item" : "itens"}
-            </span>
-            <span className="num text-sm font-bold">{fmtBRL(total)}</span>
-          </button>
-        </div>
-      )}
+      <div className="fixed inset-x-0 bottom-0 z-40 flex flex-col">
+        {count > 0 && (
+          <div className="border-t border-border bg-background p-3">
+            <button
+              type="button"
+              onClick={() => setSacolaAberta(true)}
+              className="mx-auto flex w-full max-w-lg items-center justify-between rounded-xl bg-primary px-4 py-3 text-primary-foreground shadow-lg transition-opacity hover:opacity-90"
+            >
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <ShoppingBag className="size-4" /> Ver sacola · {count} {count === 1 ? "item" : "itens"}
+              </span>
+              <span className="num text-sm font-bold">{fmtBRL(total)}</span>
+            </button>
+          </div>
+        )}
+        <CustomerTabBar slug={slug} />
+      </div>
 
       <CartDrawer restauranteId={restauranteId} open={sacolaAberta} onOpenChange={setSacolaAberta} />
     </div>
