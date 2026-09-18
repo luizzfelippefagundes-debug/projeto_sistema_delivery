@@ -20,6 +20,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import type { ItemCardapio } from "@/lib/types";
 
@@ -70,6 +71,9 @@ export default function ItemCardapioSheet({
   const [novaCategoria, setNovaCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
   const [preco, setPreco] = useState("");
+  const [controlarEstoque, setControlarEstoque] = useState(false);
+  const [estoqueAtual, setEstoqueAtual] = useState("");
+  const [estoqueMinimo, setEstoqueMinimo] = useState("5");
   const [imagemUrl, setImagemUrl] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [processandoImagem, setProcessandoImagem] = useState(false);
@@ -84,6 +88,9 @@ export default function ItemCardapioSheet({
     setDescricao(item?.descricao ?? "");
     setPreco(item ? String(item.preco) : "");
     setImagemUrl(item?.imagemUrl ?? null);
+    setControlarEstoque(item?.estoqueAtual != null);
+    setEstoqueAtual(item?.estoqueAtual != null ? String(item.estoqueAtual) : "");
+    setEstoqueMinimo(item?.estoqueMinimo != null ? String(item.estoqueMinimo) : "5");
     setErro(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, item]);
@@ -110,13 +117,28 @@ export default function ItemCardapioSheet({
       setErro("Preencha nome, categoria e um preço válido.");
       return;
     }
+    const estoqueAtualNumero = controlarEstoque ? Number(estoqueAtual || "0") : null;
+    const estoqueMinimoNumero = controlarEstoque ? Number(estoqueMinimo || "0") : null;
+    if (controlarEstoque && (Number.isNaN(estoqueAtualNumero) || estoqueAtualNumero! < 0)) {
+      setErro("Informe uma quantidade de estoque válida.");
+      return;
+    }
     setErro(null);
     startTransition(async () => {
       try {
+        const payload = {
+          nome,
+          categoria: categoriaFinal,
+          descricao,
+          preco: precoNumero,
+          imagemUrl,
+          estoqueAtual: estoqueAtualNumero,
+          estoqueMinimo: estoqueMinimoNumero,
+        };
         if (item) {
-          await atualizarItemCardapio(item.id, { nome, categoria: categoriaFinal, descricao, preco: precoNumero, imagemUrl });
+          await atualizarItemCardapio(item.id, payload);
         } else {
-          await criarItemCardapio({ nome, categoria: categoriaFinal, descricao, preco: precoNumero, imagemUrl });
+          await criarItemCardapio(payload);
         }
         onOpenChange(false);
       } catch (e) {
@@ -213,6 +235,40 @@ export default function ItemCardapioSheet({
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="item-preco">Preço (R$)</Label>
             <Input id="item-preco" value={preco} onChange={(e) => setPreco(e.target.value)} placeholder="Ex: 82,00" inputMode="decimal" />
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-border pt-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="controlar-estoque">Controlar estoque</Label>
+              <Switch id="controlar-estoque" checked={controlarEstoque} onCheckedChange={setControlarEstoque} />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Pra itens com unidade contável (bebidas, por exemplo). Cada venda desconta daqui e o item pausa sozinho ao zerar.
+            </p>
+            {controlarEstoque && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="estoque-atual">Quantidade em estoque</Label>
+                  <Input
+                    id="estoque-atual"
+                    value={estoqueAtual}
+                    onChange={(e) => setEstoqueAtual(e.target.value)}
+                    inputMode="numeric"
+                    placeholder="Ex: 24"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="estoque-minimo">Avisar abaixo de</Label>
+                  <Input
+                    id="estoque-minimo"
+                    value={estoqueMinimo}
+                    onChange={(e) => setEstoqueMinimo(e.target.value)}
+                    inputMode="numeric"
+                    placeholder="Ex: 5"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {erro && <p className="text-sm text-destructive">{erro}</p>}

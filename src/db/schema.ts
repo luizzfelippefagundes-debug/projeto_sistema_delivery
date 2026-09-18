@@ -72,6 +72,12 @@ export const itensCardapio = pgTable("itens_cardapio", {
    * comprimida no navegador antes de enviar. Evita depender de um serviço
    * de storage de arquivos só pra isso. Nula quando o item não tem foto. */
   imagemUrl: text("imagem_url"),
+  /** Controle de estoque é opt-in por item — nulo significa "não
+   * controlado" (ex: pratos feitos na hora, sem unidade física contável).
+   * Quando não é nulo, cada venda desconta daqui automaticamente e o item
+   * é pausado sozinho ao zerar. */
+  estoqueAtual: integer("estoque_atual"),
+  estoqueMinimo: integer("estoque_minimo"),
   ativo: boolean("ativo").notNull().default(true),
   criadoEm: timestamp("criado_em").notNull().defaultNow(),
 });

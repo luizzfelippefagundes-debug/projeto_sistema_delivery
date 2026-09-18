@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "../db";
 import { itensCardapio } from "../db/schema";
+import { ajustarEstoque } from "../db/queries/cardapio";
 import { assertFuncionario } from "../lib/funcionarioAuth";
 import { registrarAtividade } from "../db/queries/atividades";
 
@@ -23,6 +24,8 @@ export async function criarItemCardapio(dados: {
   descricao?: string | null;
   preco: number;
   imagemUrl?: string | null;
+  estoqueAtual?: number | null;
+  estoqueMinimo?: number | null;
 }) {
   const dono = await assertFuncionario("dono");
   if (!dados.nome.trim() || !dados.categoria.trim() || dados.preco <= 0) {
@@ -35,6 +38,8 @@ export async function criarItemCardapio(dados: {
     descricao: dados.descricao?.trim() || null,
     preco: dados.preco,
     imagemUrl: validarImagem(dados.imagemUrl),
+    estoqueAtual: dados.estoqueAtual ?? null,
+    estoqueMinimo: dados.estoqueAtual != null ? (dados.estoqueMinimo ?? 5) : null,
   });
   await registrarAtividade({
     restauranteId: dono.restauranteId,
@@ -49,7 +54,15 @@ export async function criarItemCardapio(dados: {
 
 export async function atualizarItemCardapio(
   id: string,
-  dados: { nome: string; categoria: string; descricao?: string | null; preco: number; imagemUrl?: string | null },
+  dados: {
+    nome: string;
+    categoria: string;
+    descricao?: string | null;
+    preco: number;
+    imagemUrl?: string | null;
+    estoqueAtual?: number | null;
+    estoqueMinimo?: number | null;
+  },
 ) {
   const dono = await assertFuncionario("dono");
   if (!dados.nome.trim() || !dados.categoria.trim() || dados.preco <= 0) {
@@ -63,6 +76,8 @@ export async function atualizarItemCardapio(
       descricao: dados.descricao?.trim() || null,
       preco: dados.preco,
       imagemUrl: validarImagem(dados.imagemUrl),
+      estoqueAtual: dados.estoqueAtual ?? null,
+      estoqueMinimo: dados.estoqueAtual != null ? (dados.estoqueMinimo ?? 5) : null,
     })
     .where(eq(itensCardapio.id, id));
   await registrarAtividade({
@@ -74,6 +89,22 @@ export async function atualizarItemCardapio(
   });
   revalidatePath("/dono/cardapio");
   revalidatePath("/");
+}
+
+export async function ajustarEstoqueAction(id: string, delta: number) {
+  const dono = await assertFuncionario("dono");
+  const atualizado = await ajustarEstoque(id, delta);
+  if (atualizado) {
+    await registrarAtividade({
+      restauranteId: dono.restauranteId,
+      funcionarioId: dono.id,
+      nomeFuncionario: dono.nome,
+      acao: delta > 0 ? "Repôs estoque" : "Ajustou estoque",
+      detalhe: `${atualizado.nome} — ${delta > 0 ? "+" : ""}${delta} (agora: ${atualizado.estoqueAtual})`,
+    });
+  }
+  revalidatePath("/dono/cardapio");
+  revalidatePath("/dono/estoque");
 }
 
 export async function alternarAtivoItemCardapio(id: string, ativo: boolean) {

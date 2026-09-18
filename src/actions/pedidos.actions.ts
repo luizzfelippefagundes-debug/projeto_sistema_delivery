@@ -5,6 +5,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "../db";
 import { clientes, itensCardapio, itensPedido, pedidos, restaurantes } from "../db/schema";
+import { baixarEstoque } from "../db/queries/cardapio";
 import { assertFuncionario } from "../lib/funcionarioAuth";
 import { enviarMensagemWhatsapp } from "../lib/evolutionApi";
 import type { OrderStatus, Pagamento } from "../lib/types";
@@ -38,9 +39,12 @@ export async function enviarComandaParaCozinha(mesa: number, itens: ItemParaEnvi
       quantidade: i.quantidade,
     })),
   );
+  await baixarEstoque(itens.map((i) => ({ itemCardapioId: i.itemCardapioId, quantidade: i.quantidade })));
 
   revalidatePath("/atendente");
   revalidatePath("/cozinha");
+  revalidatePath("/dono/cardapio");
+  revalidatePath("/dono/estoque");
 }
 
 export async function fecharMesaAction(mesa: number, pagamento: Pagamento) {
@@ -148,10 +152,13 @@ export async function criarPedidoWhatsapp(dados: {
     .returning();
 
   await db.insert(itensPedido).values(itensParaSalvar.map((i) => ({ pedidoId: pedido.id, ...i })));
+  await baixarEstoque(itensParaSalvar.map((i) => ({ itemCardapioId: i.itemCardapioId, quantidade: i.quantidade })));
 
   revalidatePath("/cozinha");
   revalidatePath("/motoboy");
   revalidatePath("/dono");
+  revalidatePath("/dono/cardapio");
+  revalidatePath("/dono/estoque");
 
   return { pedidoId: pedido.id, total };
 }
@@ -226,10 +233,13 @@ export async function criarPedidoCliente(dados: {
     .returning();
 
   await db.insert(itensPedido).values(itensParaSalvar.map((i) => ({ pedidoId: pedido.id, ...i })));
+  await baixarEstoque(itensParaSalvar.map((i) => ({ itemCardapioId: i.itemCardapioId, quantidade: i.quantidade })));
 
   revalidatePath("/cozinha");
   revalidatePath("/motoboy");
   revalidatePath("/dono");
+  revalidatePath("/dono/cardapio");
+  revalidatePath("/dono/estoque");
 
   return { pedidoId: pedido.id };
 }

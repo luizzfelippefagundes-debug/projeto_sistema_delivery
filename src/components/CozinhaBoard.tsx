@@ -7,7 +7,7 @@ import { avancarStatusCozinha } from "@/actions/pedidos.actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { fmtBRL, minAgo, origemLabel } from "@/lib/data";
+import { fmtBRL, fmtDiaHora, origemLabel } from "@/lib/data";
 import type { OrderStatus } from "@/lib/types";
 
 export interface PedidoCozinha {
@@ -58,7 +58,7 @@ export default function CozinhaBoard({ pedidos }: { pedidos: PedidoCozinha[] }) 
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-bold">{origemLabel(o)}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">{minAgo(o.criadoEm)}</span>
+                        <span className="text-xs text-muted-foreground">{fmtDiaHora(o.criadoEm)}</span>
                         <a href={`/imprimir/${o.id}`} target="_blank" rel="noopener noreferrer">
                           <Button size="icon-sm" variant="outline" aria-label="Imprimir comanda">
                             <Printer />

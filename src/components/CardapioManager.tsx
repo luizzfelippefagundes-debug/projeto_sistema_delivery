@@ -79,6 +79,7 @@ export default function CardapioManager({
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Preço</TableHead>
+                  <TableHead>Estoque</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
@@ -104,6 +105,23 @@ export default function CardapioManager({
                       </div>
                     </TableCell>
                     <TableCell className="num">{fmtBRL(item.preco)}</TableCell>
+                    <TableCell>
+                      {item.estoqueAtual == null ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        <Badge
+                          className={
+                            item.estoqueAtual === 0
+                              ? "bg-status-danger-bg text-status-danger-fg"
+                              : item.estoqueAtual <= (item.estoqueMinimo ?? 0)
+                                ? "bg-status-warn-bg text-status-warn-fg"
+                                : "bg-status-ok-bg text-status-ok-fg"
+                          }
+                        >
+                          {item.estoqueAtual} un.
+                        </Badge>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Badge className={item.ativo ? "bg-status-ok-bg text-status-ok-fg" : "bg-status-muted-bg text-status-muted-fg"}>
                         {item.ativo ? "Ativo" : "Inativo"}

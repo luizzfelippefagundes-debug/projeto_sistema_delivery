@@ -18,6 +18,8 @@ export interface ItemCardapio {
   preco: number;
   ativo: boolean;
   imagemUrl: string | null;
+  estoqueAtual: number | null;
+  estoqueMinimo: number | null;
 }
 
 export type PapelFuncionario = "dono" | "atendente" | "cozinha" | "motoboy";

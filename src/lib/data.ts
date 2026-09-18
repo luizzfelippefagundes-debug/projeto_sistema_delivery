@@ -13,6 +13,13 @@ export function minAgo(ts: number): string {
   return m < 1 ? "agora" : `${m} min`;
 }
 
+/** Dia e hora formatados (ex: "18/09 09:44") — usado onde faz mais sentido
+ * mostrar quando o pedido chegou do que só "quantos minutos atrás", que
+ * vira um número gigante e inútil pra pedidos esquecidos por dias. */
+export function fmtDiaHora(ts: number): string {
+  return new Date(ts).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
 export const STATUS_LABEL: Record<OrderStatus, string> = {
   novo: "Novo",
   preparo: "Em preparo",
