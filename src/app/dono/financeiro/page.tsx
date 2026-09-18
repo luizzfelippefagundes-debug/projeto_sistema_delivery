@@ -106,7 +106,7 @@ export default async function FinanceiroPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="font-heading text-2xl font-semibold">Financeiro</h2>
           <p className="text-sm text-muted-foreground">

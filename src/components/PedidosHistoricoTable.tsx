@@ -56,7 +56,33 @@ export default function PedidosHistoricoTable({
 
   return (
     <>
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="flex flex-col gap-3 sm:hidden">
+        {pedidos.length === 0 && <p className="text-sm text-muted-foreground">Nenhum pedido nesse período.</p>}
+        {pedidos.map(({ pedido: p, itens }) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => setSelecionado({ pedido: p, itens })}
+            className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 text-left"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="font-medium">{origemLabel(p)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {p.criadoEm.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                </p>
+              </div>
+              <StatusBadge status={p.status} />
+            </div>
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>{itens.length} item(ns) · {p.formaPagamento ? PAGAMENTO_LABEL[p.formaPagamento] : "—"}</span>
+              <span className="num font-semibold text-foreground">{fmtBRL(p.total)}</span>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-xl border border-border sm:block">
         <Table>
           <TableHeader>
             <TableRow>

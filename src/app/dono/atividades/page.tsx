@@ -20,7 +20,23 @@ export default async function AtividadesPage() {
         Registro das ações administrativas feitas no painel — quem fez o quê e quando.
       </p>
 
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="flex flex-col gap-3 sm:hidden">
+        {atividades.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma atividade registrada ainda.</p>}
+        {atividades.map((a) => (
+          <div key={a.id} className="flex flex-col gap-1.5 rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-medium">{a.nomeFuncionario}</span>
+              <Badge className="bg-status-neutral-bg text-status-neutral-fg">{a.acao}</Badge>
+            </div>
+            {a.detalhe && <p className="text-sm text-muted-foreground">{a.detalhe}</p>}
+            <p className="text-xs text-muted-foreground">
+              {a.criadoEm.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-xl border border-border sm:block">
         <Table>
           <TableHeader>
             <TableRow>

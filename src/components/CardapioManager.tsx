@@ -73,7 +73,65 @@ export default function CardapioManager({
       {porCategoria.map(({ categoria, itens: itensDaCategoria }, idx) => (
         <div key={categoria}>
           <h3 className="mb-2 font-heading text-lg font-semibold">{categoria}</h3>
-          <div className="overflow-x-auto rounded-xl border border-border">
+
+          <div className="flex flex-col gap-3 sm:hidden">
+            {itensDaCategoria.map((item) => (
+              <div key={item.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+                <div
+                  className={`flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md ${
+                    item.imagemUrl ? "border border-border" : CATEGORY_TINT[idx % CATEGORY_TINT.length]
+                  }`}
+                >
+                  {item.imagemUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.imagemUrl} alt="" className="size-full object-cover" />
+                  ) : (
+                    <ImageOff className="size-4" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{item.nome}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    <span className="num text-sm text-muted-foreground">{fmtBRL(item.preco)}</span>
+                    <Badge className={item.ativo ? "bg-status-ok-bg text-status-ok-fg" : "bg-status-muted-bg text-status-muted-fg"}>
+                      {item.ativo ? "Ativo" : "Inativo"}
+                    </Badge>
+                    {item.estoqueAtual != null && (
+                      <Badge
+                        className={
+                          item.estoqueAtual === 0
+                            ? "bg-status-danger-bg text-status-danger-fg"
+                            : item.estoqueAtual <= (item.estoqueMinimo ?? 0)
+                              ? "bg-status-warn-bg text-status-warn-fg"
+                              : "bg-status-ok-bg text-status-ok-fg"
+                        }
+                      >
+                        {item.estoqueAtual} un.
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
+                    <MoreHorizontal />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setItemEmEdicao(item);
+                        setSheetAberto(true);
+                      }}
+                    >
+                      Editar
+                    </DropdownMenuItem>
+                    <ToggleAtivoItem item={item} />
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden overflow-x-auto rounded-xl border border-border sm:block">
             <Table>
               <TableHeader>
                 <TableRow>

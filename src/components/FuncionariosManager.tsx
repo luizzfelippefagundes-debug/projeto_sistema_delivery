@@ -92,7 +92,54 @@ export default function FuncionariosManager({
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="flex flex-col gap-3 sm:hidden">
+        {funcionarios.map((f) => {
+          const pendente = !f.clerkUserId;
+          return (
+            <div key={f.id} className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-medium">{f.nome}</p>
+                  <p className="text-xs text-muted-foreground">{PAPEL_LABEL[f.papel]}</p>
+                </div>
+                {f.papel !== "dono" && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
+                      <MoreHorizontal />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {pendente && <CopiarLinkConvite papel={f.papel} />}
+                      <DropdownMenuItem onClick={() => setGerenciando(f)}>
+                        <Settings2 /> Gerenciar acesso
+                      </DropdownMenuItem>
+                      <ToggleAtivoFuncionario funcionario={f} />
+                      {pendente && (
+                        <DropdownMenuItem variant="destructive" onClick={() => setCancelando(f)}>
+                          <Trash2 /> Cancelar convite
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+              <p className="truncate text-sm text-muted-foreground">{f.emailConvite ?? "—"}</p>
+              <div className="flex flex-wrap gap-1.5">
+                <Badge className={f.ativo ? "bg-status-ok-bg text-status-ok-fg" : "bg-status-muted-bg text-status-muted-fg"}>
+                  {f.ativo ? "Ativo" : "Inativo"}
+                </Badge>
+                {pendente && <Badge className="bg-status-warn-bg text-status-warn-fg">Convite pendente</Badge>}
+                {f.acessosExtras.map((a) => (
+                  <Badge key={a} className="bg-status-neutral-bg text-status-neutral-fg">
+                    + {PAPEL_LABEL[a]}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-xl border border-border sm:block">
         <Table>
           <TableHeader>
             <TableRow>
