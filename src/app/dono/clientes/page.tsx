@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ClientesMobileList from "@/components/ClientesMobileList";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -56,33 +57,7 @@ export default async function ClientesPage() {
         </Card>
       </div>
 
-      <div className="flex flex-col gap-3 sm:hidden">
-        {clientes.length === 0 && <p className="text-sm text-muted-foreground">Nenhum cliente de delivery ainda.</p>}
-        {clientes.map((c) => {
-          const dias = diasAtras(c.ultimoPedido);
-          const estaSumindo = dias > DIAS_SUMINDO;
-          return (
-            <Link
-              key={c.nome}
-              href={`/dono/clientes/${encodeURIComponent(c.nome)}`}
-              className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <p className="font-medium">{c.nome}</p>
-                <Badge className={estaSumindo ? "bg-status-warn-bg text-status-warn-fg" : "bg-status-ok-bg text-status-ok-fg"}>
-                  {estaSumindo ? `${dias}d sumido` : "Ativo"}
-                </Badge>
-              </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                <span>{c.qtdPedidos} pedido(s)</span>
-                <span className="num">{fmtBRL(c.totalGasto)} total</span>
-                <span className="num">{fmtBRL(c.totalGasto / c.qtdPedidos)} médio</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Último pedido: {c.ultimoPedido.toLocaleDateString("pt-BR")}</p>
-            </Link>
-          );
-        })}
-      </div>
+      <ClientesMobileList clientes={clientes} />
 
       <div className="hidden overflow-x-auto rounded-xl border border-border sm:block">
         <Table>
