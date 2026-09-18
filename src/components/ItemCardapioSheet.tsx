@@ -14,12 +14,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import type { ItemCardapio } from "@/lib/types";
@@ -148,12 +147,12 @@ export default function ItemCardapioSheet({
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-md">
-        <SheetHeader>
-          <SheetTitle>{item ? "Editar item" : "Novo item do cardápio"}</SheetTitle>
-        </SheetHeader>
-        <div className="flex flex-col gap-4 px-4">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[85vh] w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+        <DialogHeader className="p-4">
+          <DialogTitle>{item ? "Editar item" : "Novo item do cardápio"}</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4">
           <div className="flex flex-col gap-1.5">
             <Label>Foto</Label>
             <div className="flex items-center gap-3">
@@ -273,12 +272,12 @@ export default function ItemCardapioSheet({
 
           {erro && <p className="text-sm text-destructive">{erro}</p>}
         </div>
-        <SheetFooter>
+        <div className="mt-auto flex flex-col gap-2 border-t border-border p-4">
           <Button disabled={pending || processandoImagem} onClick={salvar}>
             {pending ? "Salvando…" : "Salvar"}
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

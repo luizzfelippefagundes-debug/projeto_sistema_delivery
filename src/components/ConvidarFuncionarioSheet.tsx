@@ -13,12 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const PAPEIS = [
   { value: "atendente", label: "Atendente (comanda)" },
@@ -66,12 +65,12 @@ export default function ConvidarFuncionarioSheet({
   }
 
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent className="w-full sm:max-w-md">
-        <SheetHeader>
-          <SheetTitle>Convidar funcionário</SheetTitle>
-        </SheetHeader>
-        <div className="flex flex-col gap-4 px-4">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="flex max-h-[85vh] w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+        <DialogHeader className="p-4">
+          <DialogTitle>Convidar funcionário</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-4 overflow-y-auto px-4 pb-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="func-nome">Nome</Label>
             <Input id="func-nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Juliana" />
@@ -106,12 +105,12 @@ export default function ConvidarFuncionarioSheet({
           </div>
           {erro && <p className="text-sm text-destructive">{erro}</p>}
         </div>
-        <SheetFooter>
+        <div className="mt-auto flex flex-col gap-2 border-t border-border p-4">
           <Button disabled={pending} onClick={salvar}>
             {pending ? "Convidando…" : "Convidar"}
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

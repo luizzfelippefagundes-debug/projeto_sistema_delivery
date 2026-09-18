@@ -4,6 +4,7 @@ import { UserButton } from "@clerk/nextjs";
 import { Boxes, ClipboardList, History, LayoutDashboard, LineChart, Users, UsersRound, UtensilsCrossed } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import DonoTabBar from "@/components/DonoTabBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import {
   Sidebar,
@@ -94,11 +95,20 @@ export default function DonoSidebar({
 
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4">
-          <SidebarTrigger />
+          <SidebarTrigger className="hidden md:inline-flex" />
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base leading-none md:hidden">🍣</span>
           <span className="font-heading text-lg font-semibold">{TITLES[pathname] ?? "Dashi Sushi"}</span>
+          <div className="ml-auto flex items-center gap-2 md:hidden">
+            <ThemeToggle />
+            <UserButton />
+          </div>
         </header>
-        <div className="flex-1 p-4 md:p-6">{children}</div>
+        <div className="flex-1 p-4 pb-24 md:p-6 md:pb-6">{children}</div>
       </SidebarInset>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 md:hidden">
+        <DonoTabBar />
+      </div>
     </SidebarProvider>
   );
 }

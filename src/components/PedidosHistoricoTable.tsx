@@ -5,11 +5,11 @@ import { useState } from "react";
 import StatusBadge from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -98,13 +98,13 @@ export default function PedidosHistoricoTable({
         </Table>
       </div>
 
-      <Sheet open={!!selecionado} onOpenChange={(v) => !v && setSelecionado(null)}>
-        <SheetContent className="w-full sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>{selecionado ? origemLabel(selecionado.pedido) : ""}</SheetTitle>
-          </SheetHeader>
+      <Dialog open={!!selecionado} onOpenChange={(v) => !v && setSelecionado(null)}>
+        <DialogContent className="flex max-h-[85vh] w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+          <DialogHeader className="p-4">
+            <DialogTitle>{selecionado ? origemLabel(selecionado.pedido) : ""}</DialogTitle>
+          </DialogHeader>
           {selecionado && (
-            <div className="flex flex-col gap-4 px-4">
+            <div className="flex flex-col gap-4 overflow-y-auto px-4 pb-4">
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 <span>
                   {selecionado.pedido.criadoEm.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
@@ -152,8 +152,8 @@ export default function PedidosHistoricoTable({
               </a>
             </div>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

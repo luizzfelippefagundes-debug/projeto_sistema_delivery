@@ -16,12 +16,11 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { DIA_SEMANA_LABEL } from "@/lib/types";
 import type { Funcionario, PapelFuncionario, Turno } from "@/lib/types";
 
@@ -97,12 +96,12 @@ export default function GerenciarFuncionarioSheet({
   }
 
   return (
-    <Sheet open={!!funcionario} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-md">
-        <SheetHeader>
-          <SheetTitle>Gerenciar acesso — {funcionario?.nome}</SheetTitle>
-        </SheetHeader>
-        <div className="flex flex-col gap-5 px-4">
+    <Dialog open={!!funcionario} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[85vh] w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+        <DialogHeader className="p-4">
+          <DialogTitle>Gerenciar acesso — {funcionario?.nome}</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-4 pb-4">
           <div className="flex flex-col gap-3">
             <Label>Permissões extras</Label>
             <p className="text-xs text-muted-foreground">
@@ -180,12 +179,12 @@ export default function GerenciarFuncionarioSheet({
             {erroTurno && <p className="text-sm text-destructive">{erroTurno}</p>}
           </div>
         </div>
-        <SheetFooter>
+        <div className="mt-auto flex flex-col gap-2 border-t border-border p-4">
           <Button disabled={pending} onClick={salvar}>
             {pending ? "Salvando…" : "Salvar"}
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
