@@ -45,29 +45,30 @@ function ItemCard({ item, categoria, tint }: { item: ItemDoCardapio; categoria: 
   const noCarrinho = items.find((i) => i.itemCardapioId === item.id);
 
   return (
-    <div className="flex gap-4 border-b border-border py-4 last:border-0">
-      <div className={`flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl sm:size-24 ${item.imagemUrl ? "" : tint}`}>
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="aspect-[4/3] w-full overflow-hidden">
         {item.imagemUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.imagemUrl} alt={item.nome} className="size-full rounded-xl object-cover" />
+          <img src={item.imagemUrl} alt={item.nome} className="size-full object-cover" />
         ) : (
-          <Icon className="size-7" />
+          <div className={`flex size-full items-center justify-center ${tint}`}>
+            <Icon className="size-8" />
+          </div>
         )}
       </div>
-      <div className="flex flex-1 flex-col justify-between gap-2">
-        <div>
-          <h3 className="font-medium leading-snug">{item.nome}</h3>
-          {item.descricao && (
-            <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">{item.descricao}</p>
-          )}
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <span className="num text-sm font-semibold">{fmtBRL(item.preco)}</span>
+      <div className="flex flex-1 flex-col gap-1 p-3">
+        <h3 className="line-clamp-2 text-sm font-medium leading-snug sm:text-base">{item.nome}</h3>
+        {item.descricao && (
+          <p className="line-clamp-2 text-xs text-muted-foreground">{item.descricao}</p>
+        )}
+        <span className="num text-sm font-semibold text-primary">{fmtBRL(item.preco)}</span>
+        <div className="mt-auto pt-1">
           {noCarrinho ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center gap-3 rounded-full border border-border py-1.5">
               <Button
                 size="icon-sm"
-                variant="outline"
+                variant="ghost"
+                className="size-6 rounded-full"
                 onClick={() => setQty(item.id, noCarrinho.qtd - 1)}
                 aria-label="Diminuir quantidade"
               >
@@ -76,7 +77,8 @@ function ItemCard({ item, categoria, tint }: { item: ItemDoCardapio; categoria: 
               <span className="num w-4 text-center text-sm font-semibold">{noCarrinho.qtd}</span>
               <Button
                 size="icon-sm"
-                variant="outline"
+                variant="ghost"
+                className="size-6 rounded-full"
                 onClick={() => setQty(item.id, noCarrinho.qtd + 1)}
                 aria-label="Aumentar quantidade"
               >
@@ -84,7 +86,7 @@ function ItemCard({ item, categoria, tint }: { item: ItemDoCardapio; categoria: 
               </Button>
             </div>
           ) : (
-            <Button size="sm" variant="outline" onClick={() => add(item.id, item.nome, item.preco)}>
+            <Button className="w-full rounded-full" size="sm" onClick={() => add(item.id, item.nome, item.preco)}>
               <Plus /> Adicionar
             </Button>
           )}
@@ -141,7 +143,7 @@ export default function CardapioClient({
 
           <div className={`mx-auto w-full max-w-2xl flex-1 px-4 md:px-6 ${count ? "pb-40" : "pb-24"}`}>
             <h2 className="pt-5 font-heading text-lg font-semibold">{categoria}</h2>
-            <div className="flex flex-col">
+            <div className="grid grid-cols-2 gap-3 py-4 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
               {itensPorCategoria[categoria]?.map((item) => (
                 <ItemCard key={item.id} item={item} categoria={categoria} tint={tintDaCategoria(categoria, categorias)} />
               ))}
