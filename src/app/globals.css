@@ -162,12 +162,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Comanda impressa — pensado pra bobina térmica de 80mm (a maioria das
- * impressoras de restaurante). Se a impressora for de 58mm, o navegador
- * ainda encaixa o conteúdo, só fica com mais espaço em branco na lateral. */
+/* Comanda impressa — sem largura fixa de propósito: o papel (58mm ou 80mm)
+ * vem da impressora escolhida, e o conteúdo se encaixa nele. */
 @media print {
   @page {
-    size: 80mm auto;
     margin: 2mm;
   }
   .no-print {

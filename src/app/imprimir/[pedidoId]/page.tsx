@@ -23,7 +23,7 @@ export default async function ImprimirComandaPage({ params }: { params: Promise<
   const restaurante = await getRestaurantePorId(funcionario.restauranteId);
 
   return (
-    <div className="mx-auto flex max-w-xs flex-col gap-3 bg-white p-4 font-mono text-black print:max-w-none">
+    <div className="mx-auto flex max-w-xs flex-col gap-3 bg-white p-4 font-mono text-black print:max-w-none print:p-0">
       <AutoPrint />
 
       <div className="text-center">
