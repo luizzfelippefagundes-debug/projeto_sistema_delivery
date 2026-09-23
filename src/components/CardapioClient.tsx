@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import CartDrawer from "@/components/CartDrawer";
 import CustomerHeader from "@/components/CustomerHeader";
 import CustomerTabBar from "@/components/CustomerTabBar";
-import { Button } from "@/components/ui/button";
 import { fmtBRL } from "@/lib/data";
 import { useCart } from "@/lib/cart";
 
@@ -45,52 +44,57 @@ function ItemCard({ item, categoria, tint }: { item: ItemDoCardapio; categoria: 
   const noCarrinho = items.find((i) => i.itemCardapioId === item.id);
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
-      <div className="aspect-[4/3] w-full overflow-hidden">
-        {item.imagemUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.imagemUrl} alt={item.nome} className="size-full object-cover" />
-        ) : (
-          <div className={`flex size-full items-center justify-center ${tint}`}>
-            <Icon className="size-8" />
-          </div>
-        )}
-      </div>
-      <div className="flex flex-1 flex-col gap-1 p-3">
-        <h3 className="line-clamp-2 text-sm font-medium leading-snug sm:text-base">{item.nome}</h3>
+    <div className="flex items-start gap-3 border-b border-border py-4 last:border-0">
+      <div className="min-w-0 flex-1">
+        <h3 className="font-medium leading-snug">{item.nome}</h3>
         {item.descricao && (
-          <p className="line-clamp-2 text-xs text-muted-foreground">{item.descricao}</p>
+          <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">{item.descricao}</p>
         )}
-        <span className="num text-sm font-semibold text-primary">{fmtBRL(item.preco)}</span>
-        <div className="mt-auto pt-1">
-          {noCarrinho ? (
-            <div className="flex items-center justify-center gap-3 rounded-full border border-border py-1.5">
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                className="size-6 rounded-full"
-                onClick={() => setQty(item.id, noCarrinho.qtd - 1)}
-                aria-label="Diminuir quantidade"
-              >
-                <Minus />
-              </Button>
-              <span className="num w-4 text-center text-sm font-semibold">{noCarrinho.qtd}</span>
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                className="size-6 rounded-full"
-                onClick={() => setQty(item.id, noCarrinho.qtd + 1)}
-                aria-label="Aumentar quantidade"
-              >
-                <Plus />
-              </Button>
-            </div>
+        <p className="num mt-2 text-sm font-semibold">{fmtBRL(item.preco)}</p>
+      </div>
+
+      <div className="relative size-24 shrink-0 sm:size-28">
+        <div className="size-full overflow-hidden rounded-xl">
+          {item.imagemUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.imagemUrl} alt={item.nome} className="size-full object-cover" />
           ) : (
-            <Button className="w-full rounded-full" size="sm" onClick={() => add(item.id, item.nome, item.preco)}>
-              <Plus /> Adicionar
-            </Button>
+            <div className={`flex size-full items-center justify-center ${tint}`}>
+              <Icon className="size-7" />
+            </div>
           )}
         </div>
+
+        {noCarrinho ? (
+          <div className="absolute -bottom-2.5 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card px-1 py-1 shadow-md">
+            <button
+              type="button"
+              onClick={() => setQty(item.id, noCarrinho.qtd - 1)}
+              aria-label="Diminuir quantidade"
+              className="flex size-6 items-center justify-center rounded-full text-foreground hover:bg-muted"
+            >
+              <Minus className="size-3.5" />
+            </button>
+            <span className="num w-3 text-center text-xs font-semibold">{noCarrinho.qtd}</span>
+            <button
+              type="button"
+              onClick={() => setQty(item.id, noCarrinho.qtd + 1)}
+              aria-label="Aumentar quantidade"
+              className="flex size-6 items-center justify-center rounded-full text-foreground hover:bg-muted"
+            >
+              <Plus className="size-3.5" />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => add(item.id, item.nome, item.preco)}
+            aria-label="Adicionar"
+            className="absolute -bottom-2 -right-1 flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-opacity hover:opacity-90"
+          >
+            <Plus className="size-4" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -155,8 +159,8 @@ export default function CardapioClient({
         </div>
       ) : (
         <>
-          <div ref={pillBarRef} className="sticky top-14 z-30 border-b border-border bg-background/95 backdrop-blur-sm">
-            <div className="mx-auto flex max-w-2xl gap-2 overflow-x-auto px-4 py-3 md:px-6">
+          <div ref={pillBarRef} className="sticky top-14 z-30 border-b border-border bg-background">
+            <div className="mx-auto flex max-w-2xl gap-5 overflow-x-auto px-4 md:px-6">
               {categorias.map((cat) => (
                 <button
                   key={cat}
@@ -165,10 +169,10 @@ export default function CardapioClient({
                   }}
                   type="button"
                   onClick={() => irParaCategoria(cat)}
-                  className={`shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
+                  className={`shrink-0 whitespace-nowrap border-b-2 py-3 text-sm transition-colors ${
                     categoriaAtiva === cat
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-transparent text-muted-foreground hover:text-foreground"
+                      ? "border-primary font-semibold text-primary"
+                      : "border-transparent font-medium text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {cat}
@@ -187,7 +191,7 @@ export default function CardapioClient({
                 data-categoria={cat}
               >
                 <h2 className="pt-5 font-heading text-lg font-semibold">{cat}</h2>
-                <div className="grid grid-cols-2 gap-3 py-4 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                <div className="flex flex-col">
                   {itensPorCategoria[cat]?.map((item) => (
                     <ItemCard key={item.id} item={item} categoria={cat} tint={tintDaCategoria(cat, categorias)} />
                   ))}
