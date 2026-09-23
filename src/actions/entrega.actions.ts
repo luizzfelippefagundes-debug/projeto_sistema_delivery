@@ -6,6 +6,8 @@ import { getDb } from "../db";
 import { zonasEntrega } from "../db/schema";
 import { assertFuncionario } from "../lib/funcionarioAuth";
 import { registrarAtividade } from "../db/queries/atividades";
+import { getConfiguracoes } from "../db/queries/configuracoes";
+import { calcularDistanciaReal } from "../lib/googleMaps";
 
 export async function criarZonaEntrega(dados: { bairro: string; taxaEntrega: number; tempoEstimadoMin: number }) {
   const dono = await assertFuncionario("dono");
@@ -51,4 +53,15 @@ export async function removerZonaEntrega(id: string) {
   await assertFuncionario("dono");
   await getDb().delete(zonasEntrega).where(eq(zonasEntrega.id, id));
   revalidatePath("/dono/financeiro");
+}
+
+/** Endpoint público (chamado do checkout, sem login de funcionário) — só
+ * devolve distância/tempo reais de carro até o endereço digitado, pra
+ * mostrar uma estimativa de verdade em vez da manual. Nunca lança erro:
+ * sem endereço da loja cadastrado ou sem chave do Google configurada,
+ * devolve null e o checkout cai pro tempo estimado da zona. */
+export async function calcularEntregaReal(restauranteId: string, enderecoDestino: string) {
+  const config = await getConfiguracoes(restauranteId);
+  if (!config?.enderecoLoja) return null;
+  return calcularDistanciaReal(config.enderecoLoja, enderecoDestino);
 }

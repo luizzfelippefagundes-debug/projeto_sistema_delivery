@@ -131,12 +131,14 @@ export default function CardapioClient({
   nomeRestaurante,
   itensPorCategoria,
   zonasEntrega,
+  enderecoLoja,
 }: {
   restauranteId: string;
   slug: string;
   nomeRestaurante?: string;
   itensPorCategoria: Record<string, ItemDoCardapio[]>;
   zonasEntrega: ZonaEntregaResumo[];
+  enderecoLoja: string | null;
 }) {
   const categorias = Object.keys(itensPorCategoria);
   const [categoriaAtiva, setCategoriaAtiva] = useState(categorias[0] ?? "");
@@ -255,6 +257,7 @@ export default function CardapioClient({
       <CartDrawer
         restauranteId={restauranteId}
         zonasEntrega={zonasEntrega}
+        enderecoLoja={enderecoLoja}
         itensPorId={itensPorId}
         open={sacolaAberta}
         onOpenChange={setSacolaAberta}

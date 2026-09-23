@@ -2,9 +2,10 @@
 
 import { Show, SignInButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import { Bike, Minus, Pencil, Plus, UtensilsCrossed } from "lucide-react";
+import { Bike, Loader2, Minus, Pencil, Plus, UtensilsCrossed } from "lucide-react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { criarPedidoCliente } from "@/actions/pedidos.actions";
+import { calcularEntregaReal } from "@/actions/entrega.actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,6 +19,7 @@ import ItemDetalheDialog from "@/components/ItemDetalheDialog";
 import type { ItemDoCardapio, ZonaEntregaResumo } from "@/components/CardapioClient";
 import { fmtBRL } from "@/lib/data";
 import { encontrarZona } from "@/lib/entrega";
+import type { DistanciaReal } from "@/lib/googleMaps";
 import { useCart, type CartItem } from "@/lib/cart";
 import type { Pagamento } from "@/lib/types";
 
@@ -48,12 +50,14 @@ function montarEndereco(d: DadosEntrega): string {
 export default function CartDrawer({
   restauranteId,
   zonasEntrega,
+  enderecoLoja,
   itensPorId,
   open,
   onOpenChange,
 }: {
   restauranteId: string;
   zonasEntrega: ZonaEntregaResumo[];
+  enderecoLoja: string | null;
   itensPorId: Record<string, ItemDoCardapio>;
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -69,6 +73,8 @@ export default function CartDrawer({
   const [erro, setErro] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [editando, setEditando] = useState<CartItem | null>(null);
+  const [distanciaReal, setDistanciaReal] = useState<DistanciaReal | null>(null);
+  const [calculandoDistancia, setCalculandoDistancia] = useState(false);
 
   const zonaEncontrada = useMemo(
     () => (tipo === "delivery" ? encontrarZona(zonasEntrega, entrega.bairro) : null),
@@ -76,6 +82,36 @@ export default function CartDrawer({
   );
   const taxaEntrega = tipo === "delivery" ? (zonaEncontrada?.taxaEntrega ?? 0) : 0;
   const totalComEntrega = total + taxaEntrega;
+
+  const enderecoDestino =
+    tipo === "delivery" && entrega.rua.trim() && entrega.numero.trim() && entrega.bairro.trim()
+      ? `${entrega.rua}, ${entrega.numero} - ${entrega.bairro}`
+      : "";
+
+  // Distância/tempo reais (Google Maps) — só dispara quando a rua, número e
+  // bairro estão preenchidos, com debounce pra não bater na API a cada
+  // letra digitada. Sem GOOGLE_MAPS_API_KEY configurada, a action devolve
+  // null e a tela mantém o tempo estimado manual da zona.
+  useEffect(() => {
+    if (!enderecoDestino || !enderecoLoja) {
+      setDistanciaReal(null);
+      return;
+    }
+    setCalculandoDistancia(true);
+    const id = setTimeout(() => {
+      calcularEntregaReal(restauranteId, enderecoDestino)
+        .then(setDistanciaReal)
+        .catch(() => setDistanciaReal(null))
+        .finally(() => setCalculandoDistancia(false));
+    }, 800);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enderecoDestino, enderecoLoja, restauranteId]);
+
+  const mapaUrl =
+    enderecoLoja && enderecoDestino
+      ? `https://maps.google.com/maps?saddr=${encodeURIComponent(enderecoLoja)}&daddr=${encodeURIComponent(enderecoDestino)}&z=13&output=embed`
+      : null;
 
   useEffect(() => {
     try {
@@ -272,8 +308,25 @@ export default function CartDrawer({
 
                   {entrega.bairro.trim() && (
                     <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
-                      <Bike className="size-4 shrink-0 text-primary" />
-                      {zonaEncontrada ? (
+                      {calculandoDistancia ? (
+                        <Loader2 className="size-4 shrink-0 animate-spin text-primary" />
+                      ) : (
+                        <Bike className="size-4 shrink-0 text-primary" />
+                      )}
+                      {calculandoDistancia ? (
+                        <span className="text-muted-foreground">Calculando distância…</span>
+                      ) : distanciaReal ? (
+                        <span>
+                          <strong>{distanciaReal.distanciaKm} km</strong> · Chega em{" "}
+                          <strong>{distanciaReal.duracaoMin} min</strong>
+                          {zonaEncontrada && (
+                            <>
+                              {" "}
+                              · Taxa <span className="num">{fmtBRL(zonaEncontrada.taxaEntrega)}</span>
+                            </>
+                          )}
+                        </span>
+                      ) : zonaEncontrada ? (
                         <span>
                           Chega em <strong>{zonaEncontrada.tempoEstimadoMin} min</strong> · Taxa{" "}
                           <span className="num">{fmtBRL(zonaEncontrada.taxaEntrega)}</span>
@@ -281,6 +334,12 @@ export default function CartDrawer({
                       ) : (
                         <span className="text-muted-foreground">Taxa de entrega a combinar pra esse bairro.</span>
                       )}
+                    </div>
+                  )}
+
+                  {mapaUrl && (
+                    <div className="aspect-[16/10] w-full overflow-hidden rounded-lg border border-border">
+                      <iframe title="Rota de entrega" className="size-full" loading="lazy" src={mapaUrl} />
                     </div>
                   )}
                   <div className="flex flex-col gap-1.5">
