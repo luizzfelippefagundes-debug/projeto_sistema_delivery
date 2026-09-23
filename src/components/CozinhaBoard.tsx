@@ -1,13 +1,13 @@
 "use client";
 
-import { Printer } from "lucide-react";
+import { AlertTriangle, Printer } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useTransition } from "react";
 import { avancarStatusCozinha } from "@/actions/pedidos.actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { fmtBRL, fmtDiaHora, origemLabel } from "@/lib/data";
+import { estaAtrasado, fmtBRL, fmtDiaHora, origemLabel } from "@/lib/data";
 import type { OrderStatus } from "@/lib/types";
 
 export interface PedidoCozinha {
@@ -52,45 +52,57 @@ export default function CozinhaBoard({ pedidos }: { pedidos: PedidoCozinha[] }) 
             </div>
             <div className="flex flex-col gap-3">
               {doGrupo.length === 0 && <p className="text-sm text-muted-foreground">Nada por aqui.</p>}
-              {doGrupo.map((o) => (
-                <Card key={o.id} className="gap-3 py-4">
-                  <CardContent className="flex flex-col gap-3 px-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-bold">{origemLabel(o)}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">{fmtDiaHora(o.criadoEm)}</span>
-                        <a href={`/imprimir/${o.id}`} target="_blank" rel="noopener noreferrer">
-                          <Button size="icon-sm" variant="outline" aria-label="Imprimir comanda">
-                            <Printer />
-                          </Button>
-                        </a>
+              {doGrupo.map((o) => {
+                const atrasado = estaAtrasado(o.criadoEm, o.status);
+                return (
+                  <Card
+                    key={o.id}
+                    className={`gap-3 py-4 ${atrasado ? "border-status-danger-fg/50 bg-status-danger-bg/30" : ""}`}
+                  >
+                    <CardContent className="flex flex-col gap-3 px-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold">{origemLabel(o)}</span>
+                          {atrasado && (
+                            <Badge className="bg-status-danger-bg text-status-danger-fg">
+                              <AlertTriangle className="size-3" /> Atrasado
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">{fmtDiaHora(o.criadoEm)}</span>
+                          <a href={`/imprimir/${o.id}`} target="_blank" rel="noopener noreferrer">
+                            <Button size="icon-sm" variant="outline" aria-label="Imprimir comanda">
+                              <Printer />
+                            </Button>
+                          </a>
+                        </div>
                       </div>
-                    </div>
-                    <ul className="list-disc pl-4 text-xs text-muted-foreground">
-                      {o.itens.map((i) => (
-                        <li key={i.nome}>
-                          {i.quantidade}x {i.nome}
-                          {i.observacao && <span className="block text-foreground">↳ {i.observacao}</span>}
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="flex items-center justify-between gap-2">
+                      <ul className="list-disc pl-4 text-xs text-muted-foreground">
+                        {o.itens.map((i) => (
+                          <li key={i.nome}>
+                            {i.quantidade}x {i.nome}
+                            {i.observacao && <span className="block text-foreground">↳ {i.observacao}</span>}
+                          </li>
+                        ))}
+                      </ul>
                       <span className="num text-sm font-bold">{fmtBRL(o.total)}</span>
                       {next ? (
                         <Button
-                          size="sm"
+                          size="lg"
+                          className="w-full text-base font-semibold"
                           disabled={pending}
                           onClick={() => startTransition(() => avancarStatusCozinha(o.id, next))}
                         >
                           {nextLabel}
                         </Button>
                       ) : (
-                        <span className="text-xs text-muted-foreground">{nextLabel}</span>
+                        <p className="text-center text-xs text-muted-foreground">{nextLabel}</p>
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         );
