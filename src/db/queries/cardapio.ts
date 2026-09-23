@@ -2,20 +2,28 @@ import { and, asc, eq, inArray, isNotNull } from "drizzle-orm";
 import { getDb } from "../index";
 import { itensCardapio, opcoesCombo } from "../schema";
 
+/** Ordem alfabética pura bagunça nomes com número (ex: "Combo 5 peças"
+ * cai entre "Combo 40" e "Combo 50", porque compara caractere a
+ * caractere). `numeric: true` faz o "5" vencer o "15", que vence o "40",
+ * na ordem que faz sentido pra quem tá lendo o cardápio. */
+function ordenarPorNome<T extends { categoria: string; nome: string }>(itens: T[]): T[] {
+  return [...itens].sort(
+    (a, b) =>
+      a.categoria.localeCompare(b.categoria, "pt-BR") || a.nome.localeCompare(b.nome, "pt-BR", { numeric: true }),
+  );
+}
+
 export async function getItensCardapio(restauranteId: string) {
-  return getDb()
-    .select()
-    .from(itensCardapio)
-    .where(eq(itensCardapio.restauranteId, restauranteId))
-    .orderBy(asc(itensCardapio.categoria), asc(itensCardapio.nome));
+  const itens = await getDb().select().from(itensCardapio).where(eq(itensCardapio.restauranteId, restauranteId));
+  return ordenarPorNome(itens);
 }
 
 export async function getItensCardapioAtivos(restauranteId: string) {
-  return getDb()
+  const itens = await getDb()
     .select()
     .from(itensCardapio)
-    .where(and(eq(itensCardapio.restauranteId, restauranteId), eq(itensCardapio.ativo, true)))
-    .orderBy(asc(itensCardapio.categoria), asc(itensCardapio.nome));
+    .where(and(eq(itensCardapio.restauranteId, restauranteId), eq(itensCardapio.ativo, true)));
+  return ordenarPorNome(itens);
 }
 
 export async function getCategorias(restauranteId: string) {
@@ -65,11 +73,11 @@ export async function definirOpcoesCombo(
 /** Itens com controle de estoque ligado (estoqueAtual não nulo) —
  * alimenta a tela de Estoque do painel da dona. */
 export async function getItensComEstoque(restauranteId: string) {
-  return getDb()
+  const itens = await getDb()
     .select()
     .from(itensCardapio)
-    .where(and(eq(itensCardapio.restauranteId, restauranteId), isNotNull(itensCardapio.estoqueAtual)))
-    .orderBy(asc(itensCardapio.categoria), asc(itensCardapio.nome));
+    .where(and(eq(itensCardapio.restauranteId, restauranteId), isNotNull(itensCardapio.estoqueAtual)));
+  return ordenarPorNome(itens);
 }
 
 /** Desconta do estoque os itens vendidos num pedido — só mexe em itens que
