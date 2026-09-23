@@ -45,9 +45,11 @@ function ToggleAtivoItem({ item }: { item: ItemCardapio }) {
 export default function CardapioManager({
   itens,
   categorias,
+  opcoesPorItem,
 }: {
   itens: ItemCardapio[];
   categorias: string[];
+  opcoesPorItem: Record<string, string[]>;
 }) {
   const [sheetAberto, setSheetAberto] = useState(false);
   const [itemEmEdicao, setItemEmEdicao] = useState<ItemCardapio | null>(null);
@@ -96,6 +98,11 @@ export default function CardapioManager({
                     <Badge className={item.ativo ? "bg-status-ok-bg text-status-ok-fg" : "bg-status-muted-bg text-status-muted-fg"}>
                       {item.ativo ? "Ativo" : "Inativo"}
                     </Badge>
+                    {item.qtdPecasEscolha != null && (
+                      <Badge className="bg-status-neutral-bg text-status-neutral-fg">
+                        Combo · {item.qtdPecasEscolha} peças
+                      </Badge>
+                    )}
                     {item.estoqueAtual != null && (
                       <Badge
                         className={
@@ -159,7 +166,12 @@ export default function CardapioManager({
                             <ImageOff className="size-4" />
                           )}
                         </div>
-                        {item.nome}
+                        <div>
+                          {item.nome}
+                          {item.qtdPecasEscolha != null && (
+                            <p className="text-xs text-muted-foreground">Combo · {item.qtdPecasEscolha} peças para escolher</p>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="num">{fmtBRL(item.preco)}</TableCell>
@@ -214,6 +226,7 @@ export default function CardapioManager({
       <ItemCardapioSheet
         categorias={categorias}
         item={itemEmEdicao}
+        opcoesAtuais={itemEmEdicao ? (opcoesPorItem[itemEmEdicao.id] ?? []) : []}
         open={sheetAberto}
         onOpenChange={setSheetAberto}
       />

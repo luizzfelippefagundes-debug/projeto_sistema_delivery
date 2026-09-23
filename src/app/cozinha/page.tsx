@@ -19,7 +19,7 @@ export default async function CozinhaPage() {
     status: p.status,
     total: p.total,
     criadoEm: p.criadoEm.getTime(),
-    itens: (itensPorPedido.get(p.id) ?? []).map((i) => ({ nome: i.nome, quantidade: i.quantidade })),
+    itens: (itensPorPedido.get(p.id) ?? []).map((i) => ({ nome: i.nome, quantidade: i.quantidade, observacao: i.observacao })),
   }));
 
   return <CozinhaBoard pedidos={pedidos} />;

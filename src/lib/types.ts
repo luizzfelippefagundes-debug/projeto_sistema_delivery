@@ -20,6 +20,7 @@ export interface ItemCardapio {
   imagemUrl: string | null;
   estoqueAtual: number | null;
   estoqueMinimo: number | null;
+  qtdPecasEscolha: number | null;
 }
 
 export type PapelFuncionario = "dono" | "atendente" | "cozinha" | "motoboy";

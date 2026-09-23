@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray, isNotNull } from "drizzle-orm";
 import { getDb } from "../index";
-import { itensCardapio } from "../schema";
+import { itensCardapio, opcoesCombo } from "../schema";
 
 export async function getItensCardapio(restauranteId: string) {
   return getDb()
@@ -21,6 +21,34 @@ export async function getItensCardapioAtivos(restauranteId: string) {
 export async function getCategorias(restauranteId: string) {
   const itens = await getItensCardapio(restauranteId);
   return [...new Set(itens.map((i) => i.categoria))];
+}
+
+/** Peças escolhíveis de cada combo, agrupadas por item — alimenta tanto o
+ * editor do cardápio (dono) quanto o seletor de peças no cardápio online. */
+export async function getOpcoesComboPorItens(itemIds: string[]) {
+  const mapa = new Map<string, { id: string; nome: string }[]>();
+  if (itemIds.length === 0) return mapa;
+  const rows = await getDb()
+    .select()
+    .from(opcoesCombo)
+    .where(inArray(opcoesCombo.itemCardapioId, itemIds))
+    .orderBy(asc(opcoesCombo.ordem));
+  for (const row of rows) {
+    const lista = mapa.get(row.itemCardapioId) ?? [];
+    lista.push({ id: row.id, nome: row.nome });
+    mapa.set(row.itemCardapioId, lista);
+  }
+  return mapa;
+}
+
+/** Substitui as peças escolhíveis de um combo (apaga tudo e recria) — lista
+ * pequena e reordenável no editor, mais simples que fazer diff. */
+export async function definirOpcoesCombo(itemCardapioId: string, nomes: string[]) {
+  const db = getDb();
+  await db.delete(opcoesCombo).where(eq(opcoesCombo.itemCardapioId, itemCardapioId));
+  const limpos = nomes.map((n) => n.trim()).filter(Boolean);
+  if (limpos.length === 0) return;
+  await db.insert(opcoesCombo).values(limpos.map((nome, ordem) => ({ itemCardapioId, nome, ordem })));
 }
 
 /** Itens com controle de estoque ligado (estoqueAtual não nulo) —

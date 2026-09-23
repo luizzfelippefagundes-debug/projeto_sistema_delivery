@@ -106,7 +106,11 @@ export default function CartDrawer({
       try {
         const { pedidoId } = await criarPedidoCliente({
           restauranteId,
-          itens: items.map((i) => ({ itemCardapioId: i.itemCardapioId, quantidade: i.qtd })),
+          itens: items.map((i) => ({
+            itemCardapioId: i.itemCardapioId,
+            quantidade: i.qtd,
+            observacao: i.escolhas?.length ? i.escolhas.map((e) => `${e.quantidade}x ${e.nome}`).join(", ") : null,
+          })),
           endereco: enderecoFinal,
           telefone: entrega.telefone,
           pagamento,
@@ -143,19 +147,26 @@ export default function CartDrawer({
         <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-4 pb-4">
           {passo === "carrinho" && (
             <>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 {items.length === 0 && <p className="text-sm text-muted-foreground">Sua sacola está vazia.</p>}
                 {items.map((i) => (
-                  <div key={i.itemCardapioId} className="flex items-center justify-between text-sm">
-                    <span>
-                      {i.qtd}x {i.nome}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <Button size="icon-sm" variant="outline" onClick={() => setQty(i.itemCardapioId, i.qtd - 1)}>
+                  <div key={i.cartItemId} className="flex items-start justify-between gap-2 text-sm">
+                    <div className="min-w-0">
+                      <span>
+                        {i.qtd}x {i.nome}
+                      </span>
+                      {i.escolhas && i.escolhas.length > 0 && (
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {i.escolhas.map((e) => `${e.quantidade}x ${e.nome}`).join(", ")}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Button size="icon-sm" variant="outline" onClick={() => setQty(i.cartItemId, i.qtd - 1)}>
                         <Minus />
                       </Button>
                       <span className="num w-16 text-right">{fmtBRL(i.preco * i.qtd)}</span>
-                      <Button size="icon-sm" variant="outline" onClick={() => setQty(i.itemCardapioId, i.qtd + 1)}>
+                      <Button size="icon-sm" variant="outline" onClick={() => setQty(i.cartItemId, i.qtd + 1)}>
                         <Plus />
                       </Button>
                     </div>
@@ -259,12 +270,17 @@ export default function CartDrawer({
 
           {passo === "pagamento" && (
             <>
-              <div className="flex flex-col gap-1 rounded-lg border border-border p-3 text-sm">
+              <div className="flex flex-col gap-1.5 rounded-lg border border-border p-3 text-sm">
                 {items.map((i) => (
-                  <div key={i.itemCardapioId} className="flex justify-between text-muted-foreground">
-                    <span>
-                      {i.qtd}x {i.nome}
-                    </span>
+                  <div key={i.cartItemId} className="flex justify-between text-muted-foreground">
+                    <div>
+                      <span>
+                        {i.qtd}x {i.nome}
+                      </span>
+                      {i.escolhas && i.escolhas.length > 0 && (
+                        <p className="text-xs">{i.escolhas.map((e) => `${e.quantidade}x ${e.nome}`).join(", ")}</p>
+                      )}
+                    </div>
                     <span className="num">{fmtBRL(i.preco * i.qtd)}</span>
                   </div>
                 ))}

@@ -107,6 +107,7 @@ export async function avancarStatusEntrega(pedidoId: string, novoStatus: OrderSt
 export interface ItemDoPedidoCliente {
   itemCardapioId: string;
   quantidade: number;
+  observacao?: string | null;
 }
 
 /** Mesma lógica de revalidação de preço que criarPedidoCliente, só que pro
@@ -188,7 +189,13 @@ export async function criarPedidoCliente(dados: {
     if (!item || item.restauranteId !== dados.restauranteId || !item.ativo) {
       throw new Error("Um dos itens da sacola não está mais disponível.");
     }
-    return { itemCardapioId: item.id, nome: item.nome, preco: item.preco, quantidade: i.quantidade };
+    return {
+      itemCardapioId: item.id,
+      nome: item.nome,
+      preco: item.preco,
+      quantidade: i.quantidade,
+      observacao: i.observacao ?? null,
+    };
   });
 
   const total = itensParaSalvar.reduce((s, i) => s + i.preco * i.quantidade, 0);

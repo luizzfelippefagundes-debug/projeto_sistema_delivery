@@ -26,6 +26,7 @@ interface ItemPedido {
   nome: string;
   preco: number;
   quantidade: number;
+  observacao: string | null;
 }
 
 interface Pedido {
@@ -151,12 +152,15 @@ export default function PedidosHistoricoTable({
                 </p>
               )}
 
-              <div className="flex flex-col gap-1 border-t border-border pt-3">
+              <div className="flex flex-col gap-1.5 border-t border-border pt-3">
                 {selecionado.itens.map((item) => (
                   <div key={item.id} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      {item.quantidade}x {item.nome}
-                    </span>
+                    <div>
+                      <span className="text-muted-foreground">
+                        {item.quantidade}x {item.nome}
+                      </span>
+                      {item.observacao && <p className="text-xs text-muted-foreground">↳ {item.observacao}</p>}
+                    </div>
                     <span className="num">{fmtBRL(item.preco * item.quantidade)}</span>
                   </div>
                 ))}

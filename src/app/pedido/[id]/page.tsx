@@ -83,9 +83,12 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
           <CardContent className="flex flex-col gap-1 px-4 py-4">
             {itens.map((item) => (
               <div key={item.id} className="flex justify-between text-sm">
-                <span className="text-muted-foreground">
-                  {item.quantidade}x {item.nome}
-                </span>
+                <div>
+                  <span className="text-muted-foreground">
+                    {item.quantidade}x {item.nome}
+                  </span>
+                  {item.observacao && <p className="text-xs text-muted-foreground">↳ {item.observacao}</p>}
+                </div>
                 <span className="num">{fmtBRL(item.preco * item.quantidade)}</span>
               </div>
             ))}

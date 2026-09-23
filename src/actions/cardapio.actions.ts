@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "../db";
 import { itensCardapio } from "../db/schema";
-import { ajustarEstoque } from "../db/queries/cardapio";
+import { ajustarEstoque, definirOpcoesCombo } from "../db/queries/cardapio";
 import { assertFuncionario } from "../lib/funcionarioAuth";
 import { registrarAtividade } from "../db/queries/atividades";
 
@@ -26,21 +26,33 @@ export async function criarItemCardapio(dados: {
   imagemUrl?: string | null;
   estoqueAtual?: number | null;
   estoqueMinimo?: number | null;
+  qtdPecasEscolha?: number | null;
+  opcoes?: string[];
 }) {
   const dono = await assertFuncionario("dono");
   if (!dados.nome.trim() || !dados.categoria.trim() || dados.preco <= 0) {
     throw new Error("Preencha nome, categoria e um preço válido.");
   }
-  await getDb().insert(itensCardapio).values({
-    restauranteId: dono.restauranteId,
-    nome: dados.nome.trim(),
-    categoria: dados.categoria.trim(),
-    descricao: dados.descricao?.trim() || null,
-    preco: dados.preco,
-    imagemUrl: validarImagem(dados.imagemUrl),
-    estoqueAtual: dados.estoqueAtual ?? null,
-    estoqueMinimo: dados.estoqueAtual != null ? (dados.estoqueMinimo ?? 5) : null,
-  });
+  if (dados.qtdPecasEscolha != null && dados.qtdPecasEscolha <= 0) {
+    throw new Error("A quantidade de peças do combo precisa ser maior que zero.");
+  }
+  const [item] = await getDb()
+    .insert(itensCardapio)
+    .values({
+      restauranteId: dono.restauranteId,
+      nome: dados.nome.trim(),
+      categoria: dados.categoria.trim(),
+      descricao: dados.descricao?.trim() || null,
+      preco: dados.preco,
+      imagemUrl: validarImagem(dados.imagemUrl),
+      estoqueAtual: dados.estoqueAtual ?? null,
+      estoqueMinimo: dados.estoqueAtual != null ? (dados.estoqueMinimo ?? 5) : null,
+      qtdPecasEscolha: dados.qtdPecasEscolha ?? null,
+    })
+    .returning();
+  if (dados.qtdPecasEscolha != null) {
+    await definirOpcoesCombo(item.id, dados.opcoes ?? []);
+  }
   await registrarAtividade({
     restauranteId: dono.restauranteId,
     funcionarioId: dono.id,
@@ -62,11 +74,16 @@ export async function atualizarItemCardapio(
     imagemUrl?: string | null;
     estoqueAtual?: number | null;
     estoqueMinimo?: number | null;
+    qtdPecasEscolha?: number | null;
+    opcoes?: string[];
   },
 ) {
   const dono = await assertFuncionario("dono");
   if (!dados.nome.trim() || !dados.categoria.trim() || dados.preco <= 0) {
     throw new Error("Preencha nome, categoria e um preço válido.");
+  }
+  if (dados.qtdPecasEscolha != null && dados.qtdPecasEscolha <= 0) {
+    throw new Error("A quantidade de peças do combo precisa ser maior que zero.");
   }
   await getDb()
     .update(itensCardapio)
@@ -78,8 +95,10 @@ export async function atualizarItemCardapio(
       imagemUrl: validarImagem(dados.imagemUrl),
       estoqueAtual: dados.estoqueAtual ?? null,
       estoqueMinimo: dados.estoqueAtual != null ? (dados.estoqueMinimo ?? 5) : null,
+      qtdPecasEscolha: dados.qtdPecasEscolha ?? null,
     })
     .where(eq(itensCardapio.id, id));
+  await definirOpcoesCombo(id, dados.qtdPecasEscolha != null ? (dados.opcoes ?? []) : []);
   await registrarAtividade({
     restauranteId: dono.restauranteId,
     funcionarioId: dono.id,

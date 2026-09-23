@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import CardapioClient, { type ItemDoCardapio } from "@/components/CardapioClient";
-import { getItensCardapioAtivos } from "@/db/queries/cardapio";
+import { getItensCardapioAtivos, getOpcoesComboPorItens } from "@/db/queries/cardapio";
 import { getRestaurantePorSlug } from "@/db/queries/restaurantes";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +11,7 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
   if (!restaurante) notFound();
 
   const itens = await getItensCardapioAtivos(restaurante.id);
+  const opcoesMapa = await getOpcoesComboPorItens(itens.map((i) => i.id));
 
   const itensPorCategoria: Record<string, ItemDoCardapio[]> = {};
   for (const item of itens) {
@@ -20,6 +21,8 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
       descricao: item.descricao,
       preco: item.preco,
       imagemUrl: item.imagemUrl,
+      qtdPecasEscolha: item.qtdPecasEscolha,
+      opcoes: opcoesMapa.get(item.id) ?? [],
     });
   }
 

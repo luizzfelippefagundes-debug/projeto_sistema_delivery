@@ -18,7 +18,7 @@ export interface PedidoCozinha {
   status: OrderStatus;
   total: number;
   criadoEm: number;
-  itens: { nome: string; quantidade: number }[];
+  itens: { nome: string; quantidade: number; observacao: string | null }[];
 }
 
 const COLS: { key: OrderStatus; label: string }[] = [
@@ -70,6 +70,7 @@ export default function CozinhaBoard({ pedidos }: { pedidos: PedidoCozinha[] }) 
                       {o.itens.map((i) => (
                         <li key={i.nome}>
                           {i.quantidade}x {i.nome}
+                          {i.observacao && <span className="block text-foreground">↳ {i.observacao}</span>}
                         </li>
                       ))}
                     </ul>

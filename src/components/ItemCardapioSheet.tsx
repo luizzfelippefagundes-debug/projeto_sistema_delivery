@@ -1,6 +1,6 @@
 "use client";
 
-import { ImageOff, Upload } from "lucide-react";
+import { ImageOff, Plus, Upload, X } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { atualizarItemCardapio, criarItemCardapio } from "@/actions/cardapio.actions";
 import { Button } from "@/components/ui/button";
@@ -57,11 +57,13 @@ function processarImagem(file: File): Promise<string> {
 export default function ItemCardapioSheet({
   categorias,
   item,
+  opcoesAtuais,
   open,
   onOpenChange,
 }: {
   categorias: string[];
   item: ItemCardapio | null;
+  opcoesAtuais: string[];
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
@@ -74,6 +76,10 @@ export default function ItemCardapioSheet({
   const [estoqueAtual, setEstoqueAtual] = useState("");
   const [estoqueMinimo, setEstoqueMinimo] = useState("5");
   const [imagemUrl, setImagemUrl] = useState<string | null>(null);
+  const [ehCombo, setEhCombo] = useState(false);
+  const [qtdPecas, setQtdPecas] = useState("");
+  const [opcoes, setOpcoes] = useState<string[]>([]);
+  const [novaOpcao, setNovaOpcao] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [processandoImagem, setProcessandoImagem] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -90,9 +96,24 @@ export default function ItemCardapioSheet({
     setControlarEstoque(item?.estoqueAtual != null);
     setEstoqueAtual(item?.estoqueAtual != null ? String(item.estoqueAtual) : "");
     setEstoqueMinimo(item?.estoqueMinimo != null ? String(item.estoqueMinimo) : "5");
+    setEhCombo(item?.qtdPecasEscolha != null);
+    setQtdPecas(item?.qtdPecasEscolha != null ? String(item.qtdPecasEscolha) : "");
+    setOpcoes(opcoesAtuais);
+    setNovaOpcao("");
     setErro(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, item]);
+
+  function adicionarOpcao() {
+    const nomeLimpo = novaOpcao.trim();
+    if (!nomeLimpo) return;
+    setOpcoes((prev) => [...prev, nomeLimpo]);
+    setNovaOpcao("");
+  }
+
+  function removerOpcao(idx: number) {
+    setOpcoes((prev) => prev.filter((_, i) => i !== idx));
+  }
 
   async function selecionarArquivo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -122,6 +143,15 @@ export default function ItemCardapioSheet({
       setErro("Informe uma quantidade de estoque válida.");
       return;
     }
+    const qtdPecasNumero = ehCombo ? Number(qtdPecas || "0") : null;
+    if (ehCombo && (Number.isNaN(qtdPecasNumero) || qtdPecasNumero! <= 0)) {
+      setErro("Informe a quantidade de peças do combo.");
+      return;
+    }
+    if (ehCombo && opcoes.length < 2) {
+      setErro("Adicione pelo menos 2 opções de peça pro cliente escolher.");
+      return;
+    }
     setErro(null);
     startTransition(async () => {
       try {
@@ -133,6 +163,8 @@ export default function ItemCardapioSheet({
           imagemUrl,
           estoqueAtual: estoqueAtualNumero,
           estoqueMinimo: estoqueMinimoNumero,
+          qtdPecasEscolha: qtdPecasNumero,
+          opcoes,
         };
         if (item) {
           await atualizarItemCardapio(item.id, payload);
@@ -267,6 +299,68 @@ export default function ItemCardapioSheet({
                   />
                 </div>
               </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-border pt-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="eh-combo">Combo com escolha de peças</Label>
+              <Switch id="eh-combo" checked={ehCombo} onCheckedChange={setEhCombo} />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              O cliente escolhe as peças (até bater a quantidade abaixo) antes de adicionar na sacola.
+            </p>
+            {ehCombo && (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="qtd-pecas">Quantidade de peças do combo</Label>
+                  <Input
+                    id="qtd-pecas"
+                    value={qtdPecas}
+                    onChange={(e) => setQtdPecas(e.target.value)}
+                    inputMode="numeric"
+                    placeholder="Ex: 10"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label>Peças escolhíveis</Label>
+                  <div className="flex flex-col gap-1.5">
+                    {opcoes.map((o, idx) => (
+                      <div key={idx} className="flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm">
+                        <span className="flex-1">{o}</span>
+                        <button
+                          type="button"
+                          onClick={() => removerOpcao(idx)}
+                          aria-label={`Remover ${o}`}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                    {opcoes.length === 0 && (
+                      <p className="text-xs text-muted-foreground">Nenhuma peça adicionada ainda.</p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      value={novaOpcao}
+                      onChange={(e) => setNovaOpcao(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          adicionarOpcao();
+                        }
+                      }}
+                      placeholder="Ex: Hot Filadélfia"
+                    />
+                    <Button type="button" variant="outline" onClick={adicionarOpcao}>
+                      <Plus /> Adicionar
+                    </Button>
+                  </div>
+                </div>
+              </>
             )}
           </div>
 

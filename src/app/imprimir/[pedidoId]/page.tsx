@@ -48,11 +48,14 @@ export default async function ImprimirComandaPage({ params }: { params: Promise<
 
       <div className="flex flex-col gap-1 text-sm">
         {itens.map((item) => (
-          <div key={item.id} className="flex justify-between gap-2">
-            <span>
-              {item.quantidade}x {item.nome}
-            </span>
-            <span>{fmtBRL(item.preco * item.quantidade)}</span>
+          <div key={item.id} className="flex flex-col gap-0.5">
+            <div className="flex justify-between gap-2">
+              <span>
+                {item.quantidade}x {item.nome}
+              </span>
+              <span>{fmtBRL(item.preco * item.quantidade)}</span>
+            </div>
+            {item.observacao && <span className="text-xs">↳ {item.observacao}</span>}
           </div>
         ))}
       </div>

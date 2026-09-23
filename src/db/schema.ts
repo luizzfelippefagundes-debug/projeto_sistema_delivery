@@ -78,8 +78,24 @@ export const itensCardapio = pgTable("itens_cardapio", {
    * é pausado sozinho ao zerar. */
   estoqueAtual: integer("estoque_atual"),
   estoqueMinimo: integer("estoque_minimo"),
+  /** Nulo = item comum. Quando preenchido, esse item é um combo em que o
+   * cliente escolhe as peças (ver opcoesCombo) até bater essa quantidade
+   * antes de conseguir adicionar na sacola. */
+  qtdPecasEscolha: integer("qtd_pecas_escolha"),
   ativo: boolean("ativo").notNull().default(true),
   criadoEm: timestamp("criado_em").notNull().defaultNow(),
+});
+
+/** Peças que o cliente pode escolher dentro de um combo (itensCardapio com
+ * qtdPecasEscolha preenchido) — ex: "Hot Filadélfia", "Uramaki Skin
+ * Cheese". Sem preço próprio: o preço é o do combo inteiro. */
+export const opcoesCombo = pgTable("opcoes_combo", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  itemCardapioId: uuid("item_cardapio_id")
+    .notNull()
+    .references(() => itensCardapio.id, { onDelete: "cascade" }),
+  nome: text("nome").notNull(),
+  ordem: integer("ordem").notNull().default(0),
 });
 
 export const funcionarios = pgTable("funcionarios", {
@@ -153,6 +169,10 @@ export const itensPedido = pgTable("itens_pedido", {
   nome: text("nome").notNull(),
   preco: money("preco").notNull(),
   quantidade: integer("quantidade").notNull(),
+  /** Detalhe da escolha do cliente num combo (ex: "5x Hot Filadélfia, 5x
+   * Uramaki Skin Cheese"), já formatado em texto — congelado igual
+   * nome/preço, pra cozinha e comanda impressa mostrarem o que preparar. */
+  observacao: text("observacao"),
 });
 
 /** Uma linha por dia fechado, por restaurante — trava os números do
