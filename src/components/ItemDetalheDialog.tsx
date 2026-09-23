@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { fmtBRL } from "@/lib/data";
-import { useCart } from "@/lib/cart";
+import { useCart, type EscolhaCombo } from "@/lib/cart";
 import type { ItemDoCardapio } from "@/components/CardapioClient";
 
 export default function ItemDetalheDialog({
@@ -19,14 +19,18 @@ export default function ItemDetalheDialog({
   icon: Icon,
   open,
   onOpenChange,
+  edicao,
 }: {
   item: ItemDoCardapio | null;
   tint: string;
   icon: React.ComponentType<{ className?: string }>;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** Presente quando o dialog está editando uma linha já existente na
+   * sacola (em vez de adicionar uma nova). */
+  edicao?: { cartItemId: string; escolhasIniciais: EscolhaCombo[] };
 }) {
-  const { add, addComEscolhas } = useCart();
+  const { add, addComEscolhas, atualizarEscolhas } = useCart();
   const [qtd, setQtd] = useState(1);
   const [escolhas, setEscolhas] = useState<Record<string, number>>({});
 
@@ -37,7 +41,10 @@ export default function ItemDetalheDialog({
   useEffect(() => {
     if (!open) return;
     setQtd(1);
-    setEscolhas({});
+    setEscolhas(
+      edicao ? Object.fromEntries(edicao.escolhasIniciais.map((e) => [e.nome, e.quantidade])) : {},
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, item]);
 
   function ajustarEscolha(nome: string, delta: number) {
@@ -55,7 +62,11 @@ export default function ItemDetalheDialog({
       const lista = Object.entries(escolhas)
         .filter(([, q]) => q > 0)
         .map(([nome, quantidade]) => ({ nome, quantidade }));
-      addComEscolhas(item.id, item.nome, item.preco, lista);
+      if (edicao) {
+        atualizarEscolhas(edicao.cartItemId, lista);
+      } else {
+        addComEscolhas(item.id, item.nome, item.preco, lista);
+      }
     } else {
       add(item.id, item.nome, item.preco, qtd);
     }
@@ -172,7 +183,9 @@ export default function ItemDetalheDialog({
           <Button className="w-full" disabled={!podeAdicionar} onClick={confirmar}>
             {ehCombo && !podeAdicionar
               ? `Escolha mais ${restante} ${restante === 1 ? "peça" : "peças"}`
-              : `Adicionar · ${fmtBRL((item?.preco ?? 0) * (ehCombo ? 1 : qtd))}`}
+              : edicao
+                ? "Salvar alterações"
+                : `Adicionar · ${fmtBRL((item?.preco ?? 0) * (ehCombo ? 1 : qtd))}`}
           </Button>
         </div>
       </DialogContent>

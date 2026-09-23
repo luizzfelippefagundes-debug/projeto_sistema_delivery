@@ -62,6 +62,13 @@ export default async function ImprimirComandaPage({ params }: { params: Promise<
 
       <div className="border-t border-dashed border-black" />
 
+      {pedido.taxaEntrega != null && pedido.taxaEntrega > 0 && (
+        <div className="flex justify-between text-sm">
+          <span>Taxa de entrega</span>
+          <span>{fmtBRL(pedido.taxaEntrega)}</span>
+        </div>
+      )}
+
       <div className="flex justify-between text-base font-bold">
         <span>TOTAL</span>
         <span>{fmtBRL(pedido.total)}</span>

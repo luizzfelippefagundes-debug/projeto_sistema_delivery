@@ -119,21 +119,34 @@ function ItemCard({ item, categoria, tint }: { item: ItemDoCardapio; categoria: 
   );
 }
 
+export interface ZonaEntregaResumo {
+  bairro: string;
+  taxaEntrega: number;
+  tempoEstimadoMin: number;
+}
+
 export default function CardapioClient({
   restauranteId,
   slug,
   nomeRestaurante,
   itensPorCategoria,
+  zonasEntrega,
 }: {
   restauranteId: string;
   slug: string;
   nomeRestaurante?: string;
   itensPorCategoria: Record<string, ItemDoCardapio[]>;
+  zonasEntrega: ZonaEntregaResumo[];
 }) {
   const categorias = Object.keys(itensPorCategoria);
   const [categoriaAtiva, setCategoriaAtiva] = useState(categorias[0] ?? "");
   const [sacolaAberta, setSacolaAberta] = useState(false);
   const { total, count } = useCart();
+
+  const itensPorId: Record<string, ItemDoCardapio> = {};
+  for (const lista of Object.values(itensPorCategoria)) {
+    for (const item of lista) itensPorId[item.id] = item;
+  }
 
   const pillBarRef = useRef<HTMLDivElement>(null);
   const pillRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -239,7 +252,13 @@ export default function CardapioClient({
         <CustomerTabBar slug={slug} />
       </div>
 
-      <CartDrawer restauranteId={restauranteId} open={sacolaAberta} onOpenChange={setSacolaAberta} />
+      <CartDrawer
+        restauranteId={restauranteId}
+        zonasEntrega={zonasEntrega}
+        itensPorId={itensPorId}
+        open={sacolaAberta}
+        onOpenChange={setSacolaAberta}
+      />
     </div>
   );
 }

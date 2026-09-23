@@ -39,6 +39,7 @@ interface Pedido {
   endereco: string | null;
   status: OrderStatus;
   formaPagamento: Pagamento | null;
+  taxaEntrega: number | null;
   total: number;
 }
 
@@ -166,6 +167,12 @@ export default function PedidosHistoricoTable({
                 ))}
               </div>
 
+              {selecionado.pedido.taxaEntrega != null && selecionado.pedido.taxaEntrega > 0 && (
+                <div className="flex justify-between border-t border-border pt-3 text-sm text-muted-foreground">
+                  <span>Taxa de entrega</span>
+                  <span className="num">{fmtBRL(selecionado.pedido.taxaEntrega)}</span>
+                </div>
+              )}
               <div className="flex justify-between border-t border-border pt-3 text-sm font-semibold">
                 <span>Total</span>
                 <span className="num">{fmtBRL(selecionado.pedido.total)}</span>

@@ -6,8 +6,10 @@ import { revalidatePath } from "next/cache";
 import { getDb } from "../db";
 import { clientes, itensCardapio, itensPedido, pedidos, restaurantes } from "../db/schema";
 import { baixarEstoque } from "../db/queries/cardapio";
+import { getZonasEntrega } from "../db/queries/entrega";
 import { assertFuncionario } from "../lib/funcionarioAuth";
 import { enviarMensagemWhatsapp } from "../lib/evolutionApi";
+import { encontrarZona } from "../lib/entrega";
 import type { OrderStatus, Pagamento } from "../lib/types";
 
 export interface ItemParaEnviar {
@@ -173,6 +175,7 @@ export async function criarPedidoCliente(dados: {
   restauranteId: string;
   itens: ItemDoPedidoCliente[];
   endereco: string;
+  bairro?: string | null;
   telefone?: string;
   pagamento: Pagamento;
   clienteNome: string;
@@ -198,7 +201,16 @@ export async function criarPedidoCliente(dados: {
     };
   });
 
-  const total = itensParaSalvar.reduce((s, i) => s + i.preco * i.quantidade, 0);
+  // A taxa nunca vem do navegador — recalculada aqui a partir do bairro
+  // informado e das zonas cadastradas pela dona, igual à revalidação de
+  // preço dos itens logo acima.
+  let taxaEntrega: number | null = null;
+  if (dados.bairro?.trim()) {
+    const zonas = await getZonasEntrega(dados.restauranteId);
+    taxaEntrega = encontrarZona(zonas, dados.bairro)?.taxaEntrega ?? null;
+  }
+
+  const total = itensParaSalvar.reduce((s, i) => s + i.preco * i.quantidade, 0) + (taxaEntrega ?? 0);
   const nomeLimpo = dados.clienteNome.trim();
   const telefoneLimpo = dados.telefone?.trim() || null;
 
@@ -235,6 +247,7 @@ export async function criarPedidoCliente(dados: {
       endereco: dados.endereco,
       status: "novo",
       formaPagamento: dados.pagamento,
+      taxaEntrega,
       total,
     })
     .returning();

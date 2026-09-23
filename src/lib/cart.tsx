@@ -30,6 +30,7 @@ interface CartValue {
   count: number;
   add: (itemCardapioId: string, nome: string, preco: number, qtd?: number) => void;
   addComEscolhas: (itemCardapioId: string, nome: string, preco: number, escolhas: EscolhaCombo[], qtd?: number) => void;
+  atualizarEscolhas: (cartItemId: string, escolhas: EscolhaCombo[]) => void;
   setQty: (cartItemId: string, qtd: number) => void;
   clear: () => void;
 }
@@ -74,6 +75,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
+  const atualizarEscolhas = useCallback((cartItemId: string, escolhas: EscolhaCombo[]) => {
+    setItems((prev) => prev.map((i) => (i.cartItemId === cartItemId ? { ...i, escolhas } : i)));
+  }, []);
+
   const setQty = useCallback((cartItemId: string, qtd: number) => {
     setItems((prev) => {
       if (qtd <= 0) return prev.filter((i) => i.cartItemId !== cartItemId);
@@ -87,7 +92,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const count = items.reduce((s, i) => s + i.qtd, 0);
 
   return (
-    <CartContext.Provider value={{ items, total, count, add, addComEscolhas, setQty, clear }}>
+    <CartContext.Provider value={{ items, total, count, add, addComEscolhas, atualizarEscolhas, setQty, clear }}>
       {children}
     </CartContext.Provider>
   );

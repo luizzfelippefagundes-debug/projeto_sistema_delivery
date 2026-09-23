@@ -92,7 +92,13 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
                 <span className="num">{fmtBRL(item.preco * item.quantidade)}</span>
               </div>
             ))}
-            <div className="mt-2 flex justify-between border-t border-border pt-3 text-sm font-semibold">
+            {pedido.taxaEntrega != null && pedido.taxaEntrega > 0 && (
+              <div className="mt-2 flex justify-between border-t border-border pt-2 text-sm text-muted-foreground">
+                <span>Taxa de entrega</span>
+                <span className="num">{fmtBRL(pedido.taxaEntrega)}</span>
+              </div>
+            )}
+            <div className="flex justify-between border-t border-border pt-3 text-sm font-semibold">
               <span>Total</span>
               <span className="num">{fmtBRL(pedido.total)}</span>
             </div>

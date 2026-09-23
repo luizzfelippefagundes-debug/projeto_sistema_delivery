@@ -2,8 +2,8 @@
 
 import { Show, SignInButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import { Minus, Plus } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import { Bike, Minus, Pencil, Plus, UtensilsCrossed } from "lucide-react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { criarPedidoCliente } from "@/actions/pedidos.actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,8 +14,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import ItemDetalheDialog from "@/components/ItemDetalheDialog";
+import type { ItemDoCardapio, ZonaEntregaResumo } from "@/components/CardapioClient";
 import { fmtBRL } from "@/lib/data";
-import { useCart } from "@/lib/cart";
+import { encontrarZona } from "@/lib/entrega";
+import { useCart, type CartItem } from "@/lib/cart";
 import type { Pagamento } from "@/lib/types";
 
 type Passo = "carrinho" | "entrega" | "pagamento" | "confirmado";
@@ -44,10 +47,14 @@ function montarEndereco(d: DadosEntrega): string {
 
 export default function CartDrawer({
   restauranteId,
+  zonasEntrega,
+  itensPorId,
   open,
   onOpenChange,
 }: {
   restauranteId: string;
+  zonasEntrega: ZonaEntregaResumo[];
+  itensPorId: Record<string, ItemDoCardapio>;
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
@@ -61,6 +68,14 @@ export default function CartDrawer({
   const [pedidoId, setPedidoId] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [editando, setEditando] = useState<CartItem | null>(null);
+
+  const zonaEncontrada = useMemo(
+    () => (tipo === "delivery" ? encontrarZona(zonasEntrega, entrega.bairro) : null),
+    [tipo, zonasEntrega, entrega.bairro],
+  );
+  const taxaEntrega = tipo === "delivery" ? (zonaEncontrada?.taxaEntrega ?? 0) : 0;
+  const totalComEntrega = total + taxaEntrega;
 
   useEffect(() => {
     try {
@@ -112,6 +127,7 @@ export default function CartDrawer({
             observacao: i.escolhas?.length ? i.escolhas.map((e) => `${e.quantidade}x ${e.nome}`).join(", ") : null,
           })),
           endereco: enderecoFinal,
+          bairro: tipo === "delivery" ? entrega.bairro : null,
           telefone: entrega.telefone,
           pagamento,
           clienteNome: cliente,
@@ -133,6 +149,7 @@ export default function CartDrawer({
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="flex max-h-[85vh] w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
         <DialogHeader className="p-4">
@@ -156,9 +173,18 @@ export default function CartDrawer({
                         {i.qtd}x {i.nome}
                       </span>
                       {i.escolhas && i.escolhas.length > 0 && (
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {i.escolhas.map((e) => `${e.quantidade}x ${e.nome}`).join(", ")}
-                        </p>
+                        <>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {i.escolhas.map((e) => `${e.quantidade}x ${e.nome}`).join(", ")}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setEditando(i)}
+                            className="mt-0.5 flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                          >
+                            <Pencil className="size-3" /> Editar peças
+                          </button>
+                        </>
                       )}
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
@@ -243,6 +269,20 @@ export default function CartDrawer({
                     <Label htmlFor="bairro">Bairro</Label>
                     <Input id="bairro" value={entrega.bairro} onChange={(e) => atualizarEntrega("bairro", e.target.value)} placeholder="Centro" />
                   </div>
+
+                  {entrega.bairro.trim() && (
+                    <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+                      <Bike className="size-4 shrink-0 text-primary" />
+                      {zonaEncontrada ? (
+                        <span>
+                          Chega em <strong>{zonaEncontrada.tempoEstimadoMin} min</strong> · Taxa{" "}
+                          <span className="num">{fmtBRL(zonaEncontrada.taxaEntrega)}</span>
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">Taxa de entrega a combinar pra esse bairro.</span>
+                      )}
+                    </div>
+                  )}
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="complemento">Complemento (opcional)</Label>
                     <Input
@@ -284,9 +324,15 @@ export default function CartDrawer({
                     <span className="num">{fmtBRL(i.preco * i.qtd)}</span>
                   </div>
                 ))}
+                {tipo === "delivery" && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Taxa de entrega</span>
+                    <span className="num">{taxaEntrega > 0 ? fmtBRL(taxaEntrega) : "A combinar"}</span>
+                  </div>
+                )}
                 <div className="mt-1 flex justify-between border-t border-border pt-2 font-semibold text-foreground">
                   <span>Total</span>
-                  <span className="num">{fmtBRL(total)}</span>
+                  <span className="num">{fmtBRL(totalComEntrega)}</span>
                 </div>
               </div>
 
@@ -387,5 +433,15 @@ export default function CartDrawer({
         )}
       </DialogContent>
     </Dialog>
+
+    <ItemDetalheDialog
+      item={editando ? (itensPorId[editando.itemCardapioId] ?? null) : null}
+      tint="bg-status-neutral-bg text-status-neutral-fg"
+      icon={UtensilsCrossed}
+      open={!!editando}
+      onOpenChange={(v) => !v && setEditando(null)}
+      edicao={editando ? { cartItemId: editando.cartItemId, escolhasIniciais: editando.escolhas ?? [] } : undefined}
+    />
+    </>
   );
 }

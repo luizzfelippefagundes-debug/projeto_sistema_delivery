@@ -1,8 +1,10 @@
 import EnderecoLojaCard from "@/components/EnderecoLojaCard";
 import FecharCaixaButton from "@/components/FecharCaixaButton";
+import ZonasEntregaManager from "@/components/ZonasEntregaManager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getConfiguracoes } from "@/db/queries/configuracoes";
+import { getZonasEntrega } from "@/db/queries/entrega";
 import { getUltimoFechamento } from "@/db/queries/fechamentos";
 import { getPedidosDesde, getPedidosDoDia } from "@/db/queries/pedidos";
 import { fmtBRL, fmtHora } from "@/lib/data";
@@ -92,12 +94,13 @@ function ResumoCaixa({
 export default async function FinanceiroPage() {
   const dono = await requireFuncionarioAccess("dono");
 
-  const [pedidosHoje, pedidosSemana, pedidosMes, ultimoFechamento, config] = await Promise.all([
+  const [pedidosHoje, pedidosSemana, pedidosMes, ultimoFechamento, config, zonas] = await Promise.all([
     getPedidosDoDia(dono.restauranteId),
     getPedidosDesde(dono.restauranteId, inicioDaSemana()),
     getPedidosDesde(dono.restauranteId, inicioDoMes()),
     getUltimoFechamento(dono.restauranteId),
     getConfiguracoes(dono.restauranteId),
+    getZonasEntrega(dono.restauranteId),
   ]);
 
   const resumoDia = resumoPeriodo(pedidosHoje);
@@ -145,6 +148,7 @@ export default async function FinanceiroPage() {
       </Card>
 
       <EnderecoLojaCard enderecoAtual={config?.enderecoLoja ?? null} />
+      <ZonasEntregaManager zonas={zonas} />
     </div>
   );
 }

@@ -86,6 +86,20 @@ export const itensCardapio = pgTable("itens_cardapio", {
   criadoEm: timestamp("criado_em").notNull().defaultNow(),
 });
 
+/** Zona de entrega por bairro, configurada pela dona — alimenta a
+ * estimativa de tempo/taxa mostrada pro cliente no checkout (sem depender
+ * de nenhuma API de mapa: é só uma tabela de bairro → taxa/tempo). */
+export const zonasEntrega = pgTable("zonas_entrega", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  restauranteId: uuid("restaurante_id")
+    .notNull()
+    .references(() => restaurantes.id, { onDelete: "cascade" }),
+  bairro: text("bairro").notNull(),
+  taxaEntrega: money("taxa_entrega").notNull(),
+  tempoEstimadoMin: integer("tempo_estimado_min").notNull(),
+  ordem: integer("ordem").notNull().default(0),
+});
+
 /** Peças que o cliente pode escolher dentro de um combo (itensCardapio com
  * qtdPecasEscolha preenchido) — ex: "Hot Filadélfia", "Uramaki Skin
  * Cheese". Sem preço próprio: o preço é o do combo inteiro. */
@@ -151,6 +165,9 @@ export const pedidos = pgTable("pedidos", {
   entregadorId: uuid("entregador_id").references(() => funcionarios.id, { onDelete: "set null" }),
   status: statusPedidoEnum("status").notNull().default("novo"),
   formaPagamento: formaPagamentoEnum("forma_pagamento"),
+  /** Taxa de entrega já somada no total — nula em pedidos de retirada,
+   * salão ou feitos antes dessa coluna existir. */
+  taxaEntrega: money("taxa_entrega"),
   total: money("total").notNull(),
   criadoEm: timestamp("criado_em").notNull().defaultNow(),
 });
