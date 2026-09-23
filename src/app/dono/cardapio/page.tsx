@@ -9,9 +9,9 @@ export default async function CardapioAdminPage() {
     getCategorias(dono.restauranteId),
   ]);
   const opcoesMapa = await getOpcoesComboPorItens(itens.map((i) => i.id));
-  const opcoesPorItem: Record<string, string[]> = {};
+  const opcoesPorItem: Record<string, { nome: string; limiteQuantidade: number | null }[]> = {};
   for (const [itemId, opcoes] of opcoesMapa) {
-    opcoesPorItem[itemId] = opcoes.map((o) => o.nome);
+    opcoesPorItem[itemId] = opcoes.map((o) => ({ nome: o.nome, limiteQuantidade: o.limiteQuantidade }));
   }
 
   return (

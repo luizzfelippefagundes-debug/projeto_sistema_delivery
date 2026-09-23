@@ -10,6 +10,8 @@ import { getZonasEntrega } from "../db/queries/entrega";
 import { assertFuncionario } from "../lib/funcionarioAuth";
 import { enviarMensagemWhatsapp } from "../lib/evolutionApi";
 import { encontrarZona } from "../lib/entrega";
+import { fmtBRL } from "../lib/data";
+import { notificarNovoPedido } from "../lib/webPush";
 import type { OrderStatus, Pagamento } from "../lib/types";
 
 export interface ItemParaEnviar {
@@ -42,6 +44,11 @@ export async function enviarComandaParaCozinha(mesa: number, itens: ItemParaEnvi
     })),
   );
   await baixarEstoque(itens.map((i) => ({ itemCardapioId: i.itemCardapioId, quantidade: i.quantidade })));
+  await notificarNovoPedido(funcionario.restauranteId, ["cozinha"], {
+    title: `Mesa ${mesa}`,
+    body: `${itens.length} item(ns) · ${fmtBRL(total)}`,
+    url: "/cozinha",
+  });
 
   revalidatePath("/atendente");
   revalidatePath("/cozinha");
@@ -254,6 +261,11 @@ export async function criarPedidoCliente(dados: {
 
   await db.insert(itensPedido).values(itensParaSalvar.map((i) => ({ pedidoId: pedido.id, ...i })));
   await baixarEstoque(itensParaSalvar.map((i) => ({ itemCardapioId: i.itemCardapioId, quantidade: i.quantidade })));
+  await notificarNovoPedido(dados.restauranteId, ["cozinha", "atendente"], {
+    title: "Novo pedido pelo site!",
+    body: `${nomeLimpo} · ${fmtBRL(total)}`,
+    url: "/cozinha",
+  });
 
   revalidatePath("/cozinha");
   revalidatePath("/motoboy");

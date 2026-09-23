@@ -49,7 +49,7 @@ export default function CardapioManager({
 }: {
   itens: ItemCardapio[];
   categorias: string[];
-  opcoesPorItem: Record<string, string[]>;
+  opcoesPorItem: Record<string, { nome: string; limiteQuantidade: number | null }[]>;
 }) {
   const [sheetAberto, setSheetAberto] = useState(false);
   const [itemEmEdicao, setItemEmEdicao] = useState<ItemCardapio | null>(null);

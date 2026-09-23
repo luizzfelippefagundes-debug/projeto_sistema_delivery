@@ -78,3 +78,14 @@ export async function assertFuncionario(papelEsperado: Papel) {
   }
   return funcionario;
 }
+
+/** Mesma ideia de requireQualquerFuncionario, mas lançando erro em vez de
+ * redirecionar — pra Server Actions chamadas por qualquer área da equipe
+ * (ex: inscrição de notificação push, que não é específica de um papel). */
+export async function assertQualquerFuncionario() {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Não autenticado");
+  const funcionario = await getFuncionarioByClerkId(userId);
+  if (!funcionario || !funcionario.ativo) throw new Error("Sem acesso a essa área");
+  return funcionario;
+}

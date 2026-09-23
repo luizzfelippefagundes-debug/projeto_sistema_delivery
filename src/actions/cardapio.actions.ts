@@ -27,7 +27,7 @@ export async function criarItemCardapio(dados: {
   estoqueAtual?: number | null;
   estoqueMinimo?: number | null;
   qtdPecasEscolha?: number | null;
-  opcoes?: string[];
+  opcoes?: { nome: string; limiteQuantidade: number | null }[];
 }) {
   const dono = await assertFuncionario("dono");
   if (!dados.nome.trim() || !dados.categoria.trim() || dados.preco <= 0) {
@@ -75,7 +75,7 @@ export async function atualizarItemCardapio(
     estoqueAtual?: number | null;
     estoqueMinimo?: number | null;
     qtdPecasEscolha?: number | null;
-    opcoes?: string[];
+    opcoes?: { nome: string; limiteQuantidade: number | null }[];
   },
 ) {
   const dono = await assertFuncionario("dono");

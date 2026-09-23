@@ -50,9 +50,12 @@ export default function ItemDetalheDialog({
   function ajustarEscolha(nome: string, delta: number) {
     setEscolhas((prev) => {
       const atual = prev[nome] ?? 0;
-      const novo = Math.max(0, atual + delta);
-      if (delta > 0 && restante <= 0) return prev;
-      return { ...prev, [nome]: novo };
+      if (delta > 0) {
+        if (restante <= 0) return prev;
+        const limite = item?.opcoes.find((o) => o.nome === nome)?.limiteQuantidade;
+        if (limite != null && atual >= limite) return prev;
+      }
+      return { ...prev, [nome]: Math.max(0, atual + delta) };
     });
   }
 
@@ -115,9 +118,15 @@ export default function ItemDetalheDialog({
                   <div className="flex flex-col gap-1">
                     {item.opcoes.map((op) => {
                       const q = escolhas[op.nome] ?? 0;
+                      const noLimite = op.limiteQuantidade != null && q >= op.limiteQuantidade;
                       return (
                         <div key={op.id} className="flex items-center justify-between gap-3 py-1.5">
-                          <span className="text-sm">{op.nome}</span>
+                          <div>
+                            <span className="text-sm">{op.nome}</span>
+                            {op.limiteQuantidade != null && (
+                              <span className="ml-1.5 text-xs text-muted-foreground">(máx {op.limiteQuantidade})</span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2">
                             <Button
                               type="button"
@@ -134,7 +143,7 @@ export default function ItemDetalheDialog({
                               type="button"
                               size="icon-sm"
                               variant="outline"
-                              disabled={restante <= 0}
+                              disabled={restante <= 0 || noLimite}
                               onClick={() => ajustarEscolha(op.nome, 1)}
                               aria-label={`Aumentar ${op.nome}`}
                             >

@@ -56,6 +56,11 @@ function processarImagem(file: File): Promise<string> {
   });
 }
 
+interface OpcaoComboForm {
+  nome: string;
+  limiteQuantidade: number | null;
+}
+
 export default function ItemCardapioSheet({
   categorias,
   itensDoCardapio,
@@ -67,7 +72,7 @@ export default function ItemCardapioSheet({
   categorias: string[];
   itensDoCardapio: { nome: string; categoria: string }[];
   item: ItemCardapio | null;
-  opcoesAtuais: string[];
+  opcoesAtuais: OpcaoComboForm[];
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
@@ -82,8 +87,9 @@ export default function ItemCardapioSheet({
   const [imagemUrl, setImagemUrl] = useState<string | null>(null);
   const [ehCombo, setEhCombo] = useState(false);
   const [qtdPecas, setQtdPecas] = useState("");
-  const [opcoes, setOpcoes] = useState<string[]>([]);
+  const [opcoes, setOpcoes] = useState<OpcaoComboForm[]>([]);
   const [novaOpcao, setNovaOpcao] = useState("");
+  const [novaOpcaoLimite, setNovaOpcaoLimite] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [processandoImagem, setProcessandoImagem] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -104,23 +110,27 @@ export default function ItemCardapioSheet({
     setQtdPecas(item?.qtdPecasEscolha != null ? String(item.qtdPecasEscolha) : "");
     setOpcoes(opcoesAtuais);
     setNovaOpcao("");
+    setNovaOpcaoLimite("");
     setErro(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, item]);
 
   function adicionarOpcao() {
     if (!novaOpcao) return;
-    setOpcoes((prev) => [...prev, novaOpcao]);
+    const limiteNumero = novaOpcaoLimite ? Number(novaOpcaoLimite) : null;
+    setOpcoes((prev) => [...prev, { nome: novaOpcao, limiteQuantidade: limiteNumero && limiteNumero > 0 ? limiteNumero : null }]);
     setNovaOpcao("");
+    setNovaOpcaoLimite("");
   }
 
   function removerOpcao(idx: number) {
     setOpcoes((prev) => prev.filter((_, i) => i !== idx));
   }
 
+  const nomesEscolhidos = new Set(opcoes.map((o) => o.nome));
   const pecasPorCategoria: Record<string, string[]> = {};
   for (const i of itensDoCardapio) {
-    if (i.nome === nome || opcoes.includes(i.nome)) continue;
+    if (i.nome === nome || nomesEscolhidos.has(i.nome)) continue;
     (pecasPorCategoria[i.categoria] ??= []).push(i.nome);
   }
 
@@ -337,11 +347,14 @@ export default function ItemCardapioSheet({
                   <div className="flex flex-col gap-1.5">
                     {opcoes.map((o, idx) => (
                       <div key={idx} className="flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm">
-                        <span className="flex-1">{o}</span>
+                        <span className="flex-1">{o.nome}</span>
+                        {o.limiteQuantidade != null && (
+                          <span className="text-xs text-muted-foreground">máx {o.limiteQuantidade}</span>
+                        )}
                         <button
                           type="button"
                           onClick={() => removerOpcao(idx)}
-                          aria-label={`Remover ${o}`}
+                          aria-label={`Remover ${o.nome}`}
                           className="text-muted-foreground hover:text-destructive"
                         >
                           <X className="size-3.5" />
@@ -373,10 +386,23 @@ export default function ItemCardapioSheet({
                         )}
                       </SelectContent>
                     </Select>
-                    <Button type="button" variant="outline" disabled={!novaOpcao} onClick={adicionarOpcao}>
-                      <Plus /> Adicionar
-                    </Button>
+                    <Input
+                      value={novaOpcaoLimite}
+                      onChange={(e) => setNovaOpcaoLimite(e.target.value)}
+                      inputMode="numeric"
+                      placeholder="Máx (opc.)"
+                      className="w-24 shrink-0"
+                    />
                   </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={!novaOpcao}
+                    onClick={adicionarOpcao}
+                  >
+                    <Plus /> Adicionar peça
+                  </Button>
                 </div>
               </>
             )}

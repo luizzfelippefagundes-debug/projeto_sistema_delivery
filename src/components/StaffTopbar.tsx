@@ -1,4 +1,5 @@
 import { UserButton } from "@clerk/nextjs";
+import NotificacoesPushButton from "@/components/NotificacoesPushButton";
 import ThemeToggle from "@/components/ThemeToggle";
 
 export default function StaffTopbar({
@@ -18,6 +19,7 @@ export default function StaffTopbar({
         <span className="truncate text-xs text-sidebar-foreground/60">{nomeRestaurante}</span>
       </div>
       <div className="ml-auto flex shrink-0 items-center gap-2">
+        <NotificacoesPushButton />
         <ThemeToggle className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" />
         <span className="hidden max-w-24 truncate text-sm text-sidebar-foreground/80 sm:inline">{nome}</span>
         <UserButton />

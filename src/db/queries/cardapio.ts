@@ -25,8 +25,14 @@ export async function getCategorias(restauranteId: string) {
 
 /** Peças escolhíveis de cada combo, agrupadas por item — alimenta tanto o
  * editor do cardápio (dono) quanto o seletor de peças no cardápio online. */
+export interface OpcaoComboResumo {
+  id: string;
+  nome: string;
+  limiteQuantidade: number | null;
+}
+
 export async function getOpcoesComboPorItens(itemIds: string[]) {
-  const mapa = new Map<string, { id: string; nome: string }[]>();
+  const mapa = new Map<string, OpcaoComboResumo[]>();
   if (itemIds.length === 0) return mapa;
   const rows = await getDb()
     .select()
@@ -35,7 +41,7 @@ export async function getOpcoesComboPorItens(itemIds: string[]) {
     .orderBy(asc(opcoesCombo.ordem));
   for (const row of rows) {
     const lista = mapa.get(row.itemCardapioId) ?? [];
-    lista.push({ id: row.id, nome: row.nome });
+    lista.push({ id: row.id, nome: row.nome, limiteQuantidade: row.limiteQuantidade });
     mapa.set(row.itemCardapioId, lista);
   }
   return mapa;
@@ -43,12 +49,17 @@ export async function getOpcoesComboPorItens(itemIds: string[]) {
 
 /** Substitui as peças escolhíveis de um combo (apaga tudo e recria) — lista
  * pequena e reordenável no editor, mais simples que fazer diff. */
-export async function definirOpcoesCombo(itemCardapioId: string, nomes: string[]) {
+export async function definirOpcoesCombo(
+  itemCardapioId: string,
+  opcoes: { nome: string; limiteQuantidade: number | null }[],
+) {
   const db = getDb();
   await db.delete(opcoesCombo).where(eq(opcoesCombo.itemCardapioId, itemCardapioId));
-  const limpos = nomes.map((n) => n.trim()).filter(Boolean);
-  if (limpos.length === 0) return;
-  await db.insert(opcoesCombo).values(limpos.map((nome, ordem) => ({ itemCardapioId, nome, ordem })));
+  const limpas = opcoes.filter((o) => o.nome.trim());
+  if (limpas.length === 0) return;
+  await db
+    .insert(opcoesCombo)
+    .values(limpas.map((o, ordem) => ({ itemCardapioId, nome: o.nome.trim(), limiteQuantidade: o.limiteQuantidade, ordem })));
 }
 
 /** Itens com controle de estoque ligado (estoqueAtual não nulo) —

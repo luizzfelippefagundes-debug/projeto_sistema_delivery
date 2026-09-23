@@ -38,7 +38,7 @@ export interface ItemDoCardapio {
   preco: number;
   imagemUrl: string | null;
   qtdPecasEscolha: number | null;
-  opcoes: { id: string; nome: string }[];
+  opcoes: { id: string; nome: string; limiteQuantidade: number | null }[];
 }
 
 function ItemCard({ item, categoria, tint }: { item: ItemDoCardapio; categoria: string; tint: string }) {

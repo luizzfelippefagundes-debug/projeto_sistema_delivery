@@ -109,6 +109,9 @@ export const opcoesCombo = pgTable("opcoes_combo", {
     .notNull()
     .references(() => itensCardapio.id, { onDelete: "cascade" }),
   nome: text("nome").notNull(),
+  /** Máximo dessa peça específica que o cliente pode escolher — nulo
+   * significa que só o total de peças do combo limita. */
+  limiteQuantidade: integer("limite_quantidade"),
   ordem: integer("ordem").notNull().default(0),
 });
 
@@ -131,6 +134,20 @@ export const funcionarios = pgTable("funcionarios", {
    * dias de pico. Permissão granular por área, não por ação. */
   acessosExtras: papelFuncionarioEnum("acessos_extras").array().notNull().default([]),
   ativo: boolean("ativo").notNull().default(true),
+  criadoEm: timestamp("criado_em").notNull().defaultNow(),
+});
+
+/** Inscrição de push (Web Push) de um funcionário num aparelho — um
+ * funcionário pode ter mais de uma (celular + notebook, por exemplo). Usada
+ * pra avisar cozinha/atendente/dona de pedido novo sem depender de som. */
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  funcionarioId: uuid("funcionario_id")
+    .notNull()
+    .references(() => funcionarios.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
   criadoEm: timestamp("criado_em").notNull().defaultNow(),
 });
 

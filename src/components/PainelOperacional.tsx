@@ -6,7 +6,6 @@ import ComandaBoard from "@/components/ComandaBoard";
 import CozinhaBoard, { type PedidoCozinha } from "@/components/CozinhaBoard";
 import type { PedidoAbertoResumo } from "@/components/MesaModal";
 import ResumoDoDia from "@/components/ResumoDoDia";
-import { useAlertaPedidoNovo } from "@/lib/useAlertaPedidoNovo";
 import type { ItemCardapio } from "@/lib/types";
 
 /** Visão combinada de mesas + cozinha numa página só — pra quem cobre as
@@ -29,9 +28,6 @@ export default function PainelOperacional({
     const id = setInterval(() => router.refresh(), 15000);
     return () => clearInterval(id);
   }, [router]);
-
-  const idsNovos = pedidosCozinha.filter((p) => p.status === "novo").map((p) => p.id);
-  useAlertaPedidoNovo(idsNovos);
 
   return (
     <div className="flex flex-col gap-8">
