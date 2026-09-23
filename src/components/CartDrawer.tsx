@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ItemDetalheDialog from "@/components/ItemDetalheDialog";
+import CheckoutStepper from "@/components/CheckoutStepper";
 import type { ItemDoCardapio, ZonaEntregaResumo } from "@/components/CardapioClient";
 import { fmtBRL } from "@/lib/data";
 import { encontrarZona } from "@/lib/entrega";
@@ -24,7 +25,7 @@ import { formatarCPF, validarCPF } from "@/lib/cpf";
 import { useCart, type CartItem } from "@/lib/cart";
 import type { Pagamento } from "@/lib/types";
 
-type Passo = "carrinho" | "entrega" | "pagamento" | "confirmado";
+type Passo = "carrinho" | "entrega" | "resumo" | "pagamento" | "confirmado";
 type Tipo = "retirada" | "delivery";
 
 const STORAGE_KEY = "dashi-sushi-checkout-v1";
@@ -148,7 +149,7 @@ export default function CartDrawer({
     } catch {
       // localStorage indisponível, segue sem salvar
     }
-    setPasso("pagamento");
+    setPasso("resumo");
   }
 
   function confirmarPagamento() {
@@ -192,14 +193,16 @@ export default function CartDrawer({
     <>
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="flex max-h-[85vh] w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
-        <DialogHeader className="p-4">
+        <DialogHeader className="p-4 pb-0">
           <DialogTitle>
             {passo === "carrinho" && "Sua sacola"}
             {passo === "entrega" && "Dados de entrega"}
+            {passo === "resumo" && "Resumo do pedido"}
             {passo === "pagamento" && "Pagamento"}
             {passo === "confirmado" && "Pedido confirmado"}
           </DialogTitle>
         </DialogHeader>
+        <CheckoutStepper etapaAtual={passo} />
 
         <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-4 pb-4">
           {passo === "carrinho" && (
@@ -323,20 +326,13 @@ export default function CartDrawer({
                         <span>
                           <strong>{distanciaReal.distanciaKm} km</strong> · Chega em{" "}
                           <strong>{distanciaReal.duracaoMin} min</strong>
-                          {zonaEncontrada && (
-                            <>
-                              {" "}
-                              · Taxa <span className="num">{fmtBRL(zonaEncontrada.taxaEntrega)}</span>
-                            </>
-                          )}
                         </span>
                       ) : zonaEncontrada ? (
                         <span>
-                          Chega em <strong>{zonaEncontrada.tempoEstimadoMin} min</strong> · Taxa{" "}
-                          <span className="num">{fmtBRL(zonaEncontrada.taxaEntrega)}</span>
+                          Chega em <strong>{zonaEncontrada.tempoEstimadoMin} min</strong>
                         </span>
                       ) : (
-                        <span className="text-muted-foreground">Taxa de entrega a combinar pra esse bairro.</span>
+                        <span className="text-muted-foreground">Estimativa de chegada não disponível pra esse bairro.</span>
                       )}
                     </div>
                   )}
@@ -371,7 +367,7 @@ export default function CartDrawer({
             </>
           )}
 
-          {passo === "pagamento" && (
+          {passo === "resumo" && (
             <>
               <div className="flex flex-col gap-1.5 rounded-lg border border-border p-3 text-sm">
                 {items.map((i) => (
@@ -421,6 +417,15 @@ export default function CartDrawer({
                 {cpfNota.replace(/\D/g, "").length === 11 && !validarCPF(cpfNota) && (
                   <p className="text-xs text-destructive">Esse CPF não parece válido.</p>
                 )}
+              </div>
+            </>
+          )}
+
+          {passo === "pagamento" && (
+            <>
+              <div className="flex justify-between rounded-lg border border-border p-3 text-base font-bold">
+                <span>Total</span>
+                <span className="num">{fmtBRL(totalComEntrega)}</span>
               </div>
 
               <div>
@@ -490,8 +495,16 @@ export default function CartDrawer({
 
         {passo === "entrega" && (
           <div className="mt-auto flex flex-col gap-2 border-t border-border p-4">
-            <Button onClick={confirmarEntrega}>Continuar pro pagamento</Button>
+            <Button onClick={confirmarEntrega}>Continuar</Button>
             <Button variant="outline" onClick={() => setPasso("carrinho")}>
+              Voltar
+            </Button>
+          </div>
+        )}
+        {passo === "resumo" && (
+          <div className="mt-auto flex flex-col gap-2 border-t border-border p-4">
+            <Button onClick={() => setPasso("pagamento")}>Continuar pro pagamento</Button>
+            <Button variant="outline" onClick={() => setPasso("entrega")}>
               Voltar
             </Button>
           </div>
@@ -501,7 +514,7 @@ export default function CartDrawer({
             <Button disabled={pending} onClick={confirmarPagamento}>
               {pending ? "Confirmando…" : "Confirmar pedido"}
             </Button>
-            <Button variant="outline" onClick={() => setPasso("entrega")}>
+            <Button variant="outline" onClick={() => setPasso("resumo")}>
               Voltar
             </Button>
           </div>
