@@ -20,6 +20,7 @@ import type { ItemDoCardapio, ZonaEntregaResumo } from "@/components/CardapioCli
 import { fmtBRL } from "@/lib/data";
 import { encontrarZona } from "@/lib/entrega";
 import type { DistanciaReal } from "@/lib/googleMaps";
+import { formatarCPF, validarCPF } from "@/lib/cpf";
 import { useCart, type CartItem } from "@/lib/cart";
 import type { Pagamento } from "@/lib/types";
 
@@ -75,6 +76,7 @@ export default function CartDrawer({
   const [editando, setEditando] = useState<CartItem | null>(null);
   const [distanciaReal, setDistanciaReal] = useState<DistanciaReal | null>(null);
   const [calculandoDistancia, setCalculandoDistancia] = useState(false);
+  const [cpfNota, setCpfNota] = useState("");
 
   const zonaEncontrada = useMemo(
     () => (tipo === "delivery" ? encontrarZona(zonasEntrega, entrega.bairro) : null),
@@ -167,9 +169,11 @@ export default function CartDrawer({
           telefone: entrega.telefone,
           pagamento,
           clienteNome: cliente,
+          cpfNota: cpfNota.trim() || null,
         });
         setPedidoId(pedidoId);
         clear();
+        setCpfNota("");
         setPasso("confirmado");
       } catch (e) {
         setErro(e instanceof Error ? e.message : "Não deu pra confirmar o pedido.");
@@ -383,16 +387,40 @@ export default function CartDrawer({
                     <span className="num">{fmtBRL(i.preco * i.qtd)}</span>
                   </div>
                 ))}
+              </div>
+
+              <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Resumo de valores
+                </p>
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span className="num">{fmtBRL(total)}</span>
+                </div>
                 {tipo === "delivery" && (
-                  <div className="flex justify-between text-muted-foreground">
+                  <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Taxa de entrega</span>
                     <span className="num">{taxaEntrega > 0 ? fmtBRL(taxaEntrega) : "A combinar"}</span>
                   </div>
                 )}
-                <div className="mt-1 flex justify-between border-t border-border pt-2 font-semibold text-foreground">
+                <div className="flex justify-between border-t border-border pt-2 text-base font-bold">
                   <span>Total</span>
                   <span className="num">{fmtBRL(totalComEntrega)}</span>
                 </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="cpf-nota">CPF na nota (opcional)</Label>
+                <Input
+                  id="cpf-nota"
+                  value={cpfNota}
+                  onChange={(e) => setCpfNota(formatarCPF(e.target.value))}
+                  placeholder="000.000.000-00"
+                  inputMode="numeric"
+                />
+                {cpfNota.replace(/\D/g, "").length === 11 && !validarCPF(cpfNota) && (
+                  <p className="text-xs text-destructive">Esse CPF não parece válido.</p>
+                )}
               </div>
 
               <div>

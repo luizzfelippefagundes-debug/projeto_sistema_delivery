@@ -77,6 +77,7 @@ export default async function ImprimirComandaPage({ params }: { params: Promise<
       {pedido.formaPagamento && (
         <p className="text-center text-xs">Pagamento: {PAGAMENTO_LABEL[pedido.formaPagamento]}</p>
       )}
+      {pedido.cpfNota && <p className="text-center text-xs">CPF na nota: {pedido.cpfNota}</p>}
 
       <div className="border-t border-dashed border-black" />
       <p className="text-center text-xs">Obrigado pela preferência! 🍣</p>

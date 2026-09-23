@@ -40,6 +40,7 @@ interface Pedido {
   status: OrderStatus;
   formaPagamento: Pagamento | null;
   taxaEntrega: number | null;
+  cpfNota: string | null;
   total: number;
 }
 
@@ -181,6 +182,9 @@ export default function PedidosHistoricoTable({
               <p className="text-sm text-muted-foreground">
                 Pagamento: {selecionado.pedido.formaPagamento ? PAGAMENTO_LABEL[selecionado.pedido.formaPagamento] : "—"}
               </p>
+              {selecionado.pedido.cpfNota && (
+                <p className="text-sm text-muted-foreground">CPF na nota: {selecionado.pedido.cpfNota}</p>
+              )}
 
               <a href={`/imprimir/${selecionado.pedido.id}`} target="_blank" rel="noopener noreferrer">
                 <Button variant="outline" className="w-full">

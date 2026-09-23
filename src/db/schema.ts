@@ -185,6 +185,10 @@ export const pedidos = pgTable("pedidos", {
   /** Taxa de entrega já somada no total — nula em pedidos de retirada,
    * salão ou feitos antes dessa coluna existir. */
   taxaEntrega: money("taxa_entrega"),
+  /** CPF que o cliente pediu pra incluir na nota — opcional, só
+   * informativo (não emite nota fiscal sozinho, é só o dado guardado pra
+   * quem for lançar manualmente). */
+  cpfNota: text("cpf_nota"),
   total: money("total").notNull(),
   criadoEm: timestamp("criado_em").notNull().defaultNow(),
 });

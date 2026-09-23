@@ -76,6 +76,7 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
                 <Banknote className="size-3" /> {pagamento.label}
               </Badge>
             </div>
+            {pedido.cpfNota && <p className="text-xs text-muted-foreground">CPF na nota: {pedido.cpfNota}</p>}
           </CardContent>
         </Card>
 

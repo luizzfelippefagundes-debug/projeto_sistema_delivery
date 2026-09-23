@@ -11,6 +11,7 @@ import { assertFuncionario } from "../lib/funcionarioAuth";
 import { enviarMensagemWhatsapp } from "../lib/evolutionApi";
 import { encontrarZona } from "../lib/entrega";
 import { fmtBRL } from "../lib/data";
+import { formatarCPF, validarCPF } from "../lib/cpf";
 import { notificarNovoPedido } from "../lib/webPush";
 import type { OrderStatus, Pagamento } from "../lib/types";
 
@@ -186,6 +187,7 @@ export async function criarPedidoCliente(dados: {
   telefone?: string;
   pagamento: Pagamento;
   clienteNome: string;
+  cpfNota?: string | null;
 }) {
   if (dados.itens.length === 0) throw new Error("Sua sacola está vazia.");
 
@@ -255,6 +257,7 @@ export async function criarPedidoCliente(dados: {
       status: "novo",
       formaPagamento: dados.pagamento,
       taxaEntrega,
+      cpfNota: dados.cpfNota && validarCPF(dados.cpfNota) ? formatarCPF(dados.cpfNota) : null,
       total,
     })
     .returning();
