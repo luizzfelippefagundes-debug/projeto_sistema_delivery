@@ -225,6 +225,7 @@ export default function CardapioManager({
 
       <ItemCardapioSheet
         categorias={categorias}
+        itensDoCardapio={itens}
         item={itemEmEdicao}
         opcoesAtuais={itemEmEdicao ? (opcoesPorItem[itemEmEdicao.id] ?? []) : []}
         open={sheetAberto}

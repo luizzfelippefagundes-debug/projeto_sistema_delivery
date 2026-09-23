@@ -9,7 +9,9 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -56,12 +58,14 @@ function processarImagem(file: File): Promise<string> {
 
 export default function ItemCardapioSheet({
   categorias,
+  itensDoCardapio,
   item,
   opcoesAtuais,
   open,
   onOpenChange,
 }: {
   categorias: string[];
+  itensDoCardapio: { nome: string; categoria: string }[];
   item: ItemCardapio | null;
   opcoesAtuais: string[];
   open: boolean;
@@ -105,14 +109,19 @@ export default function ItemCardapioSheet({
   }, [open, item]);
 
   function adicionarOpcao() {
-    const nomeLimpo = novaOpcao.trim();
-    if (!nomeLimpo) return;
-    setOpcoes((prev) => [...prev, nomeLimpo]);
+    if (!novaOpcao) return;
+    setOpcoes((prev) => [...prev, novaOpcao]);
     setNovaOpcao("");
   }
 
   function removerOpcao(idx: number) {
     setOpcoes((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  const pecasPorCategoria: Record<string, string[]> = {};
+  for (const i of itensDoCardapio) {
+    if (i.nome === nome || opcoes.includes(i.nome)) continue;
+    (pecasPorCategoria[i.categoria] ??= []).push(i.nome);
   }
 
   async function selecionarArquivo(e: React.ChangeEvent<HTMLInputElement>) {
@@ -344,18 +353,27 @@ export default function ItemCardapioSheet({
                     )}
                   </div>
                   <div className="flex gap-2">
-                    <Input
-                      value={novaOpcao}
-                      onChange={(e) => setNovaOpcao(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          adicionarOpcao();
-                        }
-                      }}
-                      placeholder="Ex: Hot Filadélfia"
-                    />
-                    <Button type="button" variant="outline" onClick={adicionarOpcao}>
+                    <Select value={novaOpcao} onValueChange={(v) => setNovaOpcao(v ?? "")}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Escolha um item do cardápio" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(pecasPorCategoria).map(([cat, nomes]) => (
+                          <SelectGroup key={cat}>
+                            <SelectLabel>{cat}</SelectLabel>
+                            {nomes.map((n) => (
+                              <SelectItem key={n} value={n}>
+                                {n}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        ))}
+                        {Object.keys(pecasPorCategoria).length === 0 && (
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">Nenhum item disponível.</div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" variant="outline" disabled={!novaOpcao} onClick={adicionarOpcao}>
                       <Plus /> Adicionar
                     </Button>
                   </div>
