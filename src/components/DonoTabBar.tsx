@@ -4,7 +4,6 @@ import {
   Boxes,
   ClipboardList,
   Grid2x2,
-  History,
   LayoutDashboard,
   LineChart,
   Users,
@@ -32,7 +31,6 @@ const MAIS_LINKS = [
   { href: "/dono/estoque", label: "Estoque", icon: Boxes },
   { href: "/dono/clientes", label: "Clientes", icon: UsersRound },
   { href: "/dono/funcionarios", label: "Funcionários", icon: Users },
-  { href: "/dono/atividades", label: "Atividades", icon: History },
 ];
 
 export default function DonoTabBar() {

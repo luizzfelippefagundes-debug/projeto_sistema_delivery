@@ -1,7 +1,7 @@
 "use client";
 
 import { UserButton } from "@clerk/nextjs";
-import { Boxes, ClipboardList, History, LayoutDashboard, LineChart, Users, UsersRound, UtensilsCrossed } from "lucide-react";
+import { Boxes, ClipboardList, LayoutDashboard, LineChart, Users, UsersRound, UtensilsCrossed } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import DonoTabBar from "@/components/DonoTabBar";
@@ -30,7 +30,6 @@ const TABS = [
   { href: "/dono/estoque", label: "Estoque", icon: Boxes },
   { href: "/dono/clientes", label: "Clientes", icon: UsersRound },
   { href: "/dono/funcionarios", label: "Funcionários", icon: Users },
-  { href: "/dono/atividades", label: "Atividades", icon: History },
 ];
 
 const TITLES: Record<string, string> = {
@@ -41,7 +40,6 @@ const TITLES: Record<string, string> = {
   "/dono/estoque": "Estoque",
   "/dono/clientes": "Clientes",
   "/dono/funcionarios": "Funcionários",
-  "/dono/atividades": "Atividades",
 };
 
 export default function DonoSidebar({
