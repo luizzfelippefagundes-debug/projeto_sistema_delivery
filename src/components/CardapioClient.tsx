@@ -1,7 +1,7 @@
 "use client";
 
 import { CupSoda, Fish, Minus, Package, Plus, Sandwich, ShoppingBag, Soup, UtensilsCrossed } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CartDrawer from "@/components/CartDrawer";
 import CustomerHeader from "@/components/CustomerHeader";
 import CustomerTabBar from "@/components/CustomerTabBar";
@@ -108,9 +108,42 @@ export default function CardapioClient({
   itensPorCategoria: Record<string, ItemDoCardapio[]>;
 }) {
   const categorias = Object.keys(itensPorCategoria);
-  const [categoria, setCategoria] = useState(categorias[0] ?? "");
+  const [categoriaAtiva, setCategoriaAtiva] = useState(categorias[0] ?? "");
   const [sacolaAberta, setSacolaAberta] = useState(false);
   const { total, count } = useCart();
+
+  const pillBarRef = useRef<HTMLDivElement>(null);
+  const pillRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const cat = entry.target.getAttribute("data-categoria");
+            if (cat) setCategoriaAtiva(cat);
+          }
+        }
+      },
+      { rootMargin: "-160px 0px -70% 0px", threshold: 0 },
+    );
+    Object.values(sectionRefs.current).forEach((el) => el && observer.observe(el));
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categorias.join("|")]);
+
+  useEffect(() => {
+    pillRefs.current[categoriaAtiva]?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [categoriaAtiva]);
+
+  function irParaCategoria(cat: string) {
+    const el = sectionRefs.current[cat];
+    if (!el) return;
+    const offset = 56 + (pillBarRef.current?.offsetHeight ?? 0) + 8;
+    const top = el.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top, behavior: "smooth" });
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -122,15 +155,18 @@ export default function CardapioClient({
         </div>
       ) : (
         <>
-          <div className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur-sm">
+          <div ref={pillBarRef} className="sticky top-14 z-30 border-b border-border bg-background/95 backdrop-blur-sm">
             <div className="mx-auto flex max-w-2xl gap-2 overflow-x-auto px-4 py-3 md:px-6">
               {categorias.map((cat) => (
                 <button
                   key={cat}
+                  ref={(el) => {
+                    pillRefs.current[cat] = el;
+                  }}
                   type="button"
-                  onClick={() => setCategoria(cat)}
+                  onClick={() => irParaCategoria(cat)}
                   className={`shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
-                    categoria === cat
+                    categoriaAtiva === cat
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border bg-transparent text-muted-foreground hover:text-foreground"
                   }`}
@@ -142,12 +178,22 @@ export default function CardapioClient({
           </div>
 
           <div className={`mx-auto w-full max-w-2xl flex-1 px-4 md:px-6 ${count ? "pb-40" : "pb-24"}`}>
-            <h2 className="pt-5 font-heading text-lg font-semibold">{categoria}</h2>
-            <div className="grid grid-cols-2 gap-3 py-4 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
-              {itensPorCategoria[categoria]?.map((item) => (
-                <ItemCard key={item.id} item={item} categoria={categoria} tint={tintDaCategoria(categoria, categorias)} />
-              ))}
-            </div>
+            {categorias.map((cat) => (
+              <div
+                key={cat}
+                ref={(el) => {
+                  sectionRefs.current[cat] = el;
+                }}
+                data-categoria={cat}
+              >
+                <h2 className="pt-5 font-heading text-lg font-semibold">{cat}</h2>
+                <div className="grid grid-cols-2 gap-3 py-4 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                  {itensPorCategoria[cat]?.map((item) => (
+                    <ItemCard key={item.id} item={item} categoria={cat} tint={tintDaCategoria(cat, categorias)} />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </>
       )}
