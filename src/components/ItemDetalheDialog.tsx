@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { fmtBRL } from "@/lib/data";
 import { useCart, type EscolhaCombo } from "@/lib/cart";
-import type { ItemDoCardapio } from "@/components/CardapioClient";
+import type { ItemDoCardapio } from "@/components/CardapioItemCard";
 
 export default function ItemDetalheDialog({
   item,

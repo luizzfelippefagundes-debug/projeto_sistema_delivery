@@ -1,124 +1,15 @@
 "use client";
 
-import { CupSoda, Fish, Minus, Package, Plus, Sandwich, ShoppingBag, Soup, UtensilsCrossed } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import CartDrawer from "@/components/CartDrawer";
-import ContaMesaDialog, { type ItemDaConta } from "@/components/ContaMesaDialog";
+import { ItemCard, tintDaCategoria, type ItemDoCardapio } from "@/components/CardapioItemCard";
 import CustomerHeader from "@/components/CustomerHeader";
 import CustomerTabBar from "@/components/CustomerTabBar";
-import ItemDetalheDialog from "@/components/ItemDetalheDialog";
 import { fmtBRL } from "@/lib/data";
 import { useCart } from "@/lib/cart";
 
-const CATEGORY_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
-  Combos: Package,
-  Temaki: Sandwich,
-  "Peças avulsas": Fish,
-  Porções: Soup,
-  Yakisoba: UtensilsCrossed,
-  Bebidas: CupSoda,
-};
-const ICON_PADRAO = UtensilsCrossed;
-
-const CATEGORY_TINT = [
-  "bg-status-danger-bg text-status-danger-fg",
-  "bg-status-neutral-bg text-status-neutral-fg",
-  "bg-status-warn-bg text-status-warn-fg",
-  "bg-status-ok-bg text-status-ok-fg",
-];
-
-function tintDaCategoria(categoria: string, categorias: string[]) {
-  const idx = categorias.indexOf(categoria);
-  return CATEGORY_TINT[idx % CATEGORY_TINT.length];
-}
-
-export interface ItemDoCardapio {
-  id: string;
-  nome: string;
-  descricao: string | null;
-  preco: number;
-  imagemUrl: string | null;
-  qtdPecasEscolha: number | null;
-  opcoes: { id: string; nome: string; limiteQuantidade: number | null }[];
-}
-
-function ItemCard({ item, categoria, tint }: { item: ItemDoCardapio; categoria: string; tint: string }) {
-  const { items, add, setQty } = useCart();
-  const Icon = CATEGORY_ICON[categoria] ?? ICON_PADRAO;
-  const ehCombo = item.qtdPecasEscolha != null && item.opcoes.length > 0;
-  const noCarrinho = items.find((i) => i.itemCardapioId === item.id && !i.escolhas);
-  const [detalheAberto, setDetalheAberto] = useState(false);
-
-  return (
-    <>
-      <div
-        className="flex cursor-pointer items-start gap-3 border-b border-border py-4 last:border-0"
-        onClick={() => setDetalheAberto(true)}
-      >
-        <div className="min-w-0 flex-1">
-          <h3 className="font-medium leading-snug">{item.nome}</h3>
-          {item.descricao && (
-            <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">{item.descricao}</p>
-          )}
-          <p className="num mt-2 text-sm font-semibold">{fmtBRL(item.preco)}</p>
-        </div>
-
-        <div className="relative size-24 shrink-0 sm:size-28">
-          <div className="size-full overflow-hidden rounded-xl">
-            {item.imagemUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={item.imagemUrl} alt={item.nome} className="size-full object-cover" />
-            ) : (
-              <div className={`flex size-full items-center justify-center ${tint}`}>
-                <Icon className="size-7" />
-              </div>
-            )}
-          </div>
-
-          {!ehCombo && noCarrinho ? (
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="absolute -bottom-2.5 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card px-1 py-1 shadow-md"
-            >
-              <button
-                type="button"
-                onClick={() => setQty(noCarrinho.cartItemId, noCarrinho.qtd - 1)}
-                aria-label="Diminuir quantidade"
-                className="flex size-6 items-center justify-center rounded-full text-foreground hover:bg-muted"
-              >
-                <Minus className="size-3.5" />
-              </button>
-              <span className="num w-3 text-center text-xs font-semibold">{noCarrinho.qtd}</span>
-              <button
-                type="button"
-                onClick={() => setQty(noCarrinho.cartItemId, noCarrinho.qtd + 1)}
-                aria-label="Aumentar quantidade"
-                className="flex size-6 items-center justify-center rounded-full text-foreground hover:bg-muted"
-              >
-                <Plus className="size-3.5" />
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (ehCombo) setDetalheAberto(true);
-                else add(item.id, item.nome, item.preco);
-              }}
-              aria-label="Adicionar"
-              className="absolute -bottom-2 -right-1 flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-opacity hover:opacity-90"
-            >
-              <Plus className="size-4" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      <ItemDetalheDialog item={item} tint={tint} icon={Icon} open={detalheAberto} onOpenChange={setDetalheAberto} />
-    </>
-  );
-}
+export type { ItemDoCardapio };
 
 export interface ZonaEntregaResumo {
   bairro: string;
@@ -133,9 +24,6 @@ export default function CardapioClient({
   itensPorCategoria,
   zonasEntrega,
   enderecoLoja,
-  mesa,
-  contaAtual,
-  fechamentoJaSolicitado = false,
 }: {
   restauranteId: string;
   slug: string;
@@ -143,20 +31,10 @@ export default function CardapioClient({
   itensPorCategoria: Record<string, ItemDoCardapio[]>;
   zonasEntrega: ZonaEntregaResumo[];
   enderecoLoja: string | null;
-  /** Presente quando a página foi aberta pelo QR code de uma mesa — muda o
-   * checkout pra pedido direto na cozinha, sem entrega/pagamento online. */
-  mesa?: number;
-  /** Tudo que essa mesa já mandou pra cozinha antes dessa visita — some no
-   * botão "Sua conta" pro cliente acompanhar sem chamar ninguém. */
-  contaAtual?: { itens: ItemDaConta[]; total: number };
-  /** Já existe um pedido de fechamento pendente pra essa mesa (feito antes,
-   * numa visita anterior à página) — evita que o botão pareça "resetado". */
-  fechamentoJaSolicitado?: boolean;
 }) {
   const categorias = Object.keys(itensPorCategoria);
   const [categoriaAtiva, setCategoriaAtiva] = useState(categorias[0] ?? "");
   const [sacolaAberta, setSacolaAberta] = useState(false);
-  const [contaAberta, setContaAberta] = useState(false);
   const { total, count } = useCart();
 
   const itensPorId: Record<string, ItemDoCardapio> = {};
@@ -200,23 +78,6 @@ export default function CardapioClient({
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <CustomerHeader nomeRestaurante={nomeRestaurante} />
-
-      {mesa != null && (
-        <button
-          type="button"
-          onClick={() => setContaAberta(true)}
-          className="flex w-full items-center justify-center gap-2 bg-primary px-4 py-1.5 text-center text-xs font-semibold text-primary-foreground"
-        >
-          {contaAtual && contaAtual.itens.length > 0 ? (
-            <>
-              Mesa {mesa} · Sua conta: {fmtBRL(contaAtual.total)}
-              <span className="underline">ver</span>
-            </>
-          ) : (
-            `Pedindo para a Mesa ${mesa}`
-          )}
-        </button>
-      )}
 
       {categorias.length === 0 ? (
         <div className="flex flex-1 items-center justify-center p-6">
@@ -282,7 +143,7 @@ export default function CardapioClient({
             </button>
           </div>
         )}
-        {mesa == null && <CustomerTabBar slug={slug} />}
+        <CustomerTabBar slug={slug} />
       </div>
 
       <CartDrawer
@@ -292,20 +153,7 @@ export default function CardapioClient({
         itensPorId={itensPorId}
         open={sacolaAberta}
         onOpenChange={setSacolaAberta}
-        mesa={mesa}
       />
-
-      {mesa != null && (
-        <ContaMesaDialog
-          mesa={mesa}
-          restauranteId={restauranteId}
-          itens={contaAtual?.itens ?? []}
-          total={contaAtual?.total ?? 0}
-          jaSolicitado={fechamentoJaSolicitado}
-          open={contaAberta}
-          onOpenChange={setContaAberta}
-        />
-      )}
     </div>
   );
 }

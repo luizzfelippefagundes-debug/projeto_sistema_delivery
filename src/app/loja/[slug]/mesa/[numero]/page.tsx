@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import CardapioClient, { type ItemDoCardapio } from "@/components/CardapioClient";
+import CardapioMesaClient from "@/components/CardapioMesaClient";
+import type { ItemDoCardapio } from "@/components/CardapioItemCard";
 import { getItensCardapioAtivos, getOpcoesComboPorItens } from "@/db/queries/cardapio";
 import { getConfiguracoes } from "@/db/queries/configuracoes";
 import { getMesasComFechamentoPendente } from "@/db/queries/fechamentoMesa";
@@ -46,14 +47,11 @@ export default async function LojaMesaPage({
   }
 
   return (
-    <CardapioClient
+    <CardapioMesaClient
       restauranteId={restaurante.id}
-      slug={restaurante.slug}
+      mesa={mesa}
       nomeRestaurante={restaurante.nome}
       itensPorCategoria={itensPorCategoria}
-      zonasEntrega={[]}
-      enderecoLoja={null}
-      mesa={mesa}
       contaAtual={contaAtual}
       fechamentoJaSolicitado={mesasQuerFechar.has(mesa)}
     />
