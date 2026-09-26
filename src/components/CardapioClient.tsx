@@ -3,6 +3,7 @@
 import { CupSoda, Fish, Minus, Package, Plus, Sandwich, ShoppingBag, Soup, UtensilsCrossed } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import CartDrawer from "@/components/CartDrawer";
+import ContaMesaDialog, { type ItemDaConta } from "@/components/ContaMesaDialog";
 import CustomerHeader from "@/components/CustomerHeader";
 import CustomerTabBar from "@/components/CustomerTabBar";
 import ItemDetalheDialog from "@/components/ItemDetalheDialog";
@@ -133,6 +134,8 @@ export default function CardapioClient({
   zonasEntrega,
   enderecoLoja,
   mesa,
+  contaAtual,
+  fechamentoJaSolicitado = false,
 }: {
   restauranteId: string;
   slug: string;
@@ -143,10 +146,17 @@ export default function CardapioClient({
   /** Presente quando a página foi aberta pelo QR code de uma mesa — muda o
    * checkout pra pedido direto na cozinha, sem entrega/pagamento online. */
   mesa?: number;
+  /** Tudo que essa mesa já mandou pra cozinha antes dessa visita — some no
+   * botão "Sua conta" pro cliente acompanhar sem chamar ninguém. */
+  contaAtual?: { itens: ItemDaConta[]; total: number };
+  /** Já existe um pedido de fechamento pendente pra essa mesa (feito antes,
+   * numa visita anterior à página) — evita que o botão pareça "resetado". */
+  fechamentoJaSolicitado?: boolean;
 }) {
   const categorias = Object.keys(itensPorCategoria);
   const [categoriaAtiva, setCategoriaAtiva] = useState(categorias[0] ?? "");
   const [sacolaAberta, setSacolaAberta] = useState(false);
+  const [contaAberta, setContaAberta] = useState(false);
   const { total, count } = useCart();
 
   const itensPorId: Record<string, ItemDoCardapio> = {};
@@ -192,9 +202,20 @@ export default function CardapioClient({
       <CustomerHeader nomeRestaurante={nomeRestaurante} />
 
       {mesa != null && (
-        <div className="bg-primary px-4 py-1.5 text-center text-xs font-semibold text-primary-foreground">
-          Pedindo para a Mesa {mesa}
-        </div>
+        <button
+          type="button"
+          onClick={() => setContaAberta(true)}
+          className="flex w-full items-center justify-center gap-2 bg-primary px-4 py-1.5 text-center text-xs font-semibold text-primary-foreground"
+        >
+          {contaAtual && contaAtual.itens.length > 0 ? (
+            <>
+              Mesa {mesa} · Sua conta: {fmtBRL(contaAtual.total)}
+              <span className="underline">ver</span>
+            </>
+          ) : (
+            `Pedindo para a Mesa ${mesa}`
+          )}
+        </button>
       )}
 
       {categorias.length === 0 ? (
@@ -273,6 +294,18 @@ export default function CardapioClient({
         onOpenChange={setSacolaAberta}
         mesa={mesa}
       />
+
+      {mesa != null && (
+        <ContaMesaDialog
+          mesa={mesa}
+          restauranteId={restauranteId}
+          itens={contaAtual?.itens ?? []}
+          total={contaAtual?.total ?? 0}
+          jaSolicitado={fechamentoJaSolicitado}
+          open={contaAberta}
+          onOpenChange={setContaAberta}
+        />
+      )}
     </div>
   );
 }

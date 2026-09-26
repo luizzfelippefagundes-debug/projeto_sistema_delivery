@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import CardapioClient, { type ItemDoCardapio } from "@/components/CardapioClient";
 import { getItensCardapioAtivos, getOpcoesComboPorItens } from "@/db/queries/cardapio";
 import { getConfiguracoes } from "@/db/queries/configuracoes";
+import { getMesasComFechamentoPendente } from "@/db/queries/fechamentoMesa";
+import { getContaAbertaMesa } from "@/db/queries/pedidos";
 import { getRestaurantePorSlug } from "@/db/queries/restaurantes";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +29,8 @@ export default async function LojaMesaPage({
 
   const itens = await getItensCardapioAtivos(restaurante.id);
   const opcoesMapa = await getOpcoesComboPorItens(itens.map((i) => i.id));
+  const contaAtual = await getContaAbertaMesa(restaurante.id, mesa);
+  const mesasQuerFechar = await getMesasComFechamentoPendente(restaurante.id);
 
   const itensPorCategoria: Record<string, ItemDoCardapio[]> = {};
   for (const item of itens) {
@@ -50,6 +54,8 @@ export default async function LojaMesaPage({
       zonasEntrega={[]}
       enderecoLoja={null}
       mesa={mesa}
+      contaAtual={contaAtual}
+      fechamentoJaSolicitado={mesasQuerFechar.has(mesa)}
     />
   );
 }

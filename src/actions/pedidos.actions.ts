@@ -4,7 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "../db";
-import { clientes, itensCardapio, itensPedido, pedidos, restaurantes } from "../db/schema";
+import { clientes, itensCardapio, itensPedido, pedidos, restaurantes, solicitacoesFechamento } from "../db/schema";
 import { baixarEstoque } from "../db/queries/cardapio";
 import { getConfiguracoes } from "../db/queries/configuracoes";
 import { getZonasEntrega } from "../db/queries/entrega";
@@ -71,9 +71,38 @@ export async function fecharMesaAction(mesa: number, pagamento: Pagamento) {
         inArray(pedidos.status, STATUS_MESA_ABERTA),
       ),
     );
+  await getDb()
+    .delete(solicitacoesFechamento)
+    .where(and(eq(solicitacoesFechamento.restauranteId, funcionario.restauranteId), eq(solicitacoesFechamento.mesa, mesa)));
   revalidatePath("/atendente");
+  revalidatePath("/cozinha");
   revalidatePath("/dono");
   revalidatePath("/dono/financeiro");
+}
+
+/** O próprio cliente, pelo QR code, avisando que quer fechar a conta —
+ * não fecha nada sozinho (isso continua exigindo o atendente escolher a
+ * forma de pagamento em `fecharMesaAction`), só liga o aviso na Comanda e
+ * dispara push pra quem atende. */
+export async function solicitarFechamentoMesa(restauranteId: string, mesa: number) {
+  if (!Number.isInteger(mesa) || mesa < 1) throw new Error("Mesa inválida.");
+
+  await getDb()
+    .insert(solicitacoesFechamento)
+    .values({ restauranteId, mesa })
+    .onConflictDoUpdate({
+      target: [solicitacoesFechamento.restauranteId, solicitacoesFechamento.mesa],
+      set: { criadoEm: new Date() },
+    });
+
+  await notificarNovoPedido(restauranteId, ["atendente"], {
+    title: `Mesa ${mesa} quer fechar a conta`,
+    body: "Cliente pediu pra fechar — pode ir cobrar.",
+    url: "/atendente",
+  });
+
+  revalidatePath("/atendente");
+  revalidatePath("/cozinha");
 }
 
 export async function avancarStatusCozinha(pedidoId: string, novoStatus: OrderStatus) {

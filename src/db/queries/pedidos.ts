@@ -99,6 +99,37 @@ export async function getPedidoComItens(pedidoId: string) {
 
 /** Busca itens de vários pedidos de uma vez e agrupa por pedidoId — evita
  * uma query por pedido ao montar listas (dashboard, financeiro). */
+/** Tudo que já foi enviado pra cozinha por uma mesa e ainda não foi pago —
+ * alimenta a tela "minha conta" que o próprio cliente vê no QR code, sem
+ * precisar chamar ninguém pra saber quanto já deve. */
+export async function getContaAbertaMesa(restauranteId: string, mesa: number) {
+  const pedidosAbertos = await getDb()
+    .select()
+    .from(pedidos)
+    .where(
+      and(
+        eq(pedidos.restauranteId, restauranteId),
+        eq(pedidos.origem, "salao"),
+        eq(pedidos.mesa, mesa),
+        sql`${pedidos.status} != 'finalizado'`,
+      ),
+    );
+  if (pedidosAbertos.length === 0) return { itens: [], total: 0 };
+
+  const itens = await getDb()
+    .select()
+    .from(itensPedido)
+    .where(
+      inArray(
+        itensPedido.pedidoId,
+        pedidosAbertos.map((p) => p.id),
+      ),
+    );
+
+  const total = pedidosAbertos.reduce((s, p) => s + p.total, 0);
+  return { itens: itens.map((i) => ({ nome: i.nome, preco: i.preco, quantidade: i.quantidade })), total };
+}
+
 export async function getItensAgrupadosPorPedido(pedidoIds: string[]) {
   if (pedidoIds.length === 0) return new Map<string, (typeof itensPedido.$inferSelect)[]>();
   const rows = await getDb().select().from(itensPedido).where(inArray(itensPedido.pedidoId, pedidoIds));

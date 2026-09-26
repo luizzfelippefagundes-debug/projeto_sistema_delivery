@@ -2,6 +2,7 @@
 
 import { Show, SignInButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Bike, Loader2, Minus, Pencil, Plus, UtensilsCrossed } from "lucide-react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { criarPedidoCliente, criarPedidoMesa } from "@/actions/pedidos.actions";
@@ -75,6 +76,7 @@ export default function CartDrawer({
 }) {
   const { items, total, setQty, clear } = useCart();
   const { user } = useUser();
+  const router = useRouter();
 
   const [passo, setPasso] = useState<Passo>("carrinho");
   const [tipo, setTipo] = useState<Tipo>("delivery");
@@ -160,6 +162,7 @@ export default function CartDrawer({
         setPedidoId(pedidoId);
         clear();
         setPasso("confirmado");
+        router.refresh();
       } catch (e) {
         setErro(e instanceof Error ? e.message : "Não deu pra enviar o pedido.");
       }

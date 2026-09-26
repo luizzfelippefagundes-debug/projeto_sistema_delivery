@@ -34,17 +34,20 @@ export default function MesaModal({
   mesa,
   itensCardapio,
   pedidosAbertos,
+  querFechar = false,
   onClose,
 }: {
   mesa: number;
   itensCardapio: ItemCardapio[];
   pedidosAbertos: PedidoAbertoResumo[];
+  /** Cliente já pediu, pelo QR code, pra fechar a conta dessa mesa. */
+  querFechar?: boolean;
   onClose: () => void;
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState<DraftItem[]>([]);
   const [pagamento, setPagamento] = useState<Pagamento>("dinheiro");
-  const [fechando, setFechando] = useState(false);
+  const [fechando, setFechando] = useState(querFechar);
   const [erro, setErro] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -105,6 +108,11 @@ export default function MesaModal({
             <DialogHeader className="p-4">
               <DialogTitle>Fechar Mesa {mesa}</DialogTitle>
             </DialogHeader>
+            {querFechar && (
+              <p className="mx-4 mb-2 rounded-lg bg-status-warn-bg px-3 py-2 text-sm font-medium text-status-warn-fg">
+                O cliente pediu pra fechar a conta pelo celular.
+              </p>
+            )}
             <div className="flex flex-col gap-4 px-4">
               <p className="text-sm text-muted-foreground">Como o cliente vai pagar?</p>
               <div className="flex gap-2">
@@ -132,6 +140,16 @@ export default function MesaModal({
             <DialogHeader className="p-4">
               <DialogTitle>Mesa {mesa}</DialogTitle>
             </DialogHeader>
+            {querFechar && (
+              <button
+                type="button"
+                onClick={() => setFechando(true)}
+                className="mx-4 mb-2 flex items-center justify-between rounded-lg bg-status-warn-bg px-3 py-2 text-left text-sm font-medium text-status-warn-fg"
+              >
+                O cliente pediu pra fechar a conta
+                <span className="underline">Fechar agora</span>
+              </button>
+            )}
 
             <Tabs value={aba} onValueChange={(v) => v && setAba(v as typeof aba)} className="flex flex-1 flex-col gap-0 overflow-hidden">
               <div className="px-4">

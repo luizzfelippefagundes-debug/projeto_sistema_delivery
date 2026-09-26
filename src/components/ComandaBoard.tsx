@@ -1,5 +1,6 @@
 "use client";
 
+import { BellRing } from "lucide-react";
 import { useState } from "react";
 import MesaModal, { type PedidoAbertoResumo } from "@/components/MesaModal";
 import StatusBadge from "@/components/StatusBadge";
@@ -11,10 +12,14 @@ export default function ComandaBoard({
   itensCardapio,
   pedidosPorMesa,
   numeroMesas = 8,
+  mesasQuerFechar,
 }: {
   itensCardapio: ItemCardapio[];
   pedidosPorMesa: Record<number, PedidoAbertoResumo[]>;
   numeroMesas?: number;
+  /** Mesas com pedido de fechamento pendente, feito pelo próprio cliente
+   * pelo QR code — destaca visualmente pra ela saber quem quer pagar. */
+  mesasQuerFechar?: Set<number>;
 }) {
   const MESAS = Array.from({ length: numeroMesas }, (_, i) => i + 1);
   const [mesaAberta, setMesaAberta] = useState<number | null>(null);
@@ -28,10 +33,13 @@ export default function ComandaBoard({
           const ocupada = pedidos.length > 0;
           const totalItens = pedidos.reduce((s, p) => s + p.itemCount, 0);
           const statusMaisAvancado: OrderStatus | undefined = pedidos.at(-1)?.status;
+          const querFechar = mesasQuerFechar?.has(n) ?? false;
           return (
             <Card
               key={n}
-              className="cursor-pointer gap-2 py-4 transition-colors hover:border-primary/40"
+              className={`cursor-pointer gap-2 py-4 transition-colors hover:border-primary/40 ${
+                querFechar ? "border-status-warn-fg ring-2 ring-status-warn-fg/40" : ""
+              }`}
               onClick={() => setMesaAberta(n)}
             >
               <CardHeader className="px-4">
@@ -49,6 +57,11 @@ export default function ComandaBoard({
                 ) : (
                   "disponível"
                 )}
+                {querFechar && (
+                  <div className="mt-1.5 flex items-center gap-1 font-semibold text-status-warn-fg">
+                    <BellRing className="size-3.5" /> Quer fechar a conta!
+                  </div>
+                )}
               </CardContent>
             </Card>
           );
@@ -60,6 +73,7 @@ export default function ComandaBoard({
           mesa={mesaAberta}
           itensCardapio={itensCardapio}
           pedidosAbertos={pedidosPorMesa[mesaAberta] ?? []}
+          querFechar={mesasQuerFechar?.has(mesaAberta) ?? false}
           onClose={() => setMesaAberta(null)}
         />
       )}

@@ -213,6 +213,23 @@ export const itensPedido = pgTable("itens_pedido", {
   observacao: text("observacao"),
 });
 
+/** Cliente sentado na mesa pediu, pelo próprio QR code, pra fechar a conta
+ * — uma linha por mesa (upsert, não histórico). A Comanda mostra um aviso
+ * enquanto essa linha existir; some assim que o atendente de fato fecha a
+ * mesa (ver fecharMesaAction). */
+export const solicitacoesFechamento = pgTable(
+  "solicitacoes_fechamento",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    restauranteId: uuid("restaurante_id")
+      .notNull()
+      .references(() => restaurantes.id, { onDelete: "cascade" }),
+    mesa: integer("mesa").notNull(),
+    criadoEm: timestamp("criado_em").notNull().defaultNow(),
+  },
+  (table) => [unique("solicitacao_fechamento_mesa_unica").on(table.restauranteId, table.mesa)],
+);
+
 /** Uma linha por dia fechado, por restaurante — trava os números do
  * fechamento de caixa daquele dia em vez de deixar só um total calculado
  * ao vivo. */

@@ -2,6 +2,7 @@ import CozinhaBoard, { type PedidoCozinha } from "@/components/CozinhaBoard";
 import PainelOperacional from "@/components/PainelOperacional";
 import { getItensCardapio } from "@/db/queries/cardapio";
 import { getConfiguracoes } from "@/db/queries/configuracoes";
+import { getMesasComFechamentoPendente } from "@/db/queries/fechamentoMesa";
 import { getItensAgrupadosPorPedido, getPedidosAbertos, getPedidosDoDia } from "@/db/queries/pedidos";
 import { estaAtrasado } from "@/lib/data";
 import { requireFuncionarioAccess } from "@/lib/funcionarioAuth";
@@ -34,10 +35,11 @@ export default async function CozinhaPage() {
     return <CozinhaBoard pedidos={pedidosCozinha} />;
   }
 
-  const [itensCardapioTodos, pedidosHoje, config] = await Promise.all([
+  const [itensCardapioTodos, pedidosHoje, config, mesasQuerFechar] = await Promise.all([
     getItensCardapio(funcionario.restauranteId),
     getPedidosDoDia(funcionario.restauranteId),
     getConfiguracoes(funcionario.restauranteId),
+    getMesasComFechamentoPendente(funcionario.restauranteId),
   ]);
   const itensCardapio = itensCardapioTodos.filter((i) => i.ativo);
 
@@ -64,6 +66,7 @@ export default async function CozinhaPage() {
       pedidosCozinha={pedidosCozinha}
       resumo={resumo}
       numeroMesas={config?.numeroMesas ?? 8}
+      mesasQuerFechar={mesasQuerFechar}
     />
   );
 }
