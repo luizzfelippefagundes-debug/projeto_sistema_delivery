@@ -13,6 +13,7 @@ import { enviarMensagemWhatsapp } from "../lib/evolutionApi";
 import { encontrarZona } from "../lib/entrega";
 import { fmtBRL } from "../lib/data";
 import { formatarCPF, validarCPF } from "../lib/cpf";
+import { mesaValida } from "../lib/mesa";
 import { notificarNovoPedido } from "../lib/webPush";
 import type { OrderStatus, Pagamento } from "../lib/types";
 
@@ -85,7 +86,8 @@ export async function fecharMesaAction(mesa: number, pagamento: Pagamento) {
  * forma de pagamento em `fecharMesaAction`), só liga o aviso na Comanda e
  * dispara push pra quem atende. */
 export async function solicitarFechamentoMesa(restauranteId: string, mesa: number) {
-  if (!Number.isInteger(mesa) || mesa < 1) throw new Error("Mesa inválida.");
+  const config = await getConfiguracoes(restauranteId);
+  if (!mesaValida(mesa, config?.numeroMesas ?? 8)) throw new Error("Mesa inválida.");
 
   await getDb()
     .insert(solicitacoesFechamento)
@@ -215,11 +217,9 @@ export async function criarPedidoMesa(dados: {
   itens: ItemDoPedidoCliente[];
 }) {
   if (dados.itens.length === 0) throw new Error("Sua sacola está vazia.");
-  if (!Number.isInteger(dados.mesa) || dados.mesa < 1) throw new Error("Mesa inválida.");
 
   const config = await getConfiguracoes(dados.restauranteId);
-  const numeroMesas = config?.numeroMesas ?? 8;
-  if (dados.mesa > numeroMesas) throw new Error("Mesa inválida.");
+  if (!mesaValida(dados.mesa, config?.numeroMesas ?? 8)) throw new Error("Mesa inválida.");
 
   const db = getDb();
   const idsUnicos = dados.itens.map((i) => i.itemCardapioId);

@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { aplicarEscolha, totalEscolhido } from "@/lib/comboEscolha";
 import { fmtBRL } from "@/lib/data";
 import { useCart, type EscolhaCombo } from "@/lib/cart";
 import type { ItemDoCardapio } from "@/components/CardapioItemCard";
@@ -35,8 +36,8 @@ export default function ItemDetalheDialog({
   const [escolhas, setEscolhas] = useState<Record<string, number>>({});
 
   const ehCombo = item?.qtdPecasEscolha != null && (item?.opcoes.length ?? 0) > 0;
-  const totalEscolhido = Object.values(escolhas).reduce((s, n) => s + n, 0);
-  const restante = (item?.qtdPecasEscolha ?? 0) - totalEscolhido;
+  const qtdEscolhida = totalEscolhido(escolhas);
+  const restante = (item?.qtdPecasEscolha ?? 0) - qtdEscolhida;
 
   useEffect(() => {
     if (!open) return;
@@ -48,15 +49,8 @@ export default function ItemDetalheDialog({
   }, [open, item]);
 
   function ajustarEscolha(nome: string, delta: number) {
-    setEscolhas((prev) => {
-      const atual = prev[nome] ?? 0;
-      if (delta > 0) {
-        if (restante <= 0) return prev;
-        const limite = item?.opcoes.find((o) => o.nome === nome)?.limiteQuantidade;
-        if (limite != null && atual >= limite) return prev;
-      }
-      return { ...prev, [nome]: Math.max(0, atual + delta) };
-    });
+    if (!item) return;
+    setEscolhas((prev) => aplicarEscolha(prev, item.opcoes, item.qtdPecasEscolha ?? 0, nome, delta));
   }
 
   function confirmar() {
@@ -76,7 +70,7 @@ export default function ItemDetalheDialog({
     onOpenChange(false);
   }
 
-  const podeAdicionar = !ehCombo || totalEscolhido === item?.qtdPecasEscolha;
+  const podeAdicionar = !ehCombo || qtdEscolhida === item?.qtdPecasEscolha;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -110,9 +104,9 @@ export default function ItemDetalheDialog({
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-semibold">Escolha as peças</p>
                     <span
-                      className={`num text-sm font-semibold ${totalEscolhido === item.qtdPecasEscolha ? "text-status-ok-fg" : "text-muted-foreground"}`}
+                      className={`num text-sm font-semibold ${qtdEscolhida === item.qtdPecasEscolha ? "text-status-ok-fg" : "text-muted-foreground"}`}
                     >
-                      {totalEscolhido}/{item.qtdPecasEscolha}
+                      {qtdEscolhida}/{item.qtdPecasEscolha}
                     </span>
                   </div>
                   <div className="flex flex-col gap-1">

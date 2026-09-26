@@ -102,8 +102,11 @@ export default function CardapioMesaClient({
     <div className="flex min-h-screen flex-col bg-background">
       <CustomerHeader nomeRestaurante={nomeRestaurante} />
 
-      <div ref={banerRef} className="bg-primary px-4 py-1.5 text-center text-xs font-semibold text-primary-foreground">
-        Pedindo para a Mesa {mesa}
+      <div
+        ref={banerRef}
+        className="sticky top-14 z-30 bg-primary px-4 py-1.5 text-center text-xs font-semibold text-primary-foreground"
+      >
+        Pedido para a mesa:{mesa}
       </div>
 
       {aba === "cardapio" ? (

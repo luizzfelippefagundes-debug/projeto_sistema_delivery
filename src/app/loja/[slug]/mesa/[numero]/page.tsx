@@ -6,6 +6,7 @@ import { getConfiguracoes } from "@/db/queries/configuracoes";
 import { getMesasComFechamentoPendente } from "@/db/queries/fechamentoMesa";
 import { getContaAbertaMesa } from "@/db/queries/pedidos";
 import { getRestaurantePorSlug } from "@/db/queries/restaurantes";
+import { mesaValida } from "@/lib/mesa";
 
 export const dynamic = "force-dynamic";
 
@@ -19,14 +20,13 @@ export default async function LojaMesaPage({
 }) {
   const { slug, numero } = await params;
   const mesa = Number(numero);
-  if (!Number.isInteger(mesa) || mesa < 1) notFound();
 
   const restaurante = await getRestaurantePorSlug(slug);
   if (!restaurante) notFound();
 
   const config = await getConfiguracoes(restaurante.id);
   const numeroMesas = config?.numeroMesas ?? 8;
-  if (mesa > numeroMesas) notFound();
+  if (!mesaValida(mesa, numeroMesas)) notFound();
 
   const itens = await getItensCardapioAtivos(restaurante.id);
   const opcoesMapa = await getOpcoesComboPorItens(itens.map((i) => i.id));
