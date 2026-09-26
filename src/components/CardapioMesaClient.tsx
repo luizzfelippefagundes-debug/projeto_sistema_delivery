@@ -1,11 +1,12 @@
 "use client";
 
-import { Receipt, ShoppingBag, UtensilsCrossed } from "lucide-react";
+import { MapPin, Receipt, ShoppingBag, UtensilsCrossed } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { solicitarFechamentoMesa } from "@/actions/pedidos.actions";
 import CartDrawer from "@/components/CartDrawer";
 import { ItemCard, tintDaCategoria, type ItemDoCardapio } from "@/components/CardapioItemCard";
 import CustomerHeader from "@/components/CustomerHeader";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { fmtBRL } from "@/lib/data";
 import { useCart } from "@/lib/cart";
@@ -102,11 +103,11 @@ export default function CardapioMesaClient({
     <div className="flex min-h-screen flex-col bg-background">
       <CustomerHeader nomeRestaurante={nomeRestaurante} />
 
-      <div
-        ref={banerRef}
-        className="sticky top-14 z-30 bg-primary px-4 py-1.5 text-center text-xs font-semibold text-primary-foreground"
-      >
-        Pedido para a mesa:{mesa}
+      <div ref={banerRef} className="sticky top-14 z-30 flex justify-center border-b border-border bg-background py-2">
+        <Badge className="gap-1 px-3 py-1 text-xs">
+          <MapPin className="size-3.5" />
+          Mesa {mesa}
+        </Badge>
       </div>
 
       {aba === "cardapio" ? (
