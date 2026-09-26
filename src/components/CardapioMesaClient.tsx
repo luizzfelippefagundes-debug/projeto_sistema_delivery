@@ -102,9 +102,9 @@ export default function CardapioMesaClient({
     <div className="flex min-h-screen flex-col bg-background">
       <CustomerHeader nomeRestaurante={nomeRestaurante} />
 
-      <div ref={banerRef} className="sticky top-14 z-30 flex items-center justify-center gap-2 bg-primary py-3 text-primary-foreground">
-        <MapPin className="size-5" />
-        <span className="text-base font-bold tracking-wide">Mesa {mesa}</span>
+      <div ref={banerRef} className="sticky top-14 z-30 flex items-center justify-center gap-1.5 bg-primary py-1.5 text-primary-foreground">
+        <MapPin className="size-4" />
+        <span className="text-sm font-bold tracking-wide">Mesa {mesa}</span>
       </div>
 
       {aba === "cardapio" ? (
