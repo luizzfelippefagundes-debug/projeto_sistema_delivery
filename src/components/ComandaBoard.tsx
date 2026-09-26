@@ -7,15 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { ItemCardapio, OrderStatus } from "@/lib/types";
 
-const MESAS = [1, 2, 3, 4, 5, 6, 7, 8];
-
 export default function ComandaBoard({
   itensCardapio,
   pedidosPorMesa,
+  numeroMesas = 8,
 }: {
   itensCardapio: ItemCardapio[];
   pedidosPorMesa: Record<number, PedidoAbertoResumo[]>;
+  numeroMesas?: number;
 }) {
+  const MESAS = Array.from({ length: numeroMesas }, (_, i) => i + 1);
   const [mesaAberta, setMesaAberta] = useState<number | null>(null);
 
   return (

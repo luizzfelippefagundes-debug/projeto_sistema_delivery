@@ -1,5 +1,6 @@
 import ComandaBoard from "@/components/ComandaBoard";
 import { getItensCardapio } from "@/db/queries/cardapio";
+import { getConfiguracoes } from "@/db/queries/configuracoes";
 import { getItensAgrupadosPorPedido, getPedidosAbertos } from "@/db/queries/pedidos";
 import { requireFuncionarioAccess } from "@/lib/funcionarioAuth";
 import type { OrderStatus } from "@/lib/types";
@@ -9,9 +10,10 @@ export const dynamic = "force-dynamic";
 export default async function AtendentePage() {
   const funcionario = await requireFuncionarioAccess("atendente");
 
-  const [itensCardapioTodos, pedidosAbertos] = await Promise.all([
+  const [itensCardapioTodos, pedidosAbertos, config] = await Promise.all([
     getItensCardapio(funcionario.restauranteId),
     getPedidosAbertos(funcionario.restauranteId),
+    getConfiguracoes(funcionario.restauranteId),
   ]);
 
   const itensCardapio = itensCardapioTodos.filter((i) => i.ativo);
@@ -28,5 +30,7 @@ export default async function AtendentePage() {
     });
   }
 
-  return <ComandaBoard itensCardapio={itensCardapio} pedidosPorMesa={pedidosPorMesa} />;
+  return (
+    <ComandaBoard itensCardapio={itensCardapio} pedidosPorMesa={pedidosPorMesa} numeroMesas={config?.numeroMesas ?? 8} />
+  );
 }

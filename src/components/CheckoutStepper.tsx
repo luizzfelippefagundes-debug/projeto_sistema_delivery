@@ -11,20 +11,33 @@ const ETAPAS = [
 
 export type EtapaCheckout = (typeof ETAPAS)[number]["chave"];
 
+interface Etapa {
+  chave: string;
+  label: string;
+}
+
 /** Indicador de progresso do checkout — números conectados por uma barra
  * que preenche com animação conforme a etapa avança, pra pessoa saber onde
- * está sem precisar adivinhar. Some sozinho na tela de confirmação. */
-export default function CheckoutStepper({ etapaAtual }: { etapaAtual: string }) {
-  const indiceAtual = ETAPAS.findIndex((e) => e.chave === etapaAtual);
+ * está sem precisar adivinhar. Some sozinho na tela de confirmação.
+ * `etapas` permite um fluxo mais curto (ex: pedido de mesa, sem entrega nem
+ * pagamento online) sem duplicar o componente. */
+export default function CheckoutStepper({
+  etapaAtual,
+  etapas = ETAPAS,
+}: {
+  etapaAtual: string;
+  etapas?: readonly Etapa[];
+}) {
+  const indiceAtual = etapas.findIndex((e) => e.chave === etapaAtual);
   if (indiceAtual === -1) return null;
 
   return (
     <div className="flex items-start px-4 pb-4">
-      {ETAPAS.map((etapa, i) => {
+      {etapas.map((etapa, i) => {
         const concluida = i < indiceAtual;
         const ativa = i === indiceAtual;
         return (
-          <div key={etapa.chave} className={`flex items-center ${i < ETAPAS.length - 1 ? "flex-1" : ""}`}>
+          <div key={etapa.chave} className={`flex items-center ${i < etapas.length - 1 ? "flex-1" : ""}`}>
             <div className="flex shrink-0 flex-col items-center gap-1">
               <div
                 className={`flex size-6 items-center justify-center rounded-full text-xs font-semibold transition-all duration-300 ${
@@ -45,7 +58,7 @@ export default function CheckoutStepper({ etapaAtual }: { etapaAtual: string }) 
                 {etapa.label}
               </span>
             </div>
-            {i < ETAPAS.length - 1 && (
+            {i < etapas.length - 1 && (
               <div className="mx-1 h-0.5 flex-1 -translate-y-2.5 overflow-hidden rounded-full bg-muted">
                 <div
                   className="h-full rounded-full bg-primary transition-all duration-500 ease-out"

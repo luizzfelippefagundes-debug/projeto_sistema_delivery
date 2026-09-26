@@ -1,7 +1,7 @@
 "use client";
 
 import { UserButton } from "@clerk/nextjs";
-import { Boxes, ClipboardList, LayoutDashboard, LineChart, Users, UsersRound, UtensilsCrossed } from "lucide-react";
+import { Boxes, ClipboardList, LayoutDashboard, LineChart, QrCode, Users, UsersRound, UtensilsCrossed } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import DonoTabBar from "@/components/DonoTabBar";
@@ -27,6 +27,7 @@ const TABS = [
   { href: "/dono/pedidos", label: "Pedidos", icon: ClipboardList },
   { href: "/dono/financeiro", label: "Financeiro", icon: LineChart },
   { href: "/dono/cardapio", label: "Cardápio", icon: UtensilsCrossed },
+  { href: "/dono/mesas", label: "Mesas", icon: QrCode },
   { href: "/dono/estoque", label: "Estoque", icon: Boxes },
   { href: "/dono/clientes", label: "Clientes", icon: UsersRound },
   { href: "/dono/funcionarios", label: "Funcionários", icon: Users },
@@ -37,6 +38,7 @@ const TITLES: Record<string, string> = {
   "/dono/pedidos": "Histórico de pedidos",
   "/dono/financeiro": "Financeiro",
   "/dono/cardapio": "Cardápio",
+  "/dono/mesas": "Mesas",
   "/dono/estoque": "Estoque",
   "/dono/clientes": "Clientes",
   "/dono/funcionarios": "Funcionários",

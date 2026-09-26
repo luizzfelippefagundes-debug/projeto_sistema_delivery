@@ -6,6 +6,7 @@ import {
   Grid2x2,
   LayoutDashboard,
   LineChart,
+  QrCode,
   Users,
   UsersRound,
   UtensilsCrossed,
@@ -28,6 +29,7 @@ const TABS = [
 ];
 
 const MAIS_LINKS = [
+  { href: "/dono/mesas", label: "Mesas", icon: QrCode },
   { href: "/dono/estoque", label: "Estoque", icon: Boxes },
   { href: "/dono/clientes", label: "Clientes", icon: UsersRound },
   { href: "/dono/funcionarios", label: "Funcionários", icon: Users },

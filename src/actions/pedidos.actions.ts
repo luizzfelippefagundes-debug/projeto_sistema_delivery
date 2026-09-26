@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { getDb } from "../db";
 import { clientes, itensCardapio, itensPedido, pedidos, restaurantes } from "../db/schema";
 import { baixarEstoque } from "../db/queries/cardapio";
+import { getConfiguracoes } from "../db/queries/configuracoes";
 import { getZonasEntrega } from "../db/queries/entrega";
 import { assertFuncionario } from "../lib/funcionarioAuth";
 import { enviarMensagemWhatsapp } from "../lib/evolutionApi";
@@ -172,6 +173,65 @@ export async function criarPedidoWhatsapp(dados: {
   revalidatePath("/dono/estoque");
 
   return { pedidoId: pedido.id, total };
+}
+
+/** Pedido feito pelo próprio cliente sentado à mesa, via QR code — sem
+ * login, sem endereço, sem pagamento (isso continua na mão de quem fecha a
+ * mesa depois). Mesma validação de preço/restaurante de `criarPedidoCliente`,
+ * mas cai direto na cozinha com `origem: "salao"`, exatamente como se um
+ * atendente tivesse digitado pela Comanda. */
+export async function criarPedidoMesa(dados: {
+  restauranteId: string;
+  mesa: number;
+  itens: ItemDoPedidoCliente[];
+}) {
+  if (dados.itens.length === 0) throw new Error("Sua sacola está vazia.");
+  if (!Number.isInteger(dados.mesa) || dados.mesa < 1) throw new Error("Mesa inválida.");
+
+  const config = await getConfiguracoes(dados.restauranteId);
+  const numeroMesas = config?.numeroMesas ?? 8;
+  if (dados.mesa > numeroMesas) throw new Error("Mesa inválida.");
+
+  const db = getDb();
+  const idsUnicos = dados.itens.map((i) => i.itemCardapioId);
+  const itensDoCardapio = await db.select().from(itensCardapio).where(inArray(itensCardapio.id, idsUnicos));
+  const porId = new Map(itensDoCardapio.map((i) => [i.id, i]));
+
+  const itensParaSalvar = dados.itens.map((i) => {
+    const item = porId.get(i.itemCardapioId);
+    if (!item || item.restauranteId !== dados.restauranteId || !item.ativo) {
+      throw new Error("Um dos itens da sacola não está mais disponível.");
+    }
+    return {
+      itemCardapioId: item.id,
+      nome: item.nome,
+      preco: item.preco,
+      quantidade: i.quantidade,
+      observacao: i.observacao ?? null,
+    };
+  });
+
+  const total = itensParaSalvar.reduce((s, i) => s + i.preco * i.quantidade, 0);
+
+  const [pedido] = await db
+    .insert(pedidos)
+    .values({ restauranteId: dados.restauranteId, origem: "salao", mesa: dados.mesa, status: "novo", total })
+    .returning();
+
+  await db.insert(itensPedido).values(itensParaSalvar.map((i) => ({ pedidoId: pedido.id, ...i })));
+  await baixarEstoque(itensParaSalvar.map((i) => ({ itemCardapioId: i.itemCardapioId, quantidade: i.quantidade })));
+  await notificarNovoPedido(dados.restauranteId, ["cozinha", "atendente"], {
+    title: `Mesa ${dados.mesa} pediu pelo QR Code`,
+    body: `${itensParaSalvar.length} item(ns) · ${fmtBRL(total)}`,
+    url: "/cozinha",
+  });
+
+  revalidatePath("/atendente");
+  revalidatePath("/cozinha");
+  revalidatePath("/dono/cardapio");
+  revalidatePath("/dono/estoque");
+
+  return { pedidoId: pedido.id };
 }
 
 /** Endpoint público (cliente não é funcionário) — por isso o preço de cada

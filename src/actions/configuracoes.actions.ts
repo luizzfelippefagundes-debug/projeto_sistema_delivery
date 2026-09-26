@@ -32,3 +32,30 @@ export async function atualizarEnderecoLoja(endereco: string) {
   revalidatePath("/dono/financeiro");
   revalidatePath("/motoboy");
 }
+
+/** Quantidade de mesas do salão — define o grid da Comanda (`/atendente`,
+ * `/cozinha`) e quantos QR codes a tela de Mesas gera. Travado entre 1 e 50
+ * pra evitar valor absurdo digitado por engano. */
+export async function atualizarNumeroMesas(numero: number) {
+  const dono = await assertFuncionario("dono");
+  const valor = Math.max(1, Math.min(50, Math.round(numero) || 1));
+
+  await getDb()
+    .insert(configuracoes)
+    .values({ restauranteId: dono.restauranteId, numeroMesas: valor })
+    .onConflictDoUpdate({
+      target: configuracoes.restauranteId,
+      set: { numeroMesas: valor },
+    });
+
+  await registrarAtividade({
+    restauranteId: dono.restauranteId,
+    funcionarioId: dono.id,
+    nomeFuncionario: dono.nome,
+    acao: "Atualizou número de mesas",
+    detalhe: String(valor),
+  });
+  revalidatePath("/dono/mesas");
+  revalidatePath("/atendente");
+  revalidatePath("/cozinha");
+}

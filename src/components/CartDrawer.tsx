@@ -4,7 +4,7 @@ import { Show, SignInButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { Bike, Loader2, Minus, Pencil, Plus, UtensilsCrossed } from "lucide-react";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { criarPedidoCliente } from "@/actions/pedidos.actions";
+import { criarPedidoCliente, criarPedidoMesa } from "@/actions/pedidos.actions";
 import { calcularEntregaReal } from "@/actions/entrega.actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,6 +49,11 @@ function montarEndereco(d: DadosEntrega): string {
   return linha;
 }
 
+const ETAPAS_MESA = [
+  { chave: "carrinho", label: "Sacola" },
+  { chave: "resumo", label: "Confirmar" },
+] as const;
+
 export default function CartDrawer({
   restauranteId,
   zonasEntrega,
@@ -56,6 +61,7 @@ export default function CartDrawer({
   itensPorId,
   open,
   onOpenChange,
+  mesa,
 }: {
   restauranteId: string;
   zonasEntrega: ZonaEntregaResumo[];
@@ -63,6 +69,9 @@ export default function CartDrawer({
   itensPorId: Record<string, ItemDoCardapio>;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** Presente quando o carrinho foi aberto pelo QR code de uma mesa — pula
+   * entrega e pagamento, manda direto pra cozinha via criarPedidoMesa. */
+  mesa?: number;
 }) {
   const { items, total, setQty, clear } = useCart();
   const { user } = useUser();
@@ -131,7 +140,30 @@ export default function CartDrawer({
 
   function irParaEntrega() {
     setErro(null);
-    setPasso("entrega");
+    setPasso(mesa != null ? "resumo" : "entrega");
+  }
+
+  function confirmarPedidoMesa() {
+    if (mesa == null) return;
+    setErro(null);
+    startTransition(async () => {
+      try {
+        const { pedidoId } = await criarPedidoMesa({
+          restauranteId,
+          mesa,
+          itens: items.map((i) => ({
+            itemCardapioId: i.itemCardapioId,
+            quantidade: i.qtd,
+            observacao: i.escolhas?.length ? i.escolhas.map((e) => `${e.quantidade}x ${e.nome}`).join(", ") : null,
+          })),
+        });
+        setPedidoId(pedidoId);
+        clear();
+        setPasso("confirmado");
+      } catch (e) {
+        setErro(e instanceof Error ? e.message : "Não deu pra enviar o pedido.");
+      }
+    });
   }
 
   function confirmarEntrega() {
@@ -202,7 +234,7 @@ export default function CartDrawer({
             {passo === "confirmado" && "Pedido confirmado"}
           </DialogTitle>
         </DialogHeader>
-        <CheckoutStepper etapaAtual={passo} />
+        <CheckoutStepper etapaAtual={passo} etapas={mesa != null ? ETAPAS_MESA : undefined} />
 
         <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-4 pb-4">
           {passo === "carrinho" && (
@@ -250,17 +282,25 @@ export default function CartDrawer({
                     <span className="num">{fmtBRL(total)}</span>
                   </div>
 
-                  <Show when="signed-in">
+                  {mesa != null ? (
                     <Button className="w-full" onClick={irParaEntrega}>
                       Continuar
                     </Button>
-                  </Show>
-                  <Show when="signed-out">
-                    <p className="text-xs text-muted-foreground">Entre com sua conta pra finalizar o pedido.</p>
-                    <SignInButton mode="modal">
-                      <Button className="w-full">Entrar e continuar</Button>
-                    </SignInButton>
-                  </Show>
+                  ) : (
+                    <>
+                      <Show when="signed-in">
+                        <Button className="w-full" onClick={irParaEntrega}>
+                          Continuar
+                        </Button>
+                      </Show>
+                      <Show when="signed-out">
+                        <p className="text-xs text-muted-foreground">Entre com sua conta pra finalizar o pedido.</p>
+                        <SignInButton mode="modal">
+                          <Button className="w-full">Entrar e continuar</Button>
+                        </SignInButton>
+                      </Show>
+                    </>
+                  )}
                 </>
               )}
             </>
@@ -393,7 +433,7 @@ export default function CartDrawer({
                   <span>Subtotal</span>
                   <span className="num">{fmtBRL(total)}</span>
                 </div>
-                {tipo === "delivery" && (
+                {mesa == null && tipo === "delivery" && (
                   <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Taxa de entrega</span>
                     <span className="num">{taxaEntrega > 0 ? fmtBRL(taxaEntrega) : "A combinar"}</span>
@@ -401,23 +441,27 @@ export default function CartDrawer({
                 )}
                 <div className="flex justify-between border-t border-border pt-2 text-base font-bold">
                   <span>Total</span>
-                  <span className="num">{fmtBRL(totalComEntrega)}</span>
+                  <span className="num">{fmtBRL(mesa != null ? total : totalComEntrega)}</span>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="cpf-nota">CPF na nota (opcional)</Label>
-                <Input
-                  id="cpf-nota"
-                  value={cpfNota}
-                  onChange={(e) => setCpfNota(formatarCPF(e.target.value))}
-                  placeholder="000.000.000-00"
-                  inputMode="numeric"
-                />
-                {cpfNota.replace(/\D/g, "").length === 11 && !validarCPF(cpfNota) && (
-                  <p className="text-xs text-destructive">Esse CPF não parece válido.</p>
-                )}
-              </div>
+              {mesa == null && (
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="cpf-nota">CPF na nota (opcional)</Label>
+                  <Input
+                    id="cpf-nota"
+                    value={cpfNota}
+                    onChange={(e) => setCpfNota(formatarCPF(e.target.value))}
+                    placeholder="000.000.000-00"
+                    inputMode="numeric"
+                  />
+                  {cpfNota.replace(/\D/g, "").length === 11 && !validarCPF(cpfNota) && (
+                    <p className="text-xs text-destructive">Esse CPF não parece válido.</p>
+                  )}
+                </div>
+              )}
+
+              {mesa != null && erro && <p className="text-sm text-destructive">{erro}</p>}
             </>
           )}
 
@@ -485,9 +529,13 @@ export default function CartDrawer({
           {passo === "confirmado" && (
             <div className="flex flex-col items-center gap-2 py-6 text-center">
               <div className="text-4xl">🍣</div>
-              <h3 className="font-heading text-lg font-semibold">Pedido #{pedidoId?.slice(0, 8)} recebido!</h3>
+              <h3 className="font-heading text-lg font-semibold">
+                {mesa != null ? `Pedido enviado pra Mesa ${mesa}!` : `Pedido #${pedidoId?.slice(0, 8)} recebido!`}
+              </h3>
               <p className="text-sm text-muted-foreground">
-                Já mandamos pra cozinha. Acompanhe o status do seu pedido em tempo real.
+                {mesa != null
+                  ? "Já mandamos pra cozinha. Quer pedir mais alguma coisa? É só voltar no cardápio."
+                  : "Já mandamos pra cozinha. Acompanhe o status do seu pedido em tempo real."}
               </p>
             </div>
           )}
@@ -501,7 +549,17 @@ export default function CartDrawer({
             </Button>
           </div>
         )}
-        {passo === "resumo" && (
+        {passo === "resumo" && mesa != null && (
+          <div className="mt-auto flex flex-col gap-2 border-t border-border p-4">
+            <Button disabled={pending} onClick={confirmarPedidoMesa}>
+              {pending ? "Enviando…" : "Enviar pedido pra cozinha"}
+            </Button>
+            <Button variant="outline" onClick={() => setPasso("carrinho")}>
+              Voltar
+            </Button>
+          </div>
+        )}
+        {passo === "resumo" && mesa == null && (
           <div className="mt-auto flex flex-col gap-2 border-t border-border p-4">
             <Button onClick={() => setPasso("pagamento")}>Continuar pro pagamento</Button>
             <Button variant="outline" onClick={() => setPasso("entrega")}>
@@ -521,13 +579,13 @@ export default function CartDrawer({
         )}
         {passo === "confirmado" && (
           <div className="mt-auto flex flex-col gap-2 border-t border-border p-4">
-            {pedidoId && (
+            {mesa == null && pedidoId && (
               <Link href={`/pedido/${pedidoId}`} className="w-full">
                 <Button className="w-full">Acompanhar pedido</Button>
               </Link>
             )}
-            <Button variant="outline" onClick={() => handleOpenChange(false)}>
-              Fechar
+            <Button variant={mesa != null ? "default" : "outline"} onClick={() => handleOpenChange(false)}>
+              {mesa != null ? "Voltar pro cardápio" : "Fechar"}
             </Button>
           </div>
         )}

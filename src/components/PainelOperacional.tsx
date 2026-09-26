@@ -16,11 +16,13 @@ export default function PainelOperacional({
   pedidosPorMesa,
   pedidosCozinha,
   resumo,
+  numeroMesas = 8,
 }: {
   itensCardapio: ItemCardapio[];
   pedidosPorMesa: Record<number, PedidoAbertoResumo[]>;
   pedidosCozinha: PedidoCozinha[];
   resumo: { pedidosHoje: number; faturadoHoje: number; atrasados: number };
+  numeroMesas?: number;
 }) {
   const router = useRouter();
 
@@ -35,7 +37,7 @@ export default function PainelOperacional({
 
       <div>
         <h2 className="mb-3 font-heading text-lg font-semibold">Mesas</h2>
-        <ComandaBoard itensCardapio={itensCardapio} pedidosPorMesa={pedidosPorMesa} />
+        <ComandaBoard itensCardapio={itensCardapio} pedidosPorMesa={pedidosPorMesa} numeroMesas={numeroMesas} />
       </div>
 
       <div>

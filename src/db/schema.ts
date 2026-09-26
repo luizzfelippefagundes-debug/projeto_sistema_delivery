@@ -306,4 +306,7 @@ export const configuracoes = pgTable("configuracoes", {
    * traçar a rota real no mapa do motoboy. Sem isso só dá pra mostrar um
    * pino no destino, sem rota desenhada. */
   enderecoLoja: text("endereco_loja"),
+  /** Quantas mesas o salão tem — define o grid da Comanda e quantos QR
+   * codes são gerados pra pedido direto do cliente na mesa. */
+  numeroMesas: integer("numero_mesas").notNull().default(8),
 });

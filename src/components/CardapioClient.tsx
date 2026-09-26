@@ -132,6 +132,7 @@ export default function CardapioClient({
   itensPorCategoria,
   zonasEntrega,
   enderecoLoja,
+  mesa,
 }: {
   restauranteId: string;
   slug: string;
@@ -139,6 +140,9 @@ export default function CardapioClient({
   itensPorCategoria: Record<string, ItemDoCardapio[]>;
   zonasEntrega: ZonaEntregaResumo[];
   enderecoLoja: string | null;
+  /** Presente quando a página foi aberta pelo QR code de uma mesa — muda o
+   * checkout pra pedido direto na cozinha, sem entrega/pagamento online. */
+  mesa?: number;
 }) {
   const categorias = Object.keys(itensPorCategoria);
   const [categoriaAtiva, setCategoriaAtiva] = useState(categorias[0] ?? "");
@@ -186,6 +190,12 @@ export default function CardapioClient({
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <CustomerHeader nomeRestaurante={nomeRestaurante} />
+
+      {mesa != null && (
+        <div className="bg-primary px-4 py-1.5 text-center text-xs font-semibold text-primary-foreground">
+          Pedindo para a Mesa {mesa}
+        </div>
+      )}
 
       {categorias.length === 0 ? (
         <div className="flex flex-1 items-center justify-center p-6">
@@ -251,7 +261,7 @@ export default function CardapioClient({
             </button>
           </div>
         )}
-        <CustomerTabBar slug={slug} />
+        {mesa == null && <CustomerTabBar slug={slug} />}
       </div>
 
       <CartDrawer
@@ -261,6 +271,7 @@ export default function CardapioClient({
         itensPorId={itensPorId}
         open={sacolaAberta}
         onOpenChange={setSacolaAberta}
+        mesa={mesa}
       />
     </div>
   );
