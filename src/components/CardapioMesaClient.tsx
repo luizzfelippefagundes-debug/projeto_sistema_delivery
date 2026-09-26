@@ -6,7 +6,6 @@ import { solicitarFechamentoMesa } from "@/actions/pedidos.actions";
 import CartDrawer from "@/components/CartDrawer";
 import { ItemCard, tintDaCategoria, type ItemDoCardapio } from "@/components/CardapioItemCard";
 import CustomerHeader from "@/components/CustomerHeader";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { fmtBRL } from "@/lib/data";
 import { useCart } from "@/lib/cart";
@@ -103,11 +102,9 @@ export default function CardapioMesaClient({
     <div className="flex min-h-screen flex-col bg-background">
       <CustomerHeader nomeRestaurante={nomeRestaurante} />
 
-      <div ref={banerRef} className="sticky top-14 z-30 flex justify-center border-b border-border bg-background py-2">
-        <Badge className="gap-1 px-3 py-1 text-xs">
-          <MapPin className="size-3.5" />
-          Mesa {mesa}
-        </Badge>
+      <div ref={banerRef} className="sticky top-14 z-30 flex items-center justify-center gap-2 bg-primary py-3 text-primary-foreground">
+        <MapPin className="size-5" />
+        <span className="text-base font-bold tracking-wide">Mesa {mesa}</span>
       </div>
 
       {aba === "cardapio" ? (
