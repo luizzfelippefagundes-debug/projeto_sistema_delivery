@@ -18,7 +18,10 @@ export default function CustomerHeader({ nomeRestaurante = "Dashi Sushi" }: { no
   return (
     <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-4 shadow-sm md:px-6">
       <Link href="/" className="flex min-w-0 items-center gap-2.5">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base leading-none">🍣</span>
+        <span className="relative flex size-8 shrink-0 overflow-hidden rounded-full">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-icon.png" alt="Dashi Sushi" className="size-full object-cover" />
+        </span>
         <span className="truncate font-heading text-base font-semibold tracking-tight">{nomeRestaurante}</span>
       </Link>
       <div className="ml-auto flex shrink-0 items-center gap-3">

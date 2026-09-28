@@ -34,7 +34,10 @@ export default function ComecarForm({ nomeSugerido }: { nomeSugerido: string }) 
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <div className="mb-1 text-2xl leading-none">🍣</div>
+        <div className="relative mb-1 size-10 overflow-hidden rounded-full">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-icon.png" alt="Dashi Sushi" className="size-full object-cover" />
+        </div>
         <CardTitle className="font-heading text-xl">Vamos criar seu restaurante</CardTitle>
         <p className="text-sm text-muted-foreground">Leva menos de um minuto. Você já entra como dono(a) do seu próprio painel.</p>
       </CardHeader>

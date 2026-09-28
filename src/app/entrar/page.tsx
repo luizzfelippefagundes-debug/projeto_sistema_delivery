@@ -13,7 +13,10 @@ export default function EntrarPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background p-4">
       <div className="flex items-center gap-2.5">
-        <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-lg leading-none">🍣</span>
+        <span className="relative flex size-9 shrink-0 overflow-hidden rounded-full">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-icon.png" alt="Dashi Sushi" className="size-full object-cover" />
+        </span>
         <span className="font-heading text-base font-semibold tracking-tight">Dashi Sushi</span>
       </div>
       <div className="text-center">

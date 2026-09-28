@@ -60,7 +60,10 @@ export default function DonoSidebar({
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-2.5 px-2 py-1.5">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary/15 text-base leading-none">🍣</span>
+            <span className="relative flex size-8 shrink-0 overflow-hidden rounded-full">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo-icon.png" alt="Dashi Sushi" className="size-full object-cover" />
+            </span>
             <div className="flex flex-col">
               <span className="font-heading text-base font-semibold leading-tight tracking-tight">{nomeRestaurante}</span>
               <span className="text-xs text-sidebar-foreground/60">Painel da dona</span>
@@ -96,7 +99,10 @@ export default function DonoSidebar({
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4">
           <SidebarTrigger className="hidden md:inline-flex" />
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base leading-none md:hidden">🍣</span>
+          <span className="relative flex size-8 shrink-0 overflow-hidden rounded-full md:hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-icon.png" alt="Dashi Sushi" className="size-full object-cover" />
+          </span>
           <span className="min-w-0 truncate font-heading text-lg font-semibold">{TITLES[pathname] ?? "Dashi Sushi"}</span>
           <div className="ml-auto flex shrink-0 items-center gap-2 md:hidden">
             <ThemeToggle />
