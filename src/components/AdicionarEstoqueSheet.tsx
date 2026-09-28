@@ -1,5 +1,6 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { useState, useTransition } from "react";
 import { ativarControleEstoque } from "@/actions/cardapio.actions";
 import { Button } from "@/components/ui/button";
@@ -11,15 +12,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface ItemSemEstoque {
   id: string;
@@ -91,25 +83,31 @@ export default function AdicionarEstoqueSheet({
             <>
               <div className="flex flex-col gap-1.5">
                 <Label>Item do cardápio</Label>
-                <Select value={itemId} onValueChange={(v) => v && setItemId(v)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Escolha um item">
-                      {() => itemSelecionado?.nome ?? "Escolha um item"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[...porCategoria.entries()].map(([categoria, itensDaCategoria]) => (
-                      <SelectGroup key={categoria}>
-                        <SelectLabel>{categoria}</SelectLabel>
-                        {itensDaCategoria.map((item) => (
-                          <SelectItem key={item.id} value={item.id}>
-                            {item.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="max-h-56 overflow-y-auto rounded-lg border border-input">
+                  {[...porCategoria.entries()].map(([categoria, itensDaCategoria]) => (
+                    <div key={categoria}>
+                      <p className="sticky top-0 bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
+                        {categoria}
+                      </p>
+                      {itensDaCategoria.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setItemId(item.id)}
+                          className={`flex w-full items-center justify-between gap-2 border-t border-border px-3 py-2 text-left text-sm first:border-t-0 hover:bg-muted/60 ${
+                            itemId === item.id ? "bg-primary/10 font-medium" : ""
+                          }`}
+                        >
+                          {item.nome}
+                          {itemId === item.id && <Check className="size-4 shrink-0 text-primary" />}
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+                {itemSelecionado && (
+                  <p className="text-xs text-muted-foreground">Selecionado: {itemSelecionado.nome}</p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1.5">
