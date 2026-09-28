@@ -14,7 +14,9 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -39,6 +41,14 @@ export default function AdicionarEstoqueSheet({
   const [estoqueMinimo, setEstoqueMinimo] = useState("5");
   const [erro, setErro] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const porCategoria = new Map<string, ItemSemEstoque[]>();
+  for (const item of itens) {
+    const lista = porCategoria.get(item.categoria) ?? [];
+    lista.push(item);
+    porCategoria.set(item.categoria, lista);
+  }
+  const itemSelecionado = itens.find((i) => i.id === itemId);
 
   function handleOpenChange(v: boolean) {
     onOpenChange(v);
@@ -83,13 +93,20 @@ export default function AdicionarEstoqueSheet({
                 <Label>Item do cardápio</Label>
                 <Select value={itemId} onValueChange={(v) => v && setItemId(v)}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Escolha um item" />
+                    <SelectValue placeholder="Escolha um item">
+                      {() => itemSelecionado?.nome ?? "Escolha um item"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {itens.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {item.nome} · {item.categoria}
-                      </SelectItem>
+                    {[...porCategoria.entries()].map(([categoria, itensDaCategoria]) => (
+                      <SelectGroup key={categoria}>
+                        <SelectLabel>{categoria}</SelectLabel>
+                        {itensDaCategoria.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
                     ))}
                   </SelectContent>
                 </Select>
