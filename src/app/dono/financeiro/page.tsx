@@ -8,8 +8,9 @@ import { getZonasEntrega } from "@/db/queries/entrega";
 import { getUltimoFechamento } from "@/db/queries/fechamentos";
 import { getPedidosDesde, getPedidosDoDia } from "@/db/queries/pedidos";
 import { fmtBRL, fmtHora } from "@/lib/data";
+import { contaComoFaturamento } from "@/lib/faturamento";
 import { requireFuncionarioAccess } from "@/lib/funcionarioAuth";
-import type { Pagamento } from "@/lib/types";
+import type { Origem, OrderStatus, Pagamento } from "@/lib/types";
 
 function inicioDaSemana() {
   const d = new Date();
@@ -23,14 +24,15 @@ function inicioDoMes() {
   return d;
 }
 
-function resumoPeriodo(pedidos: { total: number; formaPagamento: Pagamento | null; status: string }[]) {
+function resumoPeriodo(pedidos: { origem: Origem; total: number; formaPagamento: Pagamento | null; status: OrderStatus }[]) {
   const porForma: Record<Pagamento, number> = { dinheiro: 0, cartao: 0, pix: 0 };
+  const faturados = pedidos.filter(contaComoFaturamento);
   let faturamento = 0;
+  for (const p of faturados) faturamento += p.total;
   for (const p of pedidos) {
-    faturamento += p.total;
     if (p.status === "finalizado" && p.formaPagamento) porForma[p.formaPagamento] += p.total;
   }
-  const ticketMedio = pedidos.length ? faturamento / pedidos.length : 0;
+  const ticketMedio = faturados.length ? faturamento / faturados.length : 0;
   return { porForma, faturamento, ticketMedio, quantidade: pedidos.length };
 }
 

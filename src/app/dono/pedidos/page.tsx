@@ -1,6 +1,7 @@
 import PedidosHistoricoTable from "@/components/PedidosHistoricoTable";
 import { getItensAgrupadosPorPedido, getPedidosFiltrados } from "@/db/queries/pedidos";
 import { fmtBRL } from "@/lib/data";
+import { contaComoFaturamento } from "@/lib/faturamento";
 import { requireFuncionarioAccess } from "@/lib/funcionarioAuth";
 import type { OrderStatus, Origem } from "@/lib/types";
 
@@ -49,7 +50,7 @@ export default async function HistoricoPedidosPage({
   const itensPorPedido = await getItensAgrupadosPorPedido(ordenados.map((p) => p.id));
   const pedidosComItens = ordenados.map((p) => ({ pedido: p, itens: itensPorPedido.get(p.id) ?? [] }));
 
-  const faturamentoPeriodo = pedidos.reduce((s, p) => s + p.total, 0);
+  const faturamentoPeriodo = pedidos.filter(contaComoFaturamento).reduce((s, p) => s + p.total, 0);
 
   return (
     <div className="flex flex-col gap-5">

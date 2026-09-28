@@ -5,6 +5,7 @@ import { getConfiguracoes } from "@/db/queries/configuracoes";
 import { getMesasComFechamentoPendente } from "@/db/queries/fechamentoMesa";
 import { getItensAgrupadosPorPedido, getPedidosAbertos, getPedidosDoDia } from "@/db/queries/pedidos";
 import { estaAtrasado } from "@/lib/data";
+import { contaComoFaturamento } from "@/lib/faturamento";
 import { requireFuncionarioAccess } from "@/lib/funcionarioAuth";
 import type { OrderStatus } from "@/lib/types";
 
@@ -55,7 +56,7 @@ export default async function CozinhaPage() {
 
   const resumo = {
     pedidosHoje: pedidosHoje.length,
-    faturadoHoje: pedidosHoje.reduce((s, p) => s + p.total, 0),
+    faturadoHoje: pedidosHoje.filter(contaComoFaturamento).reduce((s, p) => s + p.total, 0),
     atrasados: doCozinha.filter((p) => estaAtrasado(p.criadoEm.getTime(), p.status)).length,
   };
 
