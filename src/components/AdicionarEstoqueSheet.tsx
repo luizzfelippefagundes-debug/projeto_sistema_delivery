@@ -101,13 +101,13 @@ export default function AdicionarEstoqueSheet({
         <DialogHeader className="p-4">
           <DialogTitle>Adicionar item ao estoque</DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col gap-1.5 overflow-hidden px-4 pb-4">
+        <div className="flex flex-col gap-1.5 px-4 pb-4">
           {itens.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Todos os itens ativos do cardápio já têm controle de estoque ligado.
             </p>
           ) : (
-            <div className="flex-1 overflow-y-auto rounded-lg border border-input">
+            <div className="max-h-72 overflow-y-auto rounded-lg border border-input">
               {[...porCategoria.entries()].map(([categoria, itensDaCategoria]) => (
                 <div key={categoria}>
                   <p className="sticky top-0 bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
