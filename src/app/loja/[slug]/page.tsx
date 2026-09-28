@@ -12,11 +12,12 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
   const restaurante = await getRestaurantePorSlug(slug);
   if (!restaurante) notFound();
 
-  const itens = await getItensCardapioAtivos(restaurante.id);
+  const [itens, zonas, config] = await Promise.all([
+    getItensCardapioAtivos(restaurante.id),
+    getZonasEntrega(restaurante.id),
+    getConfiguracoes(restaurante.id),
+  ]);
   const opcoesMapa = await getOpcoesComboPorItens(itens.map((i) => i.id));
-  const zonas = await getZonasEntrega(restaurante.id);
-  const config = await getConfiguracoes(restaurante.id);
-
   const itensPorCategoria: Record<string, ItemDoCardapio[]> = {};
   for (const item of itens) {
     (itensPorCategoria[item.categoria] ??= []).push({

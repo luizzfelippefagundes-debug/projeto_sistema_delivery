@@ -28,10 +28,12 @@ export default async function LojaMesaPage({
   const numeroMesas = config?.numeroMesas ?? 8;
   if (!mesaValida(mesa, numeroMesas)) notFound();
 
-  const itens = await getItensCardapioAtivos(restaurante.id);
+  const [itens, contaAtual, mesasQuerFechar] = await Promise.all([
+    getItensCardapioAtivos(restaurante.id),
+    getContaAbertaMesa(restaurante.id, mesa),
+    getMesasComFechamentoPendente(restaurante.id),
+  ]);
   const opcoesMapa = await getOpcoesComboPorItens(itens.map((i) => i.id));
-  const contaAtual = await getContaAbertaMesa(restaurante.id, mesa);
-  const mesasQuerFechar = await getMesasComFechamentoPendente(restaurante.id);
 
   const itensPorCategoria: Record<string, ItemDoCardapio[]> = {};
   for (const item of itens) {
