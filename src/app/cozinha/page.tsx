@@ -44,13 +44,14 @@ export default async function CozinhaPage() {
   ]);
   const itensCardapio = itensCardapioTodos.filter((i) => i.ativo);
 
-  const pedidosPorMesa: Record<number, { id: string; status: OrderStatus; itemCount: number }[]> = {};
+  const pedidosPorMesa: Record<number, { id: string; status: OrderStatus; itemCount: number; total: number }[]> = {};
   for (const p of pedidosSalao) {
     const mesa = p.mesa as number;
     (pedidosPorMesa[mesa] ??= []).push({
       id: p.id,
       status: p.status,
       itemCount: itensPorPedido.get(p.id)?.length ?? 0,
+      total: p.total,
     });
   }
 

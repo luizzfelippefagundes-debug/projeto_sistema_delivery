@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { enviarComandaParaCozinha, fecharMesaAction } from "@/actions/pedidos.actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import DivisaoConta from "@/components/DivisaoConta";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,7 @@ export interface PedidoAbertoResumo {
   id: string;
   status: OrderStatus;
   itemCount: number;
+  total: number;
 }
 
 interface DraftItem {
@@ -57,6 +59,7 @@ export default function MesaModal({
 
   const draftTotal = draft.reduce((s, i) => s + i.preco * i.qtd, 0);
   const draftQtd = draft.reduce((s, i) => s + i.qtd, 0);
+  const totalMesa = pedidosAbertos.reduce((s, p) => s + p.total, 0);
 
   function addItem(item: ItemCardapio) {
     setDraft((prev) => {
@@ -114,6 +117,13 @@ export default function MesaModal({
               </p>
             )}
             <div className="flex flex-col gap-4 px-4">
+              <div className="flex justify-between text-base font-bold">
+                <span>Total da mesa</span>
+                <span className="num">{fmtBRL(totalMesa)}</span>
+              </div>
+
+              <DivisaoConta total={totalMesa} />
+
               <p className="text-sm text-muted-foreground">Como o cliente vai pagar?</p>
               <div className="flex gap-2">
                 {(["dinheiro", "cartao", "pix"] as Pagamento[]).map((p) => (

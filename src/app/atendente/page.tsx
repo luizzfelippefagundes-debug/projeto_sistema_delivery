@@ -22,13 +22,14 @@ export default async function AtendentePage() {
   const pedidosSalao = pedidosAbertos.filter((p) => p.origem === "salao" && p.mesa != null);
   const itensPorPedido = await getItensAgrupadosPorPedido(pedidosSalao.map((p) => p.id));
 
-  const pedidosPorMesa: Record<number, { id: string; status: OrderStatus; itemCount: number }[]> = {};
+  const pedidosPorMesa: Record<number, { id: string; status: OrderStatus; itemCount: number; total: number }[]> = {};
   for (const p of pedidosSalao) {
     const mesa = p.mesa as number;
     (pedidosPorMesa[mesa] ??= []).push({
       id: p.id,
       status: p.status,
       itemCount: itensPorPedido.get(p.id)?.length ?? 0,
+      total: p.total,
     });
   }
 

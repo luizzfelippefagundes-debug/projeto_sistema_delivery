@@ -6,6 +6,7 @@ import { solicitarFechamentoMesa } from "@/actions/pedidos.actions";
 import CartDrawer from "@/components/CartDrawer";
 import { ItemCard, tintDaCategoria, type ItemDoCardapio } from "@/components/CardapioItemCard";
 import CustomerHeader from "@/components/CustomerHeader";
+import DivisaoConta from "@/components/DivisaoConta";
 import { Button } from "@/components/ui/button";
 import { fmtBRL } from "@/lib/data";
 import { useCart } from "@/lib/cart";
@@ -178,6 +179,8 @@ export default function CardapioMesaClient({
                   <span className="num">{fmtBRL(contaAtual.total)}</span>
                 </div>
               </div>
+
+              <DivisaoConta total={contaAtual.total} />
 
               {solicitado ? (
                 <p className="rounded-lg bg-status-ok-bg px-3 py-2 text-center text-sm font-medium text-status-ok-fg">
