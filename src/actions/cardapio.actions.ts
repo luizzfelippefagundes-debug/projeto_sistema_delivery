@@ -126,6 +126,52 @@ export async function ajustarEstoqueAction(id: string, delta: number) {
   revalidatePath("/dono/estoque");
 }
 
+/** Liga o controle de estoque de um item que já existe no cardápio — não
+ * cria item novo, só passa a descontar/travar esse aqui a partir de
+ * agora. */
+export async function ativarControleEstoque(itemId: string, estoqueInicial: number, estoqueMinimo: number) {
+  const dono = await assertFuncionario("dono");
+  if (estoqueInicial < 0 || estoqueMinimo < 0) throw new Error("Os valores não podem ser negativos.");
+  const [item] = await getDb()
+    .update(itensCardapio)
+    .set({ estoqueAtual: Math.round(estoqueInicial), estoqueMinimo: Math.round(estoqueMinimo) })
+    .where(eq(itensCardapio.id, itemId))
+    .returning();
+  if (item) {
+    await registrarAtividade({
+      restauranteId: dono.restauranteId,
+      funcionarioId: dono.id,
+      nomeFuncionario: dono.nome,
+      acao: "Ligou controle de estoque",
+      detalhe: `${item.nome} — ${estoqueInicial} un.`,
+    });
+  }
+  revalidatePath("/dono/estoque");
+  revalidatePath("/dono/cardapio");
+}
+
+/** Desliga o controle de estoque — o item continua no cardápio normalmente
+ * (visível, vendável), só para de aparecer/descontar aqui. */
+export async function removerControleEstoque(itemId: string) {
+  const dono = await assertFuncionario("dono");
+  const [item] = await getDb()
+    .update(itensCardapio)
+    .set({ estoqueAtual: null, estoqueMinimo: null })
+    .where(eq(itensCardapio.id, itemId))
+    .returning();
+  if (item) {
+    await registrarAtividade({
+      restauranteId: dono.restauranteId,
+      funcionarioId: dono.id,
+      nomeFuncionario: dono.nome,
+      acao: "Desligou controle de estoque",
+      detalhe: item.nome,
+    });
+  }
+  revalidatePath("/dono/estoque");
+  revalidatePath("/dono/cardapio");
+}
+
 export async function alternarAtivoItemCardapio(id: string, ativo: boolean) {
   const dono = await assertFuncionario("dono");
   const [alvo] = await getDb().update(itensCardapio).set({ ativo }).where(eq(itensCardapio.id, id)).returning();

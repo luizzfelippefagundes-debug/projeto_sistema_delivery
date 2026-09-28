@@ -1,8 +1,19 @@
 "use client";
 
-import { Minus, Plus, TriangleAlert } from "lucide-react";
-import { useTransition } from "react";
-import { ajustarEstoqueAction } from "@/actions/cardapio.actions";
+import { Minus, Plus, Trash2, TriangleAlert } from "lucide-react";
+import { useState, useTransition } from "react";
+import { ajustarEstoqueAction, removerControleEstoque } from "@/actions/cardapio.actions";
+import AdicionarEstoqueSheet from "@/components/AdicionarEstoqueSheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,7 +46,7 @@ function StatusBadgeEstoque({ item }: { item: ItemCardapio }) {
   return <Badge className="bg-status-ok-bg text-status-ok-fg">Ok</Badge>;
 }
 
-function CartaoEstoque({ item }: { item: ItemCardapio }) {
+function CartaoEstoque({ item, onRemover }: { item: ItemCardapio; onRemover: (item: ItemCardapio) => void }) {
   const [pending, startTransition] = useTransition();
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4">
@@ -62,20 +73,25 @@ function CartaoEstoque({ item }: { item: ItemCardapio }) {
           </Button>
           <span className="text-xs text-muted-foreground">mín. {item.estoqueMinimo}</span>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={pending}
-          onClick={() => startTransition(() => ajustarEstoqueAction(item.id, 10))}
-        >
-          + 10
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={pending}
+            onClick={() => startTransition(() => ajustarEstoqueAction(item.id, 10))}
+          >
+            + 10
+          </Button>
+          <Button size="icon-sm" variant="outline" onClick={() => onRemover(item)} aria-label={`Remover ${item.nome} do estoque`}>
+            <Trash2 />
+          </Button>
+        </div>
       </div>
     </div>
   );
 }
 
-function LinhaEstoque({ item }: { item: ItemCardapio }) {
+function LinhaEstoque({ item, onRemover }: { item: ItemCardapio; onRemover: (item: ItemCardapio) => void }) {
   const [pending, startTransition] = useTransition();
   const baixo = (item.estoqueAtual ?? 0) <= (item.estoqueMinimo ?? 0);
   const zerado = (item.estoqueAtual ?? 0) === 0;
@@ -115,24 +131,44 @@ function LinhaEstoque({ item }: { item: ItemCardapio }) {
         )}
       </TableCell>
       <TableCell>
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={pending}
-          onClick={() => startTransition(() => ajustarEstoqueAction(item.id, 10))}
-        >
-          + 10
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={pending}
+            onClick={() => startTransition(() => ajustarEstoqueAction(item.id, 10))}
+          >
+            + 10
+          </Button>
+          <Button size="icon-sm" variant="outline" onClick={() => onRemover(item)} aria-label={`Remover ${item.nome} do estoque`}>
+            <Trash2 />
+          </Button>
+        </div>
       </TableCell>
     </TableRow>
   );
 }
 
-export default function EstoqueManager({ itens }: { itens: ItemCardapio[] }) {
+export default function EstoqueManager({
+  itens,
+  itensSemEstoque,
+}: {
+  itens: ItemCardapio[];
+  itensSemEstoque: { id: string; nome: string; categoria: string }[];
+}) {
   const baixos = itens.filter((i) => (i.estoqueAtual ?? 0) <= (i.estoqueMinimo ?? 0));
+  const [adicionando, setAdicionando] = useState(false);
+  const [removendo, setRemovendo] = useState<ItemCardapio | null>(null);
+  const [pendingRemover, startTransitionRemover] = useTransition();
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <Button size="sm" onClick={() => setAdicionando(true)}>
+          Adicionar item ao estoque
+        </Button>
+      </div>
+
       {baixos.length > 0 && (
         <div className="flex items-center gap-2 rounded-lg border border-status-warn-fg/30 bg-status-warn-bg px-4 py-3 text-sm text-status-warn-fg">
           <TriangleAlert className="size-4 shrink-0" />
@@ -142,13 +178,13 @@ export default function EstoqueManager({ itens }: { itens: ItemCardapio[] }) {
 
       {itens.length === 0 && (
         <p className="text-center text-sm text-muted-foreground">
-          Nenhum item com controle de estoque ainda. Ative em Cardápio → editar item.
+          Nenhum item com controle de estoque ainda. Clique em &quot;Adicionar item ao estoque&quot; acima.
         </p>
       )}
 
       <div className="flex flex-col gap-3 sm:hidden">
         {itens.map((item) => (
-          <CartaoEstoque key={item.id} item={item} />
+          <CartaoEstoque key={item.id} item={item} onRemover={setRemovendo} />
         ))}
       </div>
 
@@ -162,17 +198,46 @@ export default function EstoqueManager({ itens }: { itens: ItemCardapio[] }) {
                 <TableHead>Em estoque</TableHead>
                 <TableHead>Mínimo</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-24" />
+                <TableHead className="w-40" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {itens.map((item) => (
-                <LinhaEstoque key={item.id} item={item} />
+                <LinhaEstoque key={item.id} item={item} onRemover={setRemovendo} />
               ))}
             </TableBody>
           </Table>
         </div>
       )}
+
+      <AdicionarEstoqueSheet itens={itensSemEstoque} open={adicionando} onOpenChange={setAdicionando} />
+
+      <AlertDialog open={!!removendo} onOpenChange={(v) => !v && setRemovendo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover {removendo?.nome} do estoque?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O item continua no cardápio normalmente, só para de ter controle de quantidade — as vendas não vão mais
+              descontar nada. Pode adicionar de volta a qualquer momento.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={pendingRemover}
+              onClick={() => {
+                if (!removendo) return;
+                startTransitionRemover(async () => {
+                  await removerControleEstoque(removendo.id);
+                  setRemovendo(null);
+                });
+              }}
+            >
+              {pendingRemover ? "Removendo…" : "Remover do estoque"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

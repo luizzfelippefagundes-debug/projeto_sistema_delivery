@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { getDb } from "../index";
 import { ordenarPorNome } from "../../lib/ordenacao";
 import { itensCardapio, opcoesCombo } from "../schema";
@@ -93,6 +93,23 @@ export async function baixarEstoque(itens: { itemCardapioId: string; quantidade:
       .set({ estoqueAtual: novoEstoque, ...(novoEstoque === 0 ? { ativo: false } : {}) })
       .where(eq(itensCardapio.id, row.id));
   }
+}
+
+/** Itens ativos que ainda não têm controle de estoque ligado — alimenta o
+ * seletor de "adicionar item ao estoque", pra dona escolher um item já
+ * existente no cardápio em vez de cadastrar tudo de novo. */
+export async function getItensSemControleEstoque(restauranteId: string) {
+  const itens = await getDb()
+    .select()
+    .from(itensCardapio)
+    .where(
+      and(
+        eq(itensCardapio.restauranteId, restauranteId),
+        eq(itensCardapio.ativo, true),
+        isNull(itensCardapio.estoqueAtual),
+      ),
+    );
+  return ordenarPorNome(itens);
 }
 
 /** Ajuste manual de estoque (reposição ou correção) — se o item tinha sido
