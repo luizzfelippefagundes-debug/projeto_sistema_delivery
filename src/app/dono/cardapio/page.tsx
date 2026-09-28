@@ -1,13 +1,11 @@
 import CardapioManager from "@/components/CardapioManager";
-import { getCategorias, getItensCardapio, getOpcoesComboPorItens } from "@/db/queries/cardapio";
+import { getItensCardapio, getOpcoesComboPorItens } from "@/db/queries/cardapio";
 import { requireFuncionarioAccess } from "@/lib/funcionarioAuth";
 
 export default async function CardapioAdminPage() {
   const dono = await requireFuncionarioAccess("dono");
-  const [itens, categorias] = await Promise.all([
-    getItensCardapio(dono.restauranteId),
-    getCategorias(dono.restauranteId),
-  ]);
+  const itens = await getItensCardapio(dono.restauranteId);
+  const categorias = [...new Set(itens.map((i) => i.categoria))];
   const opcoesMapa = await getOpcoesComboPorItens(itens.map((i) => i.id));
   const opcoesPorItem: Record<string, { nome: string; limiteQuantidade: number | null }[]> = {};
   for (const [itemId, opcoes] of opcoesMapa) {

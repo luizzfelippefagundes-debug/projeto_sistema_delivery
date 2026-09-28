@@ -16,11 +16,6 @@ export async function getItensCardapioAtivos(restauranteId: string) {
   return ordenarPorNome(itens);
 }
 
-export async function getCategorias(restauranteId: string) {
-  const itens = await getItensCardapio(restauranteId);
-  return [...new Set(itens.map((i) => i.categoria))];
-}
-
 /** Peças escolhíveis de cada combo, agrupadas por item — alimenta tanto o
  * editor do cardápio (dono) quanto o seletor de peças no cardápio online. */
 export interface OpcaoComboResumo {
