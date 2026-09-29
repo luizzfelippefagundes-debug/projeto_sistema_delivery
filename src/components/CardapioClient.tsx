@@ -24,6 +24,7 @@ export default function CardapioClient({
   itensPorCategoria,
   zonasEntrega,
   enderecoLoja,
+  souDona = false,
 }: {
   restauranteId: string;
   slug: string;
@@ -31,6 +32,9 @@ export default function CardapioClient({
   itensPorCategoria: Record<string, ItemDoCardapio[]>;
   zonasEntrega: ZonaEntregaResumo[];
   enderecoLoja: string | null;
+  /** A própria dona olhando o cardápio como cliente veria — mostra o menu
+   * de trocar de painel no cabeçalho. */
+  souDona?: boolean;
 }) {
   const categorias = Object.keys(itensPorCategoria);
   const [categoriaAtiva, setCategoriaAtiva] = useState(categorias[0] ?? "");
@@ -77,7 +81,7 @@ export default function CardapioClient({
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <CustomerHeader nomeRestaurante={nomeRestaurante} />
+      <CustomerHeader nomeRestaurante={nomeRestaurante} slug={slug} souDona={souDona} />
 
       {categorias.length === 0 ? (
         <div className="flex flex-1 items-center justify-center p-6">

@@ -11,7 +11,7 @@ export default async function AtendenteLayout({ children }: { children: React.Re
         titulo="Comanda digital"
         nome={funcionario.nome}
         nomeRestaurante={restaurante?.nome ?? "Meu restaurante"}
-        voltarParaDono={funcionario.papel === "dono"}
+        painelSwitcherSlug={funcionario.papel === "dono" ? restaurante?.slug : undefined}
       />
       <main className="flex-1 p-4 md:p-6">{children}</main>
     </div>

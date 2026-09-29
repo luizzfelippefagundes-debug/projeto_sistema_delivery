@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import DonoTabBar from "@/components/DonoTabBar";
+import PainelSwitcher from "@/components/PainelSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
 import {
   Sidebar,
@@ -58,10 +59,12 @@ const TITLES: Record<string, string> = {
 export default function DonoSidebar({
   nome,
   nomeRestaurante,
+  slug,
   children,
 }: {
   nome: string;
   nomeRestaurante: string;
+  slug: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -115,9 +118,12 @@ export default function DonoSidebar({
             <img src="/logo-icon.png" alt="Dashi Sushi" className="size-full object-cover" />
           </span>
           <span className="min-w-0 truncate font-heading text-lg font-semibold">{TITLES[pathname] ?? "Dashi Sushi"}</span>
-          <div className="ml-auto flex shrink-0 items-center gap-2 md:hidden">
-            <ThemeToggle />
-            <UserButton />
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            <PainelSwitcher slug={slug} compact />
+            <div className="flex items-center gap-2 md:hidden">
+              <ThemeToggle />
+              <UserButton />
+            </div>
           </div>
         </header>
         <div className="flex-1 p-4 pb-24 md:p-6 md:pb-6">{children}</div>

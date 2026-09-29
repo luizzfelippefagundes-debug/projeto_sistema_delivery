@@ -1,9 +1,11 @@
+import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import CardapioClient, { type ItemDoCardapio } from "@/components/CardapioClient";
 import { getItensCardapioAtivos, getOpcoesComboPorItens } from "@/db/queries/cardapio";
 import { getConfiguracoes } from "@/db/queries/configuracoes";
 import { getZonasEntrega } from "@/db/queries/entrega";
+import { getFuncionarioByClerkId } from "@/db/queries/funcionarios";
 import { getRestaurantePorSlug } from "@/db/queries/restaurantes";
 
 export const dynamic = "force-dynamic";
@@ -35,10 +37,12 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
   const restaurante = await getRestaurantePorSlug(slug);
   if (!restaurante) notFound();
 
-  const [itens, zonas, config] = await Promise.all([
+  const { userId } = await auth();
+  const [itens, zonas, config, funcionario] = await Promise.all([
     getItensCardapioAtivos(restaurante.id),
     getZonasEntrega(restaurante.id),
     getConfiguracoes(restaurante.id),
+    userId ? getFuncionarioByClerkId(userId) : null,
   ]);
   const opcoesMapa = await getOpcoesComboPorItens(itens.map((i) => i.id));
   const itensPorCategoria: Record<string, ItemDoCardapio[]> = {};
@@ -62,6 +66,7 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
       itensPorCategoria={itensPorCategoria}
       zonasEntrega={zonas.map((z) => ({ bairro: z.bairro, taxaEntrega: z.taxaEntrega, tempoEstimadoMin: z.tempoEstimadoMin }))}
       enderecoLoja={config?.enderecoLoja ?? null}
+      souDona={funcionario?.papel === "dono" && funcionario.restauranteId === restaurante.id}
     />
   );
 }

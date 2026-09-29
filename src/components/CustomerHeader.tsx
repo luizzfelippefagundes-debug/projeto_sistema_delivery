@@ -2,9 +2,20 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import PainelSwitcher from "@/components/PainelSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
 
-export default function CustomerHeader({ nomeRestaurante = "Dashi Sushi" }: { nomeRestaurante?: string }) {
+export default function CustomerHeader({
+  nomeRestaurante = "Dashi Sushi",
+  slug,
+  souDona = false,
+}: {
+  nomeRestaurante?: string;
+  slug?: string;
+  /** A própria dona vendo o cardápio como cliente veria — mostra o atalho
+   * pra trocar de painel sem precisar deslogar. */
+  souDona?: boolean;
+}) {
   const [clock, setClock] = useState("");
 
   useEffect(() => {
@@ -25,6 +36,7 @@ export default function CustomerHeader({ nomeRestaurante = "Dashi Sushi" }: { no
         <span className="truncate font-heading text-base font-semibold tracking-tight">{nomeRestaurante}</span>
       </Link>
       <div className="ml-auto flex shrink-0 items-center gap-3">
+        {souDona && slug && <PainelSwitcher slug={slug} compact />}
         <span className="num hidden text-xs text-muted-foreground sm:inline">{clock}</span>
         <ThemeToggle />
       </div>
