@@ -123,11 +123,6 @@ export default function CartDrawer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enderecoDestino, enderecoLoja, restauranteId]);
 
-  const mapaUrl =
-    enderecoLoja && enderecoDestino
-      ? `https://maps.google.com/maps?saddr=${encodeURIComponent(enderecoLoja)}&daddr=${encodeURIComponent(enderecoDestino)}&z=13&output=embed`
-      : null;
-
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -381,11 +376,6 @@ export default function CartDrawer({
                     </div>
                   )}
 
-                  {mapaUrl && (
-                    <div className="aspect-[16/10] w-full overflow-hidden rounded-lg border border-border">
-                      <iframe title="Rota de entrega" className="size-full" loading="lazy" src={mapaUrl} />
-                    </div>
-                  )}
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="complemento">Complemento (opcional)</Label>
                     <Input
