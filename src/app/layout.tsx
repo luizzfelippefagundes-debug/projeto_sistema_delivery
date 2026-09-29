@@ -1,8 +1,7 @@
-import { ClerkProvider } from "@clerk/nextjs";
-import { ptBR } from "@clerk/localizations";
 import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
+import ClerkThemedProvider from "@/components/ClerkThemedProvider";
 import { CartProvider } from "@/lib/cart";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -36,21 +35,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR" className={body.variable} suppressHydrationWarning>
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <ClerkProvider
-            localization={ptBR}
-            appearance={{
-              variables: {
-                colorPrimary: "#e0362b",
-                colorForeground: "#1c1416",
-                fontFamily: "var(--font-body)",
-                borderRadius: "8px",
-              },
-            }}
-          >
+          <ClerkThemedProvider>
             <CartProvider>
               <TooltipProvider>{children}</TooltipProvider>
             </CartProvider>
-          </ClerkProvider>
+          </ClerkThemedProvider>
         </ThemeProvider>
       </body>
     </html>
