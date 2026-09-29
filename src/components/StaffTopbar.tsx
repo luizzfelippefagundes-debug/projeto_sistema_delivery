@@ -19,7 +19,13 @@ export default function StaffTopbar({
 }) {
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-sidebar-border bg-sidebar px-4 text-sidebar-foreground">
-      {painelSwitcherSlug && <PainelSwitcher slug={painelSwitcherSlug} compact />}
+      {painelSwitcherSlug && (
+        <PainelSwitcher
+          slug={painelSwitcherSlug}
+          compact
+          className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        />
+      )}
       <span className="relative flex size-8 shrink-0 overflow-hidden rounded-full">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo-icon.png" alt="Dashi Sushi" className="size-full object-cover" />
