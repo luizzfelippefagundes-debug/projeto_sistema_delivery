@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { Banknote, MapPinned, Store } from "lucide-react";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import CustomerHeader from "@/components/CustomerHeader";
 import CustomerTabBar from "@/components/CustomerTabBar";
 import OrderTimeline from "@/components/OrderTimeline";
@@ -23,16 +23,20 @@ function statusPagamento(forma: Pagamento | null) {
 }
 
 export default async function PedidoPage({ params }: { params: Promise<{ id: string }> }) {
-  const { userId } = await auth();
-  if (!userId) redirect("/sign-in");
-
   const { id } = await params;
   const resultado = await getPedidoComItens(id);
   if (!resultado) notFound();
   const { pedido, itens } = resultado;
 
-  const cliente = await getClientePorClerkId(userId);
-  if (!cliente || pedido.clienteId !== cliente.id) notFound();
+  // Pedido de quem não tinha conta (checkout sem login) não tem dono pra
+  // conferir — o próprio id, praticamente impossível de adivinhar, já é o
+  // que dá acesso. Só quando o pedido tem clienteId (cliente com conta) é
+  // que exigimos ser o dono dele pra ver.
+  if (pedido.clienteId) {
+    const { userId } = await auth();
+    const cliente = userId ? await getClientePorClerkId(userId) : null;
+    if (!cliente || pedido.clienteId !== cliente.id) notFound();
+  }
 
   const restaurante = await getRestaurantePorId(pedido.restauranteId);
   const retirada = !pedido.endereco || /retirada/i.test(pedido.endereco);
