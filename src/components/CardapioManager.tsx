@@ -81,12 +81,12 @@ export default function CardapioManager({
               <div key={item.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
                 <div
                   className={`flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md ${
-                    item.imagemUrl ? "border border-border" : CATEGORY_TINT[idx % CATEGORY_TINT.length]
+                    item.imagemUrl ? "border border-border bg-muted" : CATEGORY_TINT[idx % CATEGORY_TINT.length]
                   }`}
                 >
                   {item.imagemUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.imagemUrl} alt="" className="size-full object-cover" />
+                    <img src={item.imagemUrl} alt="" className="size-full object-contain" />
                   ) : (
                     <ImageOff className="size-4" />
                   )}
@@ -156,12 +156,12 @@ export default function CardapioManager({
                       <div className="flex items-center gap-3">
                         <div
                           className={`flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md ${
-                            item.imagemUrl ? "border border-border" : CATEGORY_TINT[idx % CATEGORY_TINT.length]
+                            item.imagemUrl ? "border border-border bg-muted" : CATEGORY_TINT[idx % CATEGORY_TINT.length]
                           }`}
                         >
                           {item.imagemUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={item.imagemUrl} alt="" className="size-full object-cover" />
+                            <img src={item.imagemUrl} alt="" className="size-full object-contain" />
                           ) : (
                             <ImageOff className="size-4" />
                           )}

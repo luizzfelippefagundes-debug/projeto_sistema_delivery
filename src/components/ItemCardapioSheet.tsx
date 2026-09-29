@@ -210,7 +210,7 @@ export default function ItemCardapioSheet({
               <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-primary/10">
                 {imagemUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={imagemUrl} alt="" className="size-full object-cover" />
+                  <img src={imagemUrl} alt="" className="size-full object-contain" />
                 ) : (
                   <ImageOff className="size-6 text-primary/60" />
                 )}
