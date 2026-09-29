@@ -1,6 +1,6 @@
 "use client";
 
-import { Show, SignInButton, useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bike, Loader2, Minus, Pencil, Plus, UtensilsCrossed } from "lucide-react";
@@ -33,6 +33,7 @@ type Tipo = "retirada" | "delivery";
 const STORAGE_KEY = "dashi-sushi-checkout-v1";
 
 interface DadosEntrega {
+  nome: string;
   telefone: string;
   rua: string;
   numero: string;
@@ -41,7 +42,15 @@ interface DadosEntrega {
   referencia: string;
 }
 
-const ENTREGA_VAZIA: DadosEntrega = { telefone: "", rua: "", numero: "", complemento: "", bairro: "", referencia: "" };
+const ENTREGA_VAZIA: DadosEntrega = {
+  nome: "",
+  telefone: "",
+  rua: "",
+  numero: "",
+  complemento: "",
+  bairro: "",
+  referencia: "",
+};
 
 function montarEndereco(d: DadosEntrega): string {
   let linha = `${d.rua.trim()}, ${d.numero.trim()}`;
@@ -132,6 +141,14 @@ export default function CartDrawer({
     }
   }, []);
 
+  // Pré-preenche com o nome da conta pra quem estiver logado — só um
+  // atalho, continua editável (e é o único jeito de saber o nome de quem
+  // não tem conta).
+  useEffect(() => {
+    if (!user?.fullName) return;
+    setEntrega((prev) => (prev.nome ? prev : { ...prev, nome: user.fullName! }));
+  }, [user?.fullName]);
+
   function atualizarEntrega(campo: keyof DadosEntrega, valor: string) {
     setEntrega((prev) => ({ ...prev, [campo]: valor }));
   }
@@ -166,6 +183,10 @@ export default function CartDrawer({
   }
 
   function confirmarEntrega() {
+    if (!entrega.nome.trim()) {
+      setErro("Informe seu nome.");
+      return;
+    }
     if (!entrega.telefone.trim()) {
       setErro("Informe um telefone pra contato.");
       return;
@@ -185,7 +206,7 @@ export default function CartDrawer({
 
   function confirmarPagamento() {
     setErro(null);
-    const cliente = user?.fullName || user?.username || "Cliente do site";
+    const cliente = entrega.nome.trim() || user?.fullName || user?.username || "Cliente do site";
     const enderecoFinal = tipo === "retirada" ? "Retirada no balcão" : montarEndereco(entrega);
     startTransition(async () => {
       try {
@@ -281,25 +302,9 @@ export default function CartDrawer({
                     <span className="num">{fmtBRL(total)}</span>
                   </div>
 
-                  {mesa != null ? (
-                    <Button className="w-full" onClick={irParaEntrega}>
-                      Continuar
-                    </Button>
-                  ) : (
-                    <>
-                      <Show when="signed-in">
-                        <Button className="w-full" onClick={irParaEntrega}>
-                          Continuar
-                        </Button>
-                      </Show>
-                      <Show when="signed-out">
-                        <p className="text-xs text-muted-foreground">Entre com sua conta pra finalizar o pedido.</p>
-                        <SignInButton mode="modal">
-                          <Button className="w-full">Entrar e continuar</Button>
-                        </SignInButton>
-                      </Show>
-                    </>
-                  )}
+                  <Button className="w-full" onClick={irParaEntrega}>
+                    Continuar
+                  </Button>
                 </>
               )}
             </>
@@ -319,6 +324,16 @@ export default function CartDrawer({
                     🏠 Retirar no local
                   </Button>
                 </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="nome">Seu nome</Label>
+                <Input
+                  id="nome"
+                  value={entrega.nome}
+                  onChange={(e) => atualizarEntrega("nome", e.target.value)}
+                  placeholder="Como podemos te chamar?"
+                />
               </div>
 
               <div className="flex flex-col gap-1.5">
