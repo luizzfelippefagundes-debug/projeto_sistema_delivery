@@ -7,7 +7,12 @@ export default async function AtendenteLayout({ children }: { children: React.Re
   const restaurante = await getRestaurantePorId(funcionario.restauranteId);
   return (
     <div className="flex min-h-screen flex-col">
-      <StaffTopbar titulo="Comanda digital" nome={funcionario.nome} nomeRestaurante={restaurante?.nome ?? "Meu restaurante"} />
+      <StaffTopbar
+        titulo="Comanda digital"
+        nome={funcionario.nome}
+        nomeRestaurante={restaurante?.nome ?? "Meu restaurante"}
+        voltarParaDono={funcionario.papel === "dono"}
+      />
       <main className="flex-1 p-4 md:p-6">{children}</main>
     </div>
   );

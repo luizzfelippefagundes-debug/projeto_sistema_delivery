@@ -12,6 +12,7 @@ export default async function CozinhaLayout({ children }: { children: React.Reac
         titulo={tambemAtende ? "Cozinha & Comanda" : "Cozinha"}
         nome={funcionario.nome}
         nomeRestaurante={restaurante?.nome ?? "Meu restaurante"}
+        voltarParaDono={funcionario.papel === "dono"}
       />
       <main className="flex-1 p-4 md:p-6">{children}</main>
     </div>

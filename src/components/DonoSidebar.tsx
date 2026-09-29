@@ -1,7 +1,17 @@
 "use client";
 
 import { UserButton } from "@clerk/nextjs";
-import { Boxes, ClipboardList, LayoutDashboard, LineChart, QrCode, Users, UsersRound, UtensilsCrossed } from "lucide-react";
+import {
+  Boxes,
+  ClipboardList,
+  ConciergeBell,
+  LayoutDashboard,
+  LineChart,
+  QrCode,
+  Users,
+  UsersRound,
+  UtensilsCrossed,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import DonoTabBar from "@/components/DonoTabBar";
@@ -24,6 +34,7 @@ import {
 
 const TABS = [
   { href: "/dono", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/cozinha", label: "Atendimento", icon: ConciergeBell },
   { href: "/dono/pedidos", label: "Pedidos", icon: ClipboardList },
   { href: "/dono/financeiro", label: "Financeiro", icon: LineChart },
   { href: "/dono/cardapio", label: "Cardápio", icon: UtensilsCrossed },

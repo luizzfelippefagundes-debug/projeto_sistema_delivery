@@ -3,6 +3,7 @@
 import {
   Boxes,
   ClipboardList,
+  ConciergeBell,
   Grid2x2,
   LayoutDashboard,
   LineChart,
@@ -23,12 +24,13 @@ import {
 
 const TABS = [
   { href: "/dono", label: "Início", icon: LayoutDashboard },
+  { href: "/cozinha", label: "Atendimento", icon: ConciergeBell },
   { href: "/dono/pedidos", label: "Pedidos", icon: ClipboardList },
   { href: "/dono/financeiro", label: "Financeiro", icon: LineChart },
-  { href: "/dono/cardapio", label: "Cardápio", icon: UtensilsCrossed },
 ];
 
 const MAIS_LINKS = [
+  { href: "/dono/cardapio", label: "Cardápio", icon: UtensilsCrossed },
   { href: "/dono/mesas", label: "Mesas", icon: QrCode },
   { href: "/dono/estoque", label: "Estoque", icon: Boxes },
   { href: "/dono/clientes", label: "Clientes", icon: UsersRound },
