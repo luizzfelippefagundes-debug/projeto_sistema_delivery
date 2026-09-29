@@ -81,10 +81,10 @@ export default function ItemDetalheDialog({
 
         {item && (
           <div className="flex flex-1 flex-col overflow-y-auto">
-            <div className="aspect-video w-full shrink-0 overflow-hidden">
+            <div className="aspect-video w-full shrink-0 overflow-hidden bg-muted">
               {item.imagemUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={item.imagemUrl} alt={item.nome} className="size-full object-cover" />
+                <img src={item.imagemUrl} alt={item.nome} className="size-full object-contain" />
               ) : (
                 <div className={`flex size-full items-center justify-center ${tint}`}>
                   <Icon className="size-10" />
