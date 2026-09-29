@@ -13,6 +13,7 @@ const body = Manrope({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://daishisushi.com.br"),
   title: "Dashi Sushi",
   description: "Cardápio online, comanda digital, cozinha, delivery e painel de gestão da Dashi Sushi.",
   appleWebApp: {
