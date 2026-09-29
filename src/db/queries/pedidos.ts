@@ -1,6 +1,7 @@
 import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { getDb } from "../index";
 import { itensPedido, pedidos } from "../schema";
+import { podeFecharConta } from "../../lib/fechamentoMesa";
 import type { Origem } from "../../lib/types";
 import type { OrderStatus } from "../../lib/types";
 
@@ -99,11 +100,12 @@ export async function getPedidoComItens(pedidoId: string) {
 
 /** Busca itens de vários pedidos de uma vez e agrupa por pedidoId — evita
  * uma query por pedido ao montar listas (dashboard, financeiro). */
-/** Tudo que já foi enviado pra cozinha por uma mesa e ainda não foi pago —
- * alimenta a tela "minha conta" que o próprio cliente vê no QR code, sem
- * precisar chamar ninguém pra saber quanto já deve. */
-export async function getContaAbertaMesa(restauranteId: string, mesa: number) {
-  const pedidosAbertos = await getDb()
+/** Pedidos de uma mesa ainda não pagos (qualquer status antes de
+ * "finalizado") — usado tanto pra montar "minha conta" quanto pra validar,
+ * no servidor, se dá pra liberar o pedido de fechamento (ver
+ * `podeFecharConta`). */
+export async function getPedidosAbertosMesa(restauranteId: string, mesa: number) {
+  return getDb()
     .select()
     .from(pedidos)
     .where(
@@ -114,7 +116,14 @@ export async function getContaAbertaMesa(restauranteId: string, mesa: number) {
         sql`${pedidos.status} != 'finalizado'`,
       ),
     );
-  if (pedidosAbertos.length === 0) return { itens: [], total: 0 };
+}
+
+/** Tudo que já foi enviado pra cozinha por uma mesa e ainda não foi pago —
+ * alimenta a tela "minha conta" que o próprio cliente vê no QR code, sem
+ * precisar chamar ninguém pra saber quanto já deve. */
+export async function getContaAbertaMesa(restauranteId: string, mesa: number) {
+  const pedidosAbertos = await getPedidosAbertosMesa(restauranteId, mesa);
+  if (pedidosAbertos.length === 0) return { itens: [], total: 0, podeFechar: false };
 
   const itens = await getDb()
     .select()
@@ -127,7 +136,11 @@ export async function getContaAbertaMesa(restauranteId: string, mesa: number) {
     );
 
   const total = pedidosAbertos.reduce((s, p) => s + p.total, 0);
-  return { itens: itens.map((i) => ({ nome: i.nome, preco: i.preco, quantidade: i.quantidade })), total };
+  return {
+    itens: itens.map((i) => ({ nome: i.nome, preco: i.preco, quantidade: i.quantidade })),
+    total,
+    podeFechar: podeFecharConta(pedidosAbertos),
+  };
 }
 
 export async function getItensAgrupadosPorPedido(pedidoIds: string[]) {

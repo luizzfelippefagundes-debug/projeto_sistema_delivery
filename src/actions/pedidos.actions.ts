@@ -8,11 +8,13 @@ import { clientes, itensCardapio, itensPedido, pedidos, restaurantes, solicitaco
 import { baixarEstoque } from "../db/queries/cardapio";
 import { getConfiguracoes } from "../db/queries/configuracoes";
 import { getZonasEntrega } from "../db/queries/entrega";
+import { getPedidosAbertosMesa } from "../db/queries/pedidos";
 import { assertFuncionario } from "../lib/funcionarioAuth";
 import { enviarMensagemWhatsapp } from "../lib/evolutionApi";
 import { encontrarZona } from "../lib/entrega";
 import { fmtBRL } from "../lib/data";
 import { formatarCPF, validarCPF } from "../lib/cpf";
+import { podeFecharConta } from "../lib/fechamentoMesa";
 import { mesaValida } from "../lib/mesa";
 import { notificarNovoPedido } from "../lib/webPush";
 import type { OrderStatus, Pagamento } from "../lib/types";
@@ -88,6 +90,11 @@ export async function fecharMesaAction(mesa: number, pagamento: Pagamento) {
 export async function solicitarFechamentoMesa(restauranteId: string, mesa: number) {
   const config = await getConfiguracoes(restauranteId);
   if (!mesaValida(mesa, config?.numeroMesas ?? 8)) throw new Error("Mesa inválida.");
+
+  const pedidosAbertos = await getPedidosAbertosMesa(restauranteId, mesa);
+  if (!podeFecharConta(pedidosAbertos)) {
+    throw new Error("Ainda tem pedido em preparo — aguarde ficar tudo pronto pra fechar a conta.");
+  }
 
   await getDb()
     .insert(solicitacoesFechamento)

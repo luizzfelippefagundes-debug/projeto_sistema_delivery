@@ -36,7 +36,7 @@ export default function CardapioMesaClient({
   mesa: number;
   nomeRestaurante?: string;
   itensPorCategoria: Record<string, ItemDoCardapio[]>;
-  contaAtual: { itens: ItemDaContaMesa[]; total: number };
+  contaAtual: { itens: ItemDaContaMesa[]; total: number; podeFechar: boolean };
   fechamentoJaSolicitado?: boolean;
 }) {
   const categorias = Object.keys(itensPorCategoria);
@@ -44,6 +44,7 @@ export default function CardapioMesaClient({
   const [categoriaAtiva, setCategoriaAtiva] = useState(categorias[0] ?? "");
   const [sacolaAberta, setSacolaAberta] = useState(false);
   const [solicitado, setSolicitado] = useState(fechamentoJaSolicitado);
+  const [erroFechamento, setErroFechamento] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const { total, count } = useCart();
 
@@ -93,9 +94,14 @@ export default function CardapioMesaClient({
   }
 
   function pedirFechamento() {
+    setErroFechamento(null);
     startTransition(async () => {
-      await solicitarFechamentoMesa(restauranteId, mesa);
-      setSolicitado(true);
+      try {
+        await solicitarFechamentoMesa(restauranteId, mesa);
+        setSolicitado(true);
+      } catch (e) {
+        setErroFechamento(e instanceof Error ? e.message : "Não deu pra chamar o atendimento.");
+      }
     });
   }
 
@@ -186,10 +192,17 @@ export default function CardapioMesaClient({
                 <p className="rounded-lg bg-status-ok-bg px-3 py-2 text-center text-sm font-medium text-status-ok-fg">
                   Chamamos o atendimento! Já já alguém vem até a mesa.
                 </p>
+              ) : contaAtual.podeFechar ? (
+                <>
+                  <Button disabled={pending} onClick={pedirFechamento}>
+                    {pending ? "Chamando…" : "Fechar a conta"}
+                  </Button>
+                  {erroFechamento && <p className="text-center text-sm text-destructive">{erroFechamento}</p>}
+                </>
               ) : (
-                <Button disabled={pending} onClick={pedirFechamento}>
-                  {pending ? "Chamando…" : "Fechar a conta"}
-                </Button>
+                <p className="rounded-lg bg-muted px-3 py-2 text-center text-sm text-muted-foreground">
+                  Seu pedido ainda está sendo preparado — assim que tudo estiver pronto, você pode fechar a conta.
+                </p>
               )}
             </>
           )}
