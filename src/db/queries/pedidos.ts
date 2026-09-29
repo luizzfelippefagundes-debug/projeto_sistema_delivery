@@ -89,6 +89,14 @@ export async function getPedidosPorClienteId(clienteId: string) {
   return getDb().select().from(pedidos).where(eq(pedidos.clienteId, clienteId)).orderBy(desc(pedidos.criadoEm));
 }
 
+/** Pedidos de quem não tem conta — a aba "Pedidos" manda os ids que salvou
+ * no navegador de quem fez o pedido (ver `pedidosConvidado.ts`), já que sem
+ * login não tem `clienteId` pra buscar por ele. */
+export async function getPedidosPorIds(ids: string[]) {
+  if (ids.length === 0) return [];
+  return getDb().select().from(pedidos).where(inArray(pedidos.id, ids)).orderBy(desc(pedidos.criadoEm));
+}
+
 /** Pedido + itens pra montar a comanda impressa — uma consulta só, já que
  * a tela de impressão só precisa desse pedido específico. */
 export async function getPedidoComItens(pedidoId: string) {

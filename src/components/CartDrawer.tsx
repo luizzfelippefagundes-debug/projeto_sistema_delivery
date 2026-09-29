@@ -25,6 +25,7 @@ import { encontrarZona } from "@/lib/entrega";
 import type { DistanciaReal } from "@/lib/googleMaps";
 import { formatarCPF, validarCPF } from "@/lib/cpf";
 import { useCart, type CartItem } from "@/lib/cart";
+import { salvarPedidoConvidado } from "@/lib/pedidosConvidado";
 import type { Pagamento } from "@/lib/types";
 
 type Passo = "carrinho" | "entrega" | "resumo" | "pagamento" | "confirmado";
@@ -225,6 +226,7 @@ export default function CartDrawer({
           cpfNota: cpfNota.trim() || null,
         });
         setPedidoId(pedidoId);
+        salvarPedidoConvidado(pedidoId);
         clear();
         setCpfNota("");
         setPasso("confirmado");

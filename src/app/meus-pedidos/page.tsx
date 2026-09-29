@@ -1,24 +1,42 @@
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import CustomerHeader from "@/components/CustomerHeader";
 import CustomerTabBar from "@/components/CustomerTabBar";
 import StatusBadge from "@/components/StatusBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { getClientePorClerkId } from "@/db/queries/clientes";
-import { getPedidosPorClienteId } from "@/db/queries/pedidos";
+import { getPedidosPorClienteId, getPedidosPorIds } from "@/db/queries/pedidos";
 import { getRestaurantePorId, getRestaurantePrincipal } from "@/db/queries/restaurantes";
 import { fmtBRL } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
-export default async function MeusPedidosPage() {
+/** Sem conta, não tem `clienteId` pra buscar o histórico — a aba "Pedidos"
+ * manda aqui os ids que salvou no navegador de quem fez o pedido (ver
+ * `pedidosConvidado.ts`), e é por eles que buscamos os pedidos de quem não
+ * logou. */
+export default async function MeusPedidosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ guest?: string }>;
+}) {
   const { userId } = await auth();
-  if (!userId) redirect("/sign-in");
+  const { guest } = await searchParams;
 
-  const cliente = await getClientePorClerkId(userId);
-  const pedidos = cliente ? await getPedidosPorClienteId(cliente.id) : [];
-  const restaurante = cliente ? await getRestaurantePorId(cliente.restauranteId) : await getRestaurantePrincipal();
+  const cliente = userId ? await getClientePorClerkId(userId) : null;
+  const idsConvidado = !userId && guest ? guest.split(",").filter(Boolean).slice(0, 20) : [];
+
+  const pedidos = cliente
+    ? await getPedidosPorClienteId(cliente.id)
+    : idsConvidado.length > 0
+      ? await getPedidosPorIds(idsConvidado)
+      : [];
+
+  const restaurante = cliente
+    ? await getRestaurantePorId(cliente.restauranteId)
+    : pedidos[0]
+      ? await getRestaurantePorId(pedidos[0].restauranteId)
+      : await getRestaurantePrincipal();
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
