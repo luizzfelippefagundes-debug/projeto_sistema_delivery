@@ -6,6 +6,7 @@ import ComandaBoard from "@/components/ComandaBoard";
 import CozinhaBoard, { type PedidoCozinha } from "@/components/CozinhaBoard";
 import type { PedidoAbertoResumo } from "@/components/MesaModal";
 import ResumoDoDia from "@/components/ResumoDoDia";
+import type { TaxasMaquininha } from "@/lib/taxaMaquininha";
 import type { ItemCardapio } from "@/lib/types";
 
 /** Visão combinada de mesas + cozinha numa página só — pra quem cobre as
@@ -16,6 +17,7 @@ export default function PainelOperacional({
   pedidosPorMesa,
   pedidosCozinha,
   resumo,
+  taxas,
   numeroMesas = 8,
   mesasQuerFechar,
 }: {
@@ -23,6 +25,7 @@ export default function PainelOperacional({
   pedidosPorMesa: Record<number, PedidoAbertoResumo[]>;
   pedidosCozinha: PedidoCozinha[];
   resumo: { pedidosHoje: number; faturadoHoje: number; atrasados: number };
+  taxas: TaxasMaquininha;
   numeroMesas?: number;
   mesasQuerFechar?: Set<number>;
 }) {
@@ -42,6 +45,7 @@ export default function PainelOperacional({
         <ComandaBoard
           itensCardapio={itensCardapio}
           pedidosPorMesa={pedidosPorMesa}
+          taxas={taxas}
           numeroMesas={numeroMesas}
           mesasQuerFechar={mesasQuerFechar}
         />

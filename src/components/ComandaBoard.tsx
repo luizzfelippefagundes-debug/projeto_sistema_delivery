@@ -6,16 +6,19 @@ import MesaModal, { type PedidoAbertoResumo } from "@/components/MesaModal";
 import StatusBadge from "@/components/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import type { TaxasMaquininha } from "@/lib/taxaMaquininha";
 import type { ItemCardapio, OrderStatus } from "@/lib/types";
 
 export default function ComandaBoard({
   itensCardapio,
   pedidosPorMesa,
+  taxas,
   numeroMesas = 8,
   mesasQuerFechar,
 }: {
   itensCardapio: ItemCardapio[];
   pedidosPorMesa: Record<number, PedidoAbertoResumo[]>;
+  taxas: TaxasMaquininha;
   numeroMesas?: number;
   /** Mesas com pedido de fechamento pendente, feito pelo próprio cliente
    * pelo QR code — destaca visualmente pra ela saber quem quer pagar. */
@@ -73,6 +76,7 @@ export default function ComandaBoard({
           mesa={mesaAberta}
           itensCardapio={itensCardapio}
           pedidosAbertos={pedidosPorMesa[mesaAberta] ?? []}
+          taxas={taxas}
           querFechar={mesasQuerFechar?.has(mesaAberta) ?? false}
           onClose={() => setMesaAberta(null)}
         />

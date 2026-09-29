@@ -1,5 +1,6 @@
 import EnderecoLojaCard from "@/components/EnderecoLojaCard";
 import FecharCaixaButton from "@/components/FecharCaixaButton";
+import TaxasMaquininhaCard from "@/components/TaxasMaquininhaCard";
 import ZonasEntregaManager from "@/components/ZonasEntregaManager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +11,7 @@ import { getPedidosDesde, getPedidosDoDia } from "@/db/queries/pedidos";
 import { fmtBRL, fmtHora } from "@/lib/data";
 import { contaComoFaturamento } from "@/lib/faturamento";
 import { requireFuncionarioAccess } from "@/lib/funcionarioAuth";
+import { taxasDeConfig } from "@/lib/taxaMaquininha";
 import type { Origem, OrderStatus, Pagamento } from "@/lib/types";
 
 function inicioDaSemana() {
@@ -149,6 +151,7 @@ export default async function FinanceiroPage() {
         </CardContent>
       </Card>
 
+      <TaxasMaquininhaCard taxasAtuais={taxasDeConfig(config)} />
       <EnderecoLojaCard enderecoAtual={config?.enderecoLoja ?? null} />
       <ZonasEntregaManager zonas={zonas} />
     </div>

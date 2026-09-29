@@ -59,3 +59,45 @@ export async function atualizarNumeroMesas(numero: number) {
   revalidatePath("/atendente");
   revalidatePath("/cozinha");
 }
+
+export interface TaxasMaquininhaInput {
+  taxaPix: number;
+  taxaDebito: number;
+  taxaCreditoVista: number;
+  taxaCredito2x: number;
+  taxaCredito3x: number;
+  taxaCredito4x: number;
+}
+
+/** Percentuais da maquininha usados pra repassar a taxa pro cliente na hora
+ * de fechar a mesa (ver `totalComTaxa`). Trava entre 0 e 100% pra evitar
+ * valor absurdo digitado por engano. */
+export async function atualizarTaxasMaquininha(taxas: TaxasMaquininhaInput) {
+  const dono = await assertFuncionario("dono");
+  const limpar = (v: number) => Math.max(0, Math.min(100, Number(v) || 0));
+  const valores: TaxasMaquininhaInput = {
+    taxaPix: limpar(taxas.taxaPix),
+    taxaDebito: limpar(taxas.taxaDebito),
+    taxaCreditoVista: limpar(taxas.taxaCreditoVista),
+    taxaCredito2x: limpar(taxas.taxaCredito2x),
+    taxaCredito3x: limpar(taxas.taxaCredito3x),
+    taxaCredito4x: limpar(taxas.taxaCredito4x),
+  };
+
+  await getDb()
+    .insert(configuracoes)
+    .values({ restauranteId: dono.restauranteId, ...valores })
+    .onConflictDoUpdate({
+      target: configuracoes.restauranteId,
+      set: valores,
+    });
+
+  await registrarAtividade({
+    restauranteId: dono.restauranteId,
+    funcionarioId: dono.id,
+    nomeFuncionario: dono.nome,
+    acao: "Atualizou taxas da maquininha",
+  });
+  revalidatePath("/dono/financeiro");
+  revalidatePath("/atendente");
+}

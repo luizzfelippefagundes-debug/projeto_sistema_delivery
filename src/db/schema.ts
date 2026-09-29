@@ -326,4 +326,15 @@ export const configuracoes = pgTable("configuracoes", {
   /** Quantas mesas o salão tem — define o grid da Comanda e quantos QR
    * codes são gerados pra pedido direto do cliente na mesa. */
   numeroMesas: integer("numero_mesas").notNull().default(8),
+  /** Percentual que a maquininha cobra por forma de recebimento — usado só
+   * pra somar no total cobrado do cliente na hora de fechar a mesa (ver
+   * `totalComTaxa`), pra dona não perder margem quando ele paga no cartão.
+   * Defaults abaixo são os valores reais da maquininha da Dashi Sushi;
+   * cada restaurante ajusta os seus depois. */
+  taxaPix: numeric("taxa_pix", { precision: 5, scale: 2, mode: "number" }).notNull().default(0),
+  taxaDebito: numeric("taxa_debito", { precision: 5, scale: 2, mode: "number" }).notNull().default(1.39),
+  taxaCreditoVista: numeric("taxa_credito_vista", { precision: 5, scale: 2, mode: "number" }).notNull().default(3.34),
+  taxaCredito2x: numeric("taxa_credito_2x", { precision: 5, scale: 2, mode: "number" }).notNull().default(7.29),
+  taxaCredito3x: numeric("taxa_credito_3x", { precision: 5, scale: 2, mode: "number" }).notNull().default(8.35),
+  taxaCredito4x: numeric("taxa_credito_4x", { precision: 5, scale: 2, mode: "number" }).notNull().default(9.23),
 });

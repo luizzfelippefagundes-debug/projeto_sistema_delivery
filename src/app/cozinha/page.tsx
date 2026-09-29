@@ -7,6 +7,7 @@ import { getItensAgrupadosPorPedido, getPedidosAbertos, getPedidosDoDia } from "
 import { estaAtrasado } from "@/lib/data";
 import { contaComoFaturamento } from "@/lib/faturamento";
 import { requireFuncionarioAccess } from "@/lib/funcionarioAuth";
+import { taxasDeConfig } from "@/lib/taxaMaquininha";
 import type { OrderStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -67,6 +68,7 @@ export default async function CozinhaPage() {
       pedidosPorMesa={pedidosPorMesa}
       pedidosCozinha={pedidosCozinha}
       resumo={resumo}
+      taxas={taxasDeConfig(config)}
       numeroMesas={config?.numeroMesas ?? 8}
       mesasQuerFechar={mesasQuerFechar}
     />

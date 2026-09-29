@@ -16,7 +16,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StatusBadge from "@/components/StatusBadge";
 import { fmtBRL } from "@/lib/data";
-import type { ItemCardapio, OrderStatus, Pagamento } from "@/lib/types";
+import { FORMAS_RECEBIMENTO, pagamentoDaForma, totalComTaxa, type FormaRecebimento, type TaxasMaquininha } from "@/lib/taxaMaquininha";
+import type { ItemCardapio, OrderStatus } from "@/lib/types";
 
 export interface PedidoAbertoResumo {
   id: string;
@@ -36,19 +37,21 @@ export default function MesaModal({
   mesa,
   itensCardapio,
   pedidosAbertos,
+  taxas,
   querFechar = false,
   onClose,
 }: {
   mesa: number;
   itensCardapio: ItemCardapio[];
   pedidosAbertos: PedidoAbertoResumo[];
+  taxas: TaxasMaquininha;
   /** Cliente já pediu, pelo QR code, pra fechar a conta dessa mesa. */
   querFechar?: boolean;
   onClose: () => void;
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState<DraftItem[]>([]);
-  const [pagamento, setPagamento] = useState<Pagamento>("dinheiro");
+  const [formaRecebimento, setFormaRecebimento] = useState<FormaRecebimento>("dinheiro");
   const [fechando, setFechando] = useState(querFechar);
   const [erro, setErro] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -60,6 +63,8 @@ export default function MesaModal({
   const draftTotal = draft.reduce((s, i) => s + i.preco * i.qtd, 0);
   const draftQtd = draft.reduce((s, i) => s + i.qtd, 0);
   const totalMesa = pedidosAbertos.reduce((s, p) => s + p.total, 0);
+  const totalComTaxaAtual = totalComTaxa(totalMesa, formaRecebimento, taxas);
+  const valorTaxa = totalComTaxaAtual - totalMesa;
 
   function addItem(item: ItemCardapio) {
     setDraft((prev) => {
@@ -97,7 +102,7 @@ export default function MesaModal({
 
   function confirmarFechamento() {
     startTransition(async () => {
-      await fecharMesaAction(mesa, pagamento);
+      await fecharMesaAction(mesa, pagamentoDaForma(formaRecebimento));
       router.refresh();
       onClose();
     });
@@ -117,27 +122,38 @@ export default function MesaModal({
               </p>
             )}
             <div className="flex flex-col gap-4 px-4">
-              <div className="flex justify-between text-base font-bold">
-                <span>Total da mesa</span>
-                <span className="num">{fmtBRL(totalMesa)}</span>
-              </div>
-
-              <DivisaoConta total={totalMesa} />
-
               <p className="text-sm text-muted-foreground">Como o cliente vai pagar?</p>
-              <div className="flex gap-2">
-                {(["dinheiro", "cartao", "pix"] as Pagamento[]).map((p) => (
+              <div className="flex flex-wrap gap-2">
+                {FORMAS_RECEBIMENTO.map(({ forma, label }) => (
                   <Button
-                    key={p}
+                    key={forma}
                     size="sm"
-                    variant={pagamento === p ? "default" : "outline"}
-                    onClick={() => setPagamento(p)}
-                    className="capitalize"
+                    variant={formaRecebimento === forma ? "default" : "outline"}
+                    onClick={() => setFormaRecebimento(forma)}
                   >
-                    {p}
+                    {label}
                   </Button>
                 ))}
               </div>
+
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Total da mesa</span>
+                  <span className="num">{fmtBRL(totalMesa)}</span>
+                </div>
+                {valorTaxa > 0 && (
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>+ taxa da maquininha</span>
+                    <span className="num">{fmtBRL(valorTaxa)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-base font-bold">
+                  <span>Total a cobrar</span>
+                  <span className="num">{fmtBRL(totalComTaxaAtual)}</span>
+                </div>
+              </div>
+
+              <DivisaoConta total={totalComTaxaAtual} />
             </div>
             <div className="mt-auto flex flex-col gap-2 border-t border-border p-4">
               <Button disabled={pending} onClick={confirmarFechamento}>

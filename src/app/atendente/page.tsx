@@ -4,6 +4,7 @@ import { getConfiguracoes } from "@/db/queries/configuracoes";
 import { getMesasComFechamentoPendente } from "@/db/queries/fechamentoMesa";
 import { getItensAgrupadosPorPedido, getPedidosAbertos } from "@/db/queries/pedidos";
 import { requireFuncionarioAccess } from "@/lib/funcionarioAuth";
+import { taxasDeConfig } from "@/lib/taxaMaquininha";
 import type { OrderStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,7 @@ export default async function AtendentePage() {
     <ComandaBoard
       itensCardapio={itensCardapio}
       pedidosPorMesa={pedidosPorMesa}
+      taxas={taxasDeConfig(config)}
       numeroMesas={config?.numeroMesas ?? 8}
       mesasQuerFechar={mesasQuerFechar}
     />
