@@ -26,9 +26,6 @@ export default function CustomerHeader({ nomeRestaurante = "Dashi Sushi" }: { no
       </Link>
       <div className="ml-auto flex shrink-0 items-center gap-3">
         <span className="num hidden text-xs text-muted-foreground sm:inline">{clock}</span>
-        <Link href="/entrar" className="text-xs whitespace-nowrap text-muted-foreground underline-offset-4 hover:underline">
-          Sou da equipe
-        </Link>
         <ThemeToggle />
       </div>
     </header>
