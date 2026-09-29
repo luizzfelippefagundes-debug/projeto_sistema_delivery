@@ -483,37 +483,13 @@ export default function CartDrawer({
                 </div>
               </div>
 
-              {pagamento === "pix" && (
-                <div className="flex flex-col items-center gap-2 rounded-xl border border-border p-4 text-center">
-                  <div
-                    className="h-36 w-36 rounded-lg"
-                    style={{
-                      background:
-                        "repeating-conic-gradient(var(--foreground) 0% 25%, var(--card) 0% 50%) 0 0/20px 20px",
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground">QR Code de exemplo — pagamento simulado</p>
-                </div>
-              )}
-
-              {pagamento === "cartao" && (
-                <div className="flex flex-col gap-3 rounded-xl border border-border p-4">
-                  <Input placeholder="Número do cartão (demo)" disabled />
-                  <div className="flex gap-3">
-                    <Input placeholder="Validade" disabled />
-                    <Input placeholder="CVV" disabled />
-                  </div>
-                </div>
-              )}
-
-              {pagamento === "dinheiro" && (
-                <p className="rounded-xl border border-border p-4 text-center text-sm text-muted-foreground">
-                  Pague em dinheiro na hora da {tipo === "retirada" ? "retirada" : "entrega"}.
-                </p>
-              )}
-
-              <p className="text-xs text-muted-foreground">
-                Pagamento simulado nessa demonstração — a cobrança real via Asaas entra na próxima etapa do projeto.
+              <p className="rounded-xl border border-border p-4 text-center text-sm text-muted-foreground">
+                {pagamento === "pix"
+                  ? "Pague com Pix"
+                  : pagamento === "cartao"
+                    ? "Pague no cartão"
+                    : "Pague em dinheiro"}{" "}
+                na hora da {tipo === "retirada" ? "retirada" : "entrega"}, direto com {tipo === "retirada" ? "quem atender" : "o motoboy"}.
               </p>
 
               {erro && <p className="text-sm text-destructive">{erro}</p>}
