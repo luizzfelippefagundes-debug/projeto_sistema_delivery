@@ -4,12 +4,24 @@ import { Show, SignInButton, UserButton, useUser } from "@clerk/nextjs";
 import { ClipboardList, UtensilsCrossed, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { lerPedidosConvidado } from "@/lib/pedidosConvidado";
+import { useEffect } from "react";
+import { adotarPedidosConvidado } from "@/actions/pedidos.actions";
+import { lerPedidosConvidado, limparPedidosConvidado } from "@/lib/pedidosConvidado";
 
 export default function CustomerTabBar({ slug }: { slug: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const { isSignedIn } = useUser();
+
+  // Assim que a conta loga, liga a ela qualquer pedido feito nesse mesmo
+  // navegador antes de ter conta — senão "Meus pedidos" esquece tudo que
+  // ela pediu como convidada.
+  useEffect(() => {
+    if (!isSignedIn) return;
+    const ids = lerPedidosConvidado();
+    if (ids.length === 0) return;
+    adotarPedidosConvidado(ids).then(() => limparPedidosConvidado());
+  }, [isSignedIn]);
 
   const hrefCardapio = `/loja/${slug}`;
   const ativoCardapio = pathname === hrefCardapio;

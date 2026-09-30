@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "../db";
 import { clientes, itensCardapio, itensPedido, pedidos, restaurantes, solicitacoesFechamento } from "../db/schema";
@@ -373,4 +373,41 @@ export async function criarPedidoCliente(dados: {
   revalidatePath("/dono/estoque");
 
   return { pedidoId: pedido.id };
+}
+
+/** Liga à conta de quem acabou de logar os pedidos que ela fez como
+ * convidada nesse mesmo navegador (ids vindos do localStorage, ver
+ * `pedidosConvidado.ts`) — sem isso, "Meus pedidos" esquece tudo que ela
+ * pediu antes de criar conta. Ignora silenciosamente qualquer id que não
+ * seja mais "de convidado" (já tem clienteId) ou que nem exista mais. */
+export async function adotarPedidosConvidado(pedidoIds: string[]) {
+  const { userId } = await auth();
+  if (!userId || pedidoIds.length === 0) return;
+
+  const db = getDb();
+  const pedidosConvidado = await db
+    .select()
+    .from(pedidos)
+    .where(and(inArray(pedidos.id, pedidoIds), isNull(pedidos.clienteId)));
+  if (pedidosConvidado.length === 0) return;
+
+  let [cliente] = await db.select().from(clientes).where(eq(clientes.clerkUserId, userId));
+  if (!cliente) {
+    const base = pedidosConvidado[0];
+    [cliente] = await db
+      .insert(clientes)
+      .values({
+        restauranteId: base.restauranteId,
+        clerkUserId: userId,
+        nome: base.clienteNome?.trim() || "Cliente",
+        telefone: base.telefoneCliente,
+      })
+      .returning();
+  }
+
+  const idsParaAdotar = pedidosConvidado.filter((p) => p.restauranteId === cliente.restauranteId).map((p) => p.id);
+  if (idsParaAdotar.length === 0) return;
+
+  await db.update(pedidos).set({ clienteId: cliente.id }).where(inArray(pedidos.id, idsParaAdotar));
+  revalidatePath("/meus-pedidos");
 }

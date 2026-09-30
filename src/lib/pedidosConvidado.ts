@@ -22,3 +22,14 @@ export function lerPedidosConvidado(): string[] {
     return [];
   }
 }
+
+/** Chamado depois que os pedidos guardados aqui já foram ligados à conta
+ * de quem logou (ver `adotarPedidosConvidado`) — não faz mais sentido
+ * continuar tratando como "de convidado" pedidos que já têm dono. */
+export function limparPedidosConvidado() {
+  try {
+    localStorage.removeItem(CHAVE);
+  } catch {
+    // sem drama
+  }
+}
