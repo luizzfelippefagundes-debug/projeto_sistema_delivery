@@ -27,9 +27,9 @@ export default async function ImprimirComandaPage({ params }: { params: Promise<
       <AutoPrint />
 
       <div className="text-center">
-        <p className="text-base font-bold uppercase">{restaurante?.nome ?? "Restaurante"}</p>
-        <p className="text-xs">{origemLabel(pedido)}</p>
-        <p className="text-xs">
+        <p className="text-lg font-bold uppercase">{restaurante?.nome ?? "Restaurante"}</p>
+        <p className="text-sm">{origemLabel(pedido)}</p>
+        <p className="text-sm">
           {pedido.criadoEm.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
         </p>
       </div>
@@ -38,7 +38,7 @@ export default async function ImprimirComandaPage({ params }: { params: Promise<
 
       {(pedido.telefoneCliente || pedido.endereco) && (
         <>
-          <div className="flex flex-col gap-0.5 text-xs">
+          <div className="flex flex-col gap-0.5 text-sm">
             {pedido.telefoneCliente && <p>Tel: {pedido.telefoneCliente}</p>}
             {pedido.endereco && <p>End: {pedido.endereco}</p>}
           </div>
@@ -46,7 +46,7 @@ export default async function ImprimirComandaPage({ params }: { params: Promise<
         </>
       )}
 
-      <div className="flex flex-col gap-1 text-sm">
+      <div className="flex flex-col gap-1 text-base">
         {itens.map((item) => (
           <div key={item.id} className="flex flex-col gap-0.5">
             <div className="flex justify-between gap-2">
@@ -55,7 +55,7 @@ export default async function ImprimirComandaPage({ params }: { params: Promise<
               </span>
               <span>{fmtBRL(item.preco * item.quantidade)}</span>
             </div>
-            {item.observacao && <span className="text-xs">↳ {item.observacao}</span>}
+            {item.observacao && <span className="text-sm">↳ {item.observacao}</span>}
           </div>
         ))}
       </div>
@@ -63,24 +63,24 @@ export default async function ImprimirComandaPage({ params }: { params: Promise<
       <div className="border-t border-dashed border-black" />
 
       {pedido.taxaEntrega != null && pedido.taxaEntrega > 0 && (
-        <div className="flex justify-between text-sm">
+        <div className="flex justify-between text-base">
           <span>Taxa de entrega</span>
           <span>{fmtBRL(pedido.taxaEntrega)}</span>
         </div>
       )}
 
-      <div className="flex justify-between text-base font-bold">
+      <div className="flex justify-between text-lg font-bold">
         <span>TOTAL</span>
         <span>{fmtBRL(pedido.total)}</span>
       </div>
 
       {pedido.formaPagamento && (
-        <p className="text-center text-xs">Pagamento: {PAGAMENTO_LABEL[pedido.formaPagamento]}</p>
+        <p className="text-center text-sm">Pagamento: {PAGAMENTO_LABEL[pedido.formaPagamento]}</p>
       )}
-      {pedido.cpfNota && <p className="text-center text-xs">CPF na nota: {pedido.cpfNota}</p>}
+      {pedido.cpfNota && <p className="text-center text-sm">CPF na nota: {pedido.cpfNota}</p>}
 
       <div className="border-t border-dashed border-black" />
-      <p className="text-center text-xs">Obrigado pela preferência! 🍣</p>
+      <p className="text-center text-sm">Obrigado pela preferência! 🍣</p>
     </div>
   );
 }
