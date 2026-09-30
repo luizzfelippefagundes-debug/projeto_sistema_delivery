@@ -5,15 +5,17 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "../db";
 import { clientes, itensCardapio, itensPedido, pedidos, restaurantes, solicitacoesFechamento } from "../db/schema";
-import { baixarEstoque } from "../db/queries/cardapio";
+import { baixarEstoque, devolverEstoque } from "../db/queries/cardapio";
+import { getClientePorClerkId } from "../db/queries/clientes";
 import { getConfiguracoes } from "../db/queries/configuracoes";
 import { getZonasEntrega } from "../db/queries/entrega";
-import { getPedidosAbertosMesa } from "../db/queries/pedidos";
+import { getPedidoComItens, getPedidosAbertosMesa } from "../db/queries/pedidos";
 import { assertFuncionario } from "../lib/funcionarioAuth";
 import { enviarMensagemWhatsapp } from "../lib/evolutionApi";
 import { encontrarZona } from "../lib/entrega";
 import { fmtBRL } from "../lib/data";
 import { formatarCPF, validarCPF } from "../lib/cpf";
+import { podeCancelarPedido } from "../lib/cancelamento";
 import { podeFecharConta } from "../lib/fechamentoMesa";
 import { mesaValida } from "../lib/mesa";
 import { notificarNovoPedido } from "../lib/webPush";
@@ -410,4 +412,68 @@ export async function adotarPedidosConvidado(pedidoIds: string[]) {
 
   await db.update(pedidos).set({ clienteId: cliente.id }).where(inArray(pedidos.id, idsParaAdotar));
   revalidatePath("/meus-pedidos");
+}
+
+/** Cliente cancelando o próprio pedido de delivery/retirada — endpoint
+ * público, então revalida tudo de novo (preço já não importa aqui, mas
+ * "de quem é o pedido" sim): pedido sem clienteId é de convidado e vale o
+ * id como se fosse senha (mesmo modelo da página `/pedido/[id]`); pedido
+ * com clienteId só pode ser cancelado por quem é dono dele. */
+export async function cancelarPedidoCliente(pedidoId: string) {
+  const resultado = await getPedidoComItens(pedidoId);
+  if (!resultado) throw new Error("Pedido não encontrado.");
+  const { pedido, itens } = resultado;
+
+  if (pedido.clienteId) {
+    const { userId } = await auth();
+    const cliente = userId ? await getClientePorClerkId(userId) : null;
+    if (!cliente || cliente.id !== pedido.clienteId) throw new Error("Sem acesso a esse pedido.");
+  }
+
+  if (!podeCancelarPedido(pedido.status)) {
+    throw new Error("Esse pedido já entrou em preparo e não pode mais ser cancelado por aqui — fale com o restaurante.");
+  }
+
+  await getDb().update(pedidos).set({ status: "cancelado" }).where(eq(pedidos.id, pedidoId));
+  await devolverEstoque(itens.filter((i) => i.itemCardapioId).map((i) => ({ itemCardapioId: i.itemCardapioId!, quantidade: i.quantidade })));
+
+  await notificarNovoPedido(pedido.restauranteId, ["cozinha", "atendente"], {
+    title: "Pedido cancelado pelo cliente",
+    body: `${pedido.clienteNome ?? "Cliente"} · ${fmtBRL(pedido.total)}`,
+    url: "/cozinha",
+  });
+
+  revalidatePath("/cozinha");
+  revalidatePath("/atendente");
+  revalidatePath("/dono");
+  revalidatePath("/meus-pedidos");
+}
+
+/** O próprio cliente sentado à mesa cancelando um pedido que ele mandou
+ * pelo QR code — mesma regra: só enquanto estiver "novo". Não precisa de
+ * login (ninguém tem, nesse fluxo), só confirma que o pedido é mesmo dessa
+ * mesa/restaurante pra não cancelar o de outra mesa por engano. */
+export async function cancelarPedidoMesa(restauranteId: string, mesa: number, pedidoId: string) {
+  const resultado = await getPedidoComItens(pedidoId);
+  if (!resultado) throw new Error("Pedido não encontrado.");
+  const { pedido, itens } = resultado;
+
+  if (pedido.restauranteId !== restauranteId || pedido.mesa !== mesa) {
+    throw new Error("Esse pedido não é dessa mesa.");
+  }
+  if (!podeCancelarPedido(pedido.status)) {
+    throw new Error("Esse pedido já entrou em preparo e não pode mais ser cancelado — chame o atendente.");
+  }
+
+  await getDb().update(pedidos).set({ status: "cancelado" }).where(eq(pedidos.id, pedidoId));
+  await devolverEstoque(itens.filter((i) => i.itemCardapioId).map((i) => ({ itemCardapioId: i.itemCardapioId!, quantidade: i.quantidade })));
+
+  await notificarNovoPedido(restauranteId, ["cozinha", "atendente"], {
+    title: `Mesa ${mesa} cancelou um pedido`,
+    body: fmtBRL(pedido.total),
+    url: "/cozinha",
+  });
+
+  revalidatePath("/cozinha");
+  revalidatePath("/atendente");
 }

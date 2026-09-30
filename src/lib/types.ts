@@ -4,7 +4,8 @@ export type OrderStatus =
   | "pronto"
   | "rota"
   | "entregue"
-  | "finalizado";
+  | "finalizado"
+  | "cancelado";
 
 export type Origem = "salao" | "delivery";
 

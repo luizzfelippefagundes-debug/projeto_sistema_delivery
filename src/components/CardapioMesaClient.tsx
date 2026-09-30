@@ -2,19 +2,30 @@
 
 import { MapPin, Receipt, ShoppingBag, UtensilsCrossed } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { solicitarFechamentoMesa } from "@/actions/pedidos.actions";
+import { cancelarPedidoMesa, solicitarFechamentoMesa } from "@/actions/pedidos.actions";
+import CancelarPedidoButton from "@/components/CancelarPedidoButton";
 import CartDrawer from "@/components/CartDrawer";
 import { ItemCard, tintDaCategoria, type ItemDoCardapio } from "@/components/CardapioItemCard";
 import CustomerHeader from "@/components/CustomerHeader";
 import DivisaoConta from "@/components/DivisaoConta";
+import StatusBadge from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
+import { podeCancelarPedido } from "@/lib/cancelamento";
 import { fmtBRL } from "@/lib/data";
 import { useCart } from "@/lib/cart";
+import type { OrderStatus } from "@/lib/types";
 
 export interface ItemDaContaMesa {
   nome: string;
   preco: number;
   quantidade: number;
+}
+
+export interface PedidoDaContaMesa {
+  id: string;
+  status: OrderStatus;
+  total: number;
+  itens: ItemDaContaMesa[];
 }
 
 type Aba = "cardapio" | "comanda";
@@ -36,7 +47,7 @@ export default function CardapioMesaClient({
   mesa: number;
   nomeRestaurante?: string;
   itensPorCategoria: Record<string, ItemDoCardapio[]>;
-  contaAtual: { itens: ItemDaContaMesa[]; total: number; podeFechar: boolean };
+  contaAtual: { pedidos: PedidoDaContaMesa[]; total: number; podeFechar: boolean };
   fechamentoJaSolicitado?: boolean;
 }) {
   const categorias = Object.keys(itensPorCategoria);
@@ -167,23 +178,38 @@ export default function CardapioMesaClient({
         <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 pt-5 pb-24 md:px-6">
           <h2 className="font-heading text-lg font-semibold">Sua conta</h2>
 
-          {contaAtual.itens.length === 0 ? (
+          {contaAtual.pedidos.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nada pedido ainda nessa mesa.</p>
           ) : (
             <>
-              <div className="flex flex-col gap-1.5 rounded-lg border border-border p-3">
-                {contaAtual.itens.map((item, i) => (
-                  <div key={i} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      {item.quantidade}x {item.nome}
-                    </span>
-                    <span className="num">{fmtBRL(item.preco * item.quantidade)}</span>
+              <div className="flex flex-col gap-3">
+                {contaAtual.pedidos.map((pedido) => (
+                  <div key={pedido.id} className="flex flex-col gap-1.5 rounded-lg border border-border p-3">
+                    <div className="flex items-center justify-between">
+                      <StatusBadge status={pedido.status} />
+                      <span className="num text-sm font-semibold">{fmtBRL(pedido.total)}</span>
+                    </div>
+                    {pedido.itens.map((item, i) => (
+                      <div key={i} className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          {item.quantidade}x {item.nome}
+                        </span>
+                        <span className="num">{fmtBRL(item.preco * item.quantidade)}</span>
+                      </div>
+                    ))}
+                    {podeCancelarPedido(pedido.status) && (
+                      <CancelarPedidoButton
+                        compact
+                        aoConfirmar={() => cancelarPedidoMesa(restauranteId, mesa, pedido.id)}
+                      />
+                    )}
                   </div>
                 ))}
-                <div className="flex justify-between border-t border-border pt-2 text-base font-bold">
-                  <span>Total</span>
-                  <span className="num">{fmtBRL(contaAtual.total)}</span>
-                </div>
+              </div>
+
+              <div className="flex justify-between border-t border-border pt-2 text-base font-bold">
+                <span>Total</span>
+                <span className="num">{fmtBRL(contaAtual.total)}</span>
               </div>
 
               <DivisaoConta total={contaAtual.total} />
@@ -245,7 +271,7 @@ export default function CardapioMesaClient({
               }`}
             >
               <Receipt className="size-5" />
-              {contaAtual.itens.length > 0 ? `Comanda · ${fmtBRL(contaAtual.total)}` : "Comanda"}
+              {contaAtual.pedidos.length > 0 ? `Comanda · ${fmtBRL(contaAtual.total)}` : "Comanda"}
             </button>
           </div>
         </nav>

@@ -18,4 +18,9 @@ describe("contaComoFaturamento", () => {
     expect(contaComoFaturamento({ origem: "delivery", status: "rota" })).toBe(true);
     expect(contaComoFaturamento({ origem: "delivery", status: "entregue" })).toBe(true);
   });
+
+  it("nunca conta pedido cancelado, nem delivery nem mesa", () => {
+    expect(contaComoFaturamento({ origem: "delivery", status: "cancelado" })).toBe(false);
+    expect(contaComoFaturamento({ origem: "salao", status: "cancelado" })).toBe(false);
+  });
 });

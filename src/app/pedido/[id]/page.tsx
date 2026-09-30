@@ -2,6 +2,8 @@ import { auth } from "@clerk/nextjs/server";
 import { Banknote, MapPinned, Store } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cancelarPedidoCliente } from "@/actions/pedidos.actions";
+import CancelarPedidoButton from "@/components/CancelarPedidoButton";
 import CustomerHeader from "@/components/CustomerHeader";
 import CustomerTabBar from "@/components/CustomerTabBar";
 import OrderTimeline from "@/components/OrderTimeline";
@@ -11,6 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { getClientePorClerkId } from "@/db/queries/clientes";
 import { getPedidoComItens } from "@/db/queries/pedidos";
 import { getRestaurantePorId } from "@/db/queries/restaurantes";
+import { podeCancelarPedido } from "@/lib/cancelamento";
 import { fmtBRL, minAgo } from "@/lib/data";
 import type { Pagamento } from "@/lib/types";
 
@@ -109,6 +112,8 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
             </div>
           </CardContent>
         </Card>
+
+        {podeCancelarPedido(pedido.status) && <CancelarPedidoButton aoConfirmar={cancelarPedidoCliente.bind(null, pedido.id)} />}
 
         {restaurante && (
           <Link href={`/loja/${restaurante.slug}`}>

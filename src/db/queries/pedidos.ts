@@ -29,7 +29,7 @@ export async function getPedidosAbertos(restauranteId: string) {
   return getDb()
     .select()
     .from(pedidos)
-    .where(and(eq(pedidos.restauranteId, restauranteId), sql`${pedidos.status} != 'finalizado'`))
+    .where(and(eq(pedidos.restauranteId, restauranteId), sql`${pedidos.status} NOT IN ('finalizado', 'cancelado')`))
     .orderBy(pedidos.criadoEm);
 }
 
@@ -121,17 +121,19 @@ export async function getPedidosAbertosMesa(restauranteId: string, mesa: number)
         eq(pedidos.restauranteId, restauranteId),
         eq(pedidos.origem, "salao"),
         eq(pedidos.mesa, mesa),
-        sql`${pedidos.status} != 'finalizado'`,
+        sql`${pedidos.status} NOT IN ('finalizado', 'cancelado')`,
       ),
     );
 }
 
 /** Tudo que já foi enviado pra cozinha por uma mesa e ainda não foi pago —
  * alimenta a tela "minha conta" que o próprio cliente vê no QR code, sem
- * precisar chamar ninguém pra saber quanto já deve. */
+ * precisar chamar ninguém pra saber quanto já deve. Agrupado por pedido (em
+ * vez de uma lista só de itens) pra dar pra mostrar/cancelar cada pedido
+ * individualmente enquanto ainda estiver "novo". */
 export async function getContaAbertaMesa(restauranteId: string, mesa: number) {
   const pedidosAbertos = await getPedidosAbertosMesa(restauranteId, mesa);
-  if (pedidosAbertos.length === 0) return { itens: [], total: 0, podeFechar: false };
+  if (pedidosAbertos.length === 0) return { pedidos: [], total: 0, podeFechar: false };
 
   const itens = await getDb()
     .select()
@@ -143,9 +145,18 @@ export async function getContaAbertaMesa(restauranteId: string, mesa: number) {
       ),
     );
 
+  const gruposPedidos = pedidosAbertos.map((p) => ({
+    id: p.id,
+    status: p.status,
+    total: p.total,
+    itens: itens
+      .filter((i) => i.pedidoId === p.id)
+      .map((i) => ({ nome: i.nome, preco: i.preco, quantidade: i.quantidade })),
+  }));
+
   const total = pedidosAbertos.reduce((s, p) => s + p.total, 0);
   return {
-    itens: itens.map((i) => ({ nome: i.nome, preco: i.preco, quantidade: i.quantidade })),
+    pedidos: gruposPedidos,
     total,
     podeFechar: podeFecharConta(pedidosAbertos),
   };

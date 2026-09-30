@@ -27,6 +27,7 @@ export const statusPedidoEnum = pgEnum("status_pedido", [
   "rota",
   "entregue",
   "finalizado",
+  "cancelado",
 ]);
 
 export const formaPagamentoEnum = pgEnum("forma_pagamento", ["dinheiro", "cartao", "pix"]);

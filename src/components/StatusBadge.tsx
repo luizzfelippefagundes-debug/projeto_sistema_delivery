@@ -9,6 +9,7 @@ const STATUS_CLASS: Record<OrderStatus, string> = {
   rota: "bg-status-warn-bg text-status-warn-fg",
   entregue: "bg-status-muted-bg text-status-muted-fg",
   finalizado: "bg-status-muted-bg text-status-muted-fg",
+  cancelado: "bg-status-danger-bg text-status-danger-fg",
 };
 
 export default function StatusBadge({ status }: { status: OrderStatus }) {

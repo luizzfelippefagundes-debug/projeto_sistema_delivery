@@ -5,7 +5,7 @@ import { contaComoFaturamento } from "@/lib/faturamento";
 import { requireFuncionarioAccess } from "@/lib/funcionarioAuth";
 import type { OrderStatus, Origem } from "@/lib/types";
 
-const STATUS_OPCOES: OrderStatus[] = ["novo", "preparo", "pronto", "rota", "entregue", "finalizado"];
+const STATUS_OPCOES: OrderStatus[] = ["novo", "preparo", "pronto", "rota", "entregue", "finalizado", "cancelado"];
 const STATUS_LABEL: Record<OrderStatus, string> = {
   novo: "Novo",
   preparo: "Em preparo",
@@ -13,6 +13,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
   rota: "Em rota",
   entregue: "Entregue",
   finalizado: "Finalizado",
+  cancelado: "Cancelado",
 };
 
 function selectClass() {

@@ -1,4 +1,4 @@
-import { Check, ChefHat, ClipboardCheck, PackageCheck, Truck } from "lucide-react";
+import { Check, ChefHat, ClipboardCheck, PackageCheck, Truck, X } from "lucide-react";
 import type { OrderStatus } from "@/lib/types";
 
 const PASSOS_ENTREGA = [
@@ -18,6 +18,17 @@ const PASSOS_RETIRADA = [
 const ORDEM_STATUS: OrderStatus[] = ["novo", "preparo", "pronto", "rota", "entregue", "finalizado"];
 
 export default function OrderTimeline({ status, retirada }: { status: OrderStatus; retirada: boolean }) {
+  if (status === "cancelado") {
+    return (
+      <div className="flex gap-3">
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-status-danger-bg text-status-danger-fg">
+          <X className="size-4" />
+        </div>
+        <p className="text-sm font-medium text-foreground">Pedido cancelado</p>
+      </div>
+    );
+  }
+
   const passos = retirada ? PASSOS_RETIRADA : PASSOS_ENTREGA;
   const indiceAtual = ORDEM_STATUS.indexOf(status);
 

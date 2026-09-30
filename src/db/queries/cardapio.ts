@@ -90,6 +90,29 @@ export async function baixarEstoque(itens: { itemCardapioId: string; quantidade:
   }
 }
 
+/** Contrário de `baixarEstoque` — usado quando um pedido é cancelado, pra
+ * devolver ao estoque as unidades que tinham sido descontadas na hora da
+ * compra. Reativa o item se ele tinha sido pausado automaticamente por ter
+ * zerado (mesmo acoplamento que `baixarEstoque` já faz ao contrário). */
+export async function devolverEstoque(itens: { itemCardapioId: string; quantidade: number }[]) {
+  if (itens.length === 0) return;
+  const db = getDb();
+  const ids = itens.map((i) => i.itemCardapioId);
+  const rows = await db
+    .select({ id: itensCardapio.id, estoqueAtual: itensCardapio.estoqueAtual, ativo: itensCardapio.ativo })
+    .from(itensCardapio)
+    .where(and(inArray(itensCardapio.id, ids), isNotNull(itensCardapio.estoqueAtual)));
+
+  for (const row of rows) {
+    const devolvido = itens.find((i) => i.itemCardapioId === row.id)?.quantidade ?? 0;
+    const novoEstoque = (row.estoqueAtual ?? 0) + devolvido;
+    await db
+      .update(itensCardapio)
+      .set({ estoqueAtual: novoEstoque, ...(novoEstoque > 0 && !row.ativo ? { ativo: true } : {}) })
+      .where(eq(itensCardapio.id, row.id));
+  }
+}
+
 /** Itens ativos que ainda não têm controle de estoque ligado — alimenta o
  * seletor de "adicionar item ao estoque", pra dona escolher um item já
  * existente no cardápio em vez de cadastrar tudo de novo. */
