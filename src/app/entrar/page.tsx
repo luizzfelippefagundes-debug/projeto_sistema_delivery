@@ -12,13 +12,12 @@ const OPCOES = [
 export default function EntrarPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background p-4">
-      <div className="flex items-center gap-2.5">
-        <span className="relative flex size-9 shrink-0 overflow-hidden rounded-full">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-icon.png" alt="Dashi Sushi" className="size-full object-cover" />
-        </span>
-        <span className="font-heading text-base font-semibold tracking-tight">Dashi Sushi</span>
-      </div>
+      {/* Porta compartilhada por todos os restaurantes do sistema — ainda não
+       * sabemos de qual tenant é esse login, por isso é o ícone genérico. */}
+      <span className="relative flex size-9 shrink-0 overflow-hidden rounded-full">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-icon.png" alt="" className="size-full object-cover" />
+      </span>
       <div className="text-center">
         <h1 className="font-heading text-lg font-semibold">Como você acessa?</h1>
         <p className="text-sm text-muted-foreground">Escolha uma opção pra continuar.</p>

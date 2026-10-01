@@ -1,3 +1,4 @@
+import AplicarCorMarca from "@/components/AplicarCorMarca";
 import StaffTopbar from "@/components/StaffTopbar";
 import { getRestaurantePorId } from "@/db/queries/restaurantes";
 import { requireFuncionarioAccess } from "@/lib/funcionarioAuth";
@@ -8,10 +9,12 @@ export default async function CozinhaLayout({ children }: { children: React.Reac
   const tambemAtende = funcionario.papel === "dono" || funcionario.acessosExtras.includes("atendente");
   return (
     <div className="flex min-h-screen flex-col">
+      <AplicarCorMarca cor={restaurante?.corPrimaria ?? null} />
       <StaffTopbar
         titulo={tambemAtende ? "Cozinha & Comanda" : "Cozinha"}
         nome={funcionario.nome}
         nomeRestaurante={restaurante?.nome ?? "Meu restaurante"}
+        logoUrl={restaurante?.logoUrl ?? null}
         painelSwitcherSlug={funcionario.papel === "dono" ? restaurante?.slug : undefined}
       />
       <main className="flex-1 p-4 md:p-6">{children}</main>

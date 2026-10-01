@@ -7,11 +7,13 @@ export default function StaffTopbar({
   titulo,
   nome,
   nomeRestaurante,
+  logoUrl,
   painelSwitcherSlug,
 }: {
   titulo: string;
   nome: string;
   nomeRestaurante: string;
+  logoUrl: string | null;
   /** A dona entrou aqui pra atender/cozinhar, sem trocar de conta — passa o
    * slug da loja pra mostrar o menu de trocar de painel. Indefinido pra
    * quem não é dona (só vê a própria área). */
@@ -28,7 +30,7 @@ export default function StaffTopbar({
       )}
       <span className="relative flex size-8 shrink-0 overflow-hidden rounded-full">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo-icon.png" alt="Dashi Sushi" className="size-full object-cover" />
+        <img src={logoUrl ?? "/logo-icon.png"} alt={nomeRestaurante} className="size-full object-cover" />
       </span>
       <div className="flex min-w-0 flex-col leading-tight">
         <span className="truncate font-heading text-sm font-semibold">{titulo}</span>

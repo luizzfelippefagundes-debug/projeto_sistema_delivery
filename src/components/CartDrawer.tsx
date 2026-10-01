@@ -31,7 +31,7 @@ import type { Pagamento } from "@/lib/types";
 type Passo = "carrinho" | "entrega" | "resumo" | "pagamento" | "confirmado";
 type Tipo = "retirada" | "delivery";
 
-const STORAGE_KEY = "dashi-sushi-checkout-v1";
+const STORAGE_KEY = "checkout-v1";
 
 interface DadosEntrega {
   nome: string;

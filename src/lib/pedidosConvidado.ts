@@ -1,4 +1,4 @@
-const CHAVE = "dashi-sushi-pedidos-convidado";
+const CHAVE = "pedidos-convidado";
 const MAXIMO = 20;
 
 /** Guarda o id de um pedido feito sem login, só no navegador de quem

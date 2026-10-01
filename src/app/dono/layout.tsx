@@ -6,7 +6,13 @@ export default async function DonoLayout({ children }: { children: React.ReactNo
   const dono = await requireFuncionarioAccess("dono");
   const restaurante = await getRestaurantePorId(dono.restauranteId);
   return (
-    <DonoSidebar nome={dono.nome} nomeRestaurante={restaurante?.nome ?? "Meu restaurante"} slug={restaurante?.slug ?? ""}>
+    <DonoSidebar
+      nome={dono.nome}
+      nomeRestaurante={restaurante?.nome ?? "Meu restaurante"}
+      logoUrl={restaurante?.logoUrl ?? null}
+      corPrimaria={restaurante?.corPrimaria ?? null}
+      slug={restaurante?.slug ?? ""}
+    >
       {children}
     </DonoSidebar>
   );
