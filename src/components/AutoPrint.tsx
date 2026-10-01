@@ -9,13 +9,13 @@ import { useEffect } from "react";
  * impressora padrão do sistema, é só confirmar). O botão "Imprimir" fica
  * de reserva caso o navegador bloqueie o print automático.
  *
- * "Fechar" existe porque essa página sempre abre numa aba nova (sem
- * histórico próprio) — sem um jeito explícito de sair, o botão/gesto de
- * voltar do celular fecha a aba sozinho e dá a impressão de que o app
- * inteiro travou ou fechou. Tenta fechar a aba (funciona por ter sido
- * aberta via `window.open` no código que chama essa página) e, se não
- * conseguir, volta pra tela anterior. */
-export default function AutoPrint() {
+ * "Fechar" existe porque essa página sempre abre numa aba nova — sem um
+ * jeito explícito de sair, o botão/gesto de voltar do celular fecha a aba
+ * sozinho, parecendo que o app travou ou fechou. `voltarPara` é a tela de
+ * onde a impressão foi aberta (atendente, cozinha etc.) — navega direto pra
+ * lá em vez de tentar fechar a aba (que em alguns celulares fecha o app
+ * inteiro, não só essa aba). */
+export default function AutoPrint({ voltarPara }: { voltarPara?: string }) {
   const router = useRouter();
 
   useEffect(() => {
@@ -24,8 +24,8 @@ export default function AutoPrint() {
   }, []);
 
   function fechar() {
-    window.close();
-    setTimeout(() => router.back(), 300);
+    if (voltarPara) router.push(voltarPara);
+    else router.back();
   }
 
   return (

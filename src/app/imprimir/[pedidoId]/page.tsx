@@ -12,9 +12,19 @@ const PAGAMENTO_LABEL: Record<Pagamento, string> = {
   pix: "Pix",
 };
 
-export default async function ImprimirComandaPage({ params }: { params: Promise<{ pedidoId: string }> }) {
+export default async function ImprimirComandaPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ pedidoId: string }>;
+  searchParams: Promise<{ voltar?: string }>;
+}) {
   const funcionario = await requireQualquerFuncionario();
   const { pedidoId } = await params;
+  const { voltar } = await searchParams;
+  // só aceita caminho relativo (ex: "/cozinha") — nunca uma URL completa,
+  // pra não virar um redirecionamento aberto pra qualquer site.
+  const voltarPara = voltar && voltar.startsWith("/") && !voltar.startsWith("//") ? voltar : undefined;
 
   const resultado = await getPedidoComItens(pedidoId);
   if (!resultado || resultado.pedido.restauranteId !== funcionario.restauranteId) notFound();
@@ -24,7 +34,7 @@ export default async function ImprimirComandaPage({ params }: { params: Promise<
 
   return (
     <div className="mx-auto flex max-w-xs flex-col gap-3 bg-white p-4 font-mono text-black print:max-w-none print:p-0">
-      <AutoPrint />
+      <AutoPrint voltarPara={voltarPara} />
 
       <div className="text-center">
         <p className="text-4xl font-bold uppercase">{restaurante?.nome ?? "Restaurante"}</p>

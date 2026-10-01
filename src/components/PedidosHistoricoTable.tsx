@@ -189,7 +189,13 @@ export default function PedidosHistoricoTable({
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => window.open(`/imprimir/${selecionado.pedido.id}`, "_blank", "noopener,noreferrer")}
+                onClick={() =>
+                  window.open(
+                    `/imprimir/${selecionado.pedido.id}?voltar=${encodeURIComponent(window.location.pathname)}`,
+                    "_blank",
+                    "noopener,noreferrer",
+                  )
+                }
               >
                 <Printer /> Reimprimir comanda
               </Button>

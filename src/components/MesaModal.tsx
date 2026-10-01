@@ -218,7 +218,13 @@ export default function MesaModal({
                             size="icon-sm"
                             variant="outline"
                             aria-label="Imprimir comanda"
-                            onClick={() => window.open(`/imprimir/${o.id}`, "_blank", "noopener,noreferrer")}
+                            onClick={() =>
+                              window.open(
+                                `/imprimir/${o.id}?voltar=${encodeURIComponent(window.location.pathname)}`,
+                                "_blank",
+                                "noopener,noreferrer",
+                              )
+                            }
                           >
                             <Printer />
                           </Button>
