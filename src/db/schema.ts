@@ -57,6 +57,12 @@ export const restaurantes = pgTable("restaurantes", {
    * desse restaurante — um servidor Evolution atende várias instâncias,
    * uma por restaurante/número. Nulo enquanto o bot não estiver conectado. */
   instanciaWhatsapp: text("instancia_whatsapp").unique(),
+  /** URL pública da logo no Vercel Blob. Nula = usa o ícone padrão do
+   * sistema (fallback genérico, não a logo da Dashi Sushi). */
+  logoUrl: text("logo_url"),
+  /** Cor de destaque em hex (ex: "#e0362b") usada no tema do painel, no
+   * cardápio público e no Clerk. Nula = usa a cor padrão do sistema. */
+  corPrimaria: text("cor_primaria"),
   criadoEm: timestamp("criado_em").notNull().defaultNow(),
 });
 

@@ -7,6 +7,7 @@ import {
   ConciergeBell,
   LayoutDashboard,
   LineChart,
+  Palette,
   QrCode,
   Users,
   UsersRound,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import AplicarCorMarca from "@/components/AplicarCorMarca";
 import DonoTabBar from "@/components/DonoTabBar";
 import PainelSwitcher from "@/components/PainelSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -43,6 +45,7 @@ const TABS = [
   { href: "/dono/estoque", label: "Estoque", icon: Boxes },
   { href: "/dono/clientes", label: "Clientes", icon: UsersRound },
   { href: "/dono/funcionarios", label: "Funcionários", icon: Users },
+  { href: "/dono/marca", label: "Marca", icon: Palette },
 ];
 
 const TITLES: Record<string, string> = {
@@ -54,16 +57,21 @@ const TITLES: Record<string, string> = {
   "/dono/estoque": "Estoque",
   "/dono/clientes": "Clientes",
   "/dono/funcionarios": "Funcionários",
+  "/dono/marca": "Marca",
 };
 
 export default function DonoSidebar({
   nome,
   nomeRestaurante,
+  logoUrl,
+  corPrimaria,
   slug,
   children,
 }: {
   nome: string;
   nomeRestaurante: string;
+  logoUrl: string | null;
+  corPrimaria: string | null;
   slug: string;
   children: React.ReactNode;
 }) {
@@ -71,12 +79,13 @@ export default function DonoSidebar({
 
   return (
     <SidebarProvider>
+      <AplicarCorMarca cor={corPrimaria} />
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-2.5 px-2 py-1.5">
             <span className="relative flex size-8 shrink-0 overflow-hidden rounded-full">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo-icon.png" alt="Dashi Sushi" className="size-full object-cover" />
+              <img src={logoUrl ?? "/logo-icon.png"} alt={nomeRestaurante} className="size-full object-cover" />
             </span>
             <div className="flex flex-col">
               <span className="font-heading text-base font-semibold leading-tight tracking-tight">{nomeRestaurante}</span>
@@ -115,9 +124,9 @@ export default function DonoSidebar({
           <SidebarTrigger className="hidden md:inline-flex" />
           <span className="relative flex size-8 shrink-0 overflow-hidden rounded-full md:hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-icon.png" alt="Dashi Sushi" className="size-full object-cover" />
+            <img src={logoUrl ?? "/logo-icon.png"} alt={nomeRestaurante} className="size-full object-cover" />
           </span>
-          <span className="min-w-0 truncate font-heading text-lg font-semibold">{TITLES[pathname] ?? "Dashi Sushi"}</span>
+          <span className="min-w-0 truncate font-heading text-lg font-semibold">{TITLES[pathname] ?? nomeRestaurante}</span>
           <div className="ml-auto flex shrink-0 items-center gap-2">
             <PainelSwitcher slug={slug} compact />
             <div className="flex items-center gap-2 md:hidden">

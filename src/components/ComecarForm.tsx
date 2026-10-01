@@ -36,7 +36,7 @@ export default function ComecarForm({ nomeSugerido }: { nomeSugerido: string }) 
       <CardHeader>
         <div className="relative mb-1 size-10 overflow-hidden rounded-full">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-icon.png" alt="Dashi Sushi" className="size-full object-cover" />
+          <img src="/logo-icon.png" alt="" className="size-full object-cover" />
         </div>
         <CardTitle className="font-heading text-xl">Vamos criar seu restaurante</CardTitle>
         <p className="text-sm text-muted-foreground">Leva menos de um minuto. Você já entra como dono(a) do seu próprio painel.</p>
@@ -48,7 +48,7 @@ export default function ComecarForm({ nomeSugerido }: { nomeSugerido: string }) 
             id="nome-restaurante"
             value={nomeRestaurante}
             onChange={(e) => setNomeRestaurante(e.target.value)}
-            placeholder="Ex: Dashi Sushi"
+            placeholder="Ex: Cantina da Maria"
           />
         </div>
         <div className="flex flex-col gap-1.5">
