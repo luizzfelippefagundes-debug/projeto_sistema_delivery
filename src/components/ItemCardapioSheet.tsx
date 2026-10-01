@@ -2,7 +2,7 @@
 
 import { ImageOff, Plus, Upload, X } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { atualizarItemCardapio, criarItemCardapio } from "@/actions/cardapio.actions";
+import { atualizarItemCardapio, criarItemCardapio, uploadFotoItem } from "@/actions/cardapio.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -174,12 +174,13 @@ export default function ItemCardapioSheet({
     setErro(null);
     startTransition(async () => {
       try {
+        const imagemUrlFinal = imagemUrl?.startsWith("data:") ? await uploadFotoItem(imagemUrl) : imagemUrl;
         const payload = {
           nome,
           categoria: categoriaFinal,
           descricao,
           preco: precoNumero,
-          imagemUrl,
+          imagemUrl: imagemUrlFinal,
           estoqueAtual: estoqueAtualNumero,
           estoqueMinimo: estoqueMinimoNumero,
           qtdPecasEscolha: qtdPecasNumero,

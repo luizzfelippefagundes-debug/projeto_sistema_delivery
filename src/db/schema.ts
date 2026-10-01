@@ -69,9 +69,9 @@ export const itensCardapio = pgTable("itens_cardapio", {
   nome: text("nome").notNull(),
   descricao: text("descricao"),
   preco: money("preco").notNull(),
-  /** Foto do item — guardada como data URL (base64), já redimensionada e
-   * comprimida no navegador antes de enviar. Evita depender de um serviço
-   * de storage de arquivos só pra isso. Nula quando o item não tem foto. */
+  /** URL pública da foto no Vercel Blob — a imagem é redimensionada e
+   * comprimida no navegador antes do upload. Nula quando o item não tem
+   * foto. */
   imagemUrl: text("imagem_url"),
   /** Controle de estoque é opt-in por item — nulo significa "não
    * controlado" (ex: pratos feitos na hora, sem unidade física contável).

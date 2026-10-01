@@ -1,5 +1,7 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+import { del, put } from "@vercel/blob";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "../db";
@@ -8,14 +10,50 @@ import { ajustarEstoque, definirOpcoesCombo } from "../db/queries/cardapio";
 import { assertFuncionario } from "../lib/funcionarioAuth";
 import { registrarAtividade } from "../db/queries/atividades";
 
-const TAMANHO_MAX_IMAGEM = 1_500_000;
+const TAMANHO_MAX_IMAGEM_DATA_URL = 1_500_000;
+
+function ehUrlDeFotoValida(url: string) {
+  return url.startsWith("https://") && url.includes(".public.blob.vercel-storage.com/");
+}
 
 function validarImagem(imagemUrl?: string | null) {
   if (!imagemUrl) return null;
-  if (!imagemUrl.startsWith("data:image/") || imagemUrl.length > TAMANHO_MAX_IMAGEM) {
-    throw new Error("Imagem inválida ou grande demais.");
+  if (!ehUrlDeFotoValida(imagemUrl)) {
+    throw new Error("Imagem inválida — envie a foto pelo campo de upload.");
   }
   return imagemUrl;
+}
+
+/** Recebe a foto já redimensionada/comprimida pelo navegador (como data URL)
+ * e sobe pro Vercel Blob, devolvendo a URL pública. As fotos ficavam salvas
+ * como base64 direto no banco antes — cada carregamento do cardápio reenviava
+ * todas elas inteiras dentro do HTML (chegava a 16MB a página), sem
+ * aproveitar cache do navegador. Como arquivo com URL própria, o navegador
+ * baixa cada foto uma vez só. */
+export async function uploadFotoItem(dataUrl: string): Promise<string> {
+  const dono = await assertFuncionario("dono");
+  if (!dataUrl.startsWith("data:image/") || dataUrl.length > TAMANHO_MAX_IMAGEM_DATA_URL) {
+    throw new Error("Imagem inválida ou grande demais.");
+  }
+  const match = /^data:(image\/\w+);base64,(.+)$/.exec(dataUrl);
+  if (!match) throw new Error("Imagem inválida.");
+  const [, tipo, base64] = match;
+  const extensao = tipo.split("/")[1] ?? "jpg";
+  const blob = await put(`cardapio/${dono.restauranteId}/${randomUUID()}.${extensao}`, Buffer.from(base64, "base64"), {
+    access: "public",
+    contentType: tipo,
+  });
+  return blob.url;
+}
+
+async function removerFotoAntiga(itemId: string, novaUrl: string | null) {
+  const [atual] = await getDb()
+    .select({ imagemUrl: itensCardapio.imagemUrl })
+    .from(itensCardapio)
+    .where(eq(itensCardapio.id, itemId));
+  if (atual?.imagemUrl && atual.imagemUrl !== novaUrl && ehUrlDeFotoValida(atual.imagemUrl)) {
+    await del(atual.imagemUrl).catch(() => {});
+  }
 }
 
 export async function criarItemCardapio(dados: {
@@ -85,6 +123,8 @@ export async function atualizarItemCardapio(
   if (dados.qtdPecasEscolha != null && dados.qtdPecasEscolha <= 0) {
     throw new Error("A quantidade de peças do combo precisa ser maior que zero.");
   }
+  const novaImagemUrl = validarImagem(dados.imagemUrl);
+  await removerFotoAntiga(id, novaImagemUrl);
   await getDb()
     .update(itensCardapio)
     .set({
@@ -92,7 +132,7 @@ export async function atualizarItemCardapio(
       categoria: dados.categoria.trim(),
       descricao: dados.descricao?.trim() || null,
       preco: dados.preco,
-      imagemUrl: validarImagem(dados.imagemUrl),
+      imagemUrl: novaImagemUrl,
       estoqueAtual: dados.estoqueAtual ?? null,
       estoqueMinimo: dados.estoqueAtual != null ? (dados.estoqueMinimo ?? 5) : null,
       qtdPecasEscolha: dados.qtdPecasEscolha ?? null,
