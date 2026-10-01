@@ -71,11 +71,14 @@ export default function CozinhaBoard({ pedidos }: { pedidos: PedidoCozinha[] }) 
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground">{fmtDiaHora(o.criadoEm)}</span>
-                          <a href={`/imprimir/${o.id}`} target="_blank" rel="noopener noreferrer">
-                            <Button size="icon-sm" variant="outline" aria-label="Imprimir comanda">
-                              <Printer />
-                            </Button>
-                          </a>
+                          <Button
+                            size="icon-sm"
+                            variant="outline"
+                            aria-label="Imprimir comanda"
+                            onClick={() => window.open(`/imprimir/${o.id}`, "_blank", "noopener,noreferrer")}
+                          >
+                            <Printer />
+                          </Button>
                         </div>
                       </div>
                       <ul className="list-disc pl-4 text-xs text-muted-foreground">

@@ -186,11 +186,13 @@ export default function PedidosHistoricoTable({
                 <p className="text-sm text-muted-foreground">CPF na nota: {selecionado.pedido.cpfNota}</p>
               )}
 
-              <a href={`/imprimir/${selecionado.pedido.id}`} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" className="w-full">
-                  <Printer /> Reimprimir comanda
-                </Button>
-              </a>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => window.open(`/imprimir/${selecionado.pedido.id}`, "_blank", "noopener,noreferrer")}
+              >
+                <Printer /> Reimprimir comanda
+              </Button>
             </div>
           )}
         </DialogContent>

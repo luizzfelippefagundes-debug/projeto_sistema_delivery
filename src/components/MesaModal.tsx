@@ -214,11 +214,14 @@ export default function MesaModal({
                         <span>{o.itemCount} item(ns)</span>
                         <div className="flex items-center gap-2">
                           <StatusBadge status={o.status} />
-                          <a href={`/imprimir/${o.id}`} target="_blank" rel="noopener noreferrer">
-                            <Button size="icon-sm" variant="outline" aria-label="Imprimir comanda">
-                              <Printer />
-                            </Button>
-                          </a>
+                          <Button
+                            size="icon-sm"
+                            variant="outline"
+                            aria-label="Imprimir comanda"
+                            onClick={() => window.open(`/imprimir/${o.id}`, "_blank", "noopener,noreferrer")}
+                          >
+                            <Printer />
+                          </Button>
                         </div>
                       </div>
                     ))}
