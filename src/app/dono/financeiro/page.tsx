@@ -31,8 +31,8 @@ function resumoPeriodo(pedidos: { origem: Origem; total: number; formaPagamento:
   const faturados = pedidos.filter(contaComoFaturamento);
   let faturamento = 0;
   for (const p of faturados) faturamento += p.total;
-  for (const p of pedidos) {
-    if (p.status === "finalizado" && p.formaPagamento) porForma[p.formaPagamento] += p.total;
+  for (const p of faturados) {
+    if (p.formaPagamento) porForma[p.formaPagamento] += p.total;
   }
   const ticketMedio = faturados.length ? faturamento / faturados.length : 0;
   return { porForma, faturamento, ticketMedio, quantidade: pedidos.length };
@@ -65,7 +65,7 @@ function ResumoCaixa({
             <span className="num">{fmtBRL(resumo.porForma.pix)}</span>
           </div>
           <div className="flex justify-between border-t border-border pt-3 text-sm font-semibold">
-            <span>Total recebido (finalizados)</span>
+            <span>Total recebido (pedidos concluídos)</span>
             <span className="num">{fmtBRL(resumo.porForma.dinheiro + resumo.porForma.cartao + resumo.porForma.pix)}</span>
           </div>
         </CardContent>
