@@ -1,5 +1,6 @@
 import EnderecoLojaCard from "@/components/EnderecoLojaCard";
 import FecharCaixaButton from "@/components/FecharCaixaButton";
+import OrigemChart, { type ResumoOrigem } from "@/components/OrigemChart";
 import TaxasMaquininhaCard from "@/components/TaxasMaquininhaCard";
 import ZonasEntregaManager from "@/components/ZonasEntregaManager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,7 +36,17 @@ function resumoPeriodo(pedidos: { origem: Origem; total: number; formaPagamento:
     if (p.formaPagamento) porForma[p.formaPagamento] += p.total;
   }
   const ticketMedio = faturados.length ? faturamento / faturados.length : 0;
-  return { porForma, faturamento, ticketMedio, quantidade: pedidos.length };
+
+  const porOrigem: Record<Origem, ResumoOrigem> = {
+    salao: { quantidade: 0, valor: 0 },
+    delivery: { quantidade: 0, valor: 0 },
+  };
+  for (const p of faturados) {
+    porOrigem[p.origem].quantidade += 1;
+    porOrigem[p.origem].valor += p.total;
+  }
+
+  return { porForma, faturamento, ticketMedio, quantidade: pedidos.length, porOrigem };
 }
 
 function ResumoCaixa({
@@ -91,6 +102,8 @@ function ResumoCaixa({
           </CardContent>
         </Card>
       </div>
+
+      <OrigemChart label={label} mesa={resumo.porOrigem.salao} delivery={resumo.porOrigem.delivery} />
     </div>
   );
 }
