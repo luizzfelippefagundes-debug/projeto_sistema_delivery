@@ -1,6 +1,6 @@
 import { ClipboardList, ShoppingBag, Truck } from "lucide-react";
 import { fmtBRL, minAgo, STATUS_LABEL } from "@/lib/data";
-import { contaComoFaturamento } from "@/lib/faturamento";
+import { contaComoFaturamento, pedidoConcluido } from "@/lib/faturamento";
 import { requireFuncionarioAccess } from "@/lib/funcionarioAuth";
 import { getItensAgrupadosPorPedido, getPedidosDoDia } from "@/db/queries/pedidos";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +11,7 @@ export default async function DonoDashboardPage() {
   const itensPorPedido = await getItensAgrupadosPorPedido(pedidosHoje.map((p) => p.id));
 
   const faturadoHoje = pedidosHoje.filter(contaComoFaturamento).reduce((s, p) => s + p.total, 0);
-  const emAndamento = pedidosHoje.filter((p) => p.status !== "finalizado");
+  const emAndamento = pedidosHoje.filter((p) => !pedidoConcluido(p));
 
   const tiles = [
     { icon: ShoppingBag, label: "Faturado hoje", value: fmtBRL(faturadoHoje), tint: "bg-status-ok-bg text-status-ok-fg" },

@@ -6,6 +6,7 @@ import { fechamentosCaixa } from "../db/schema";
 import { assertFuncionario } from "../lib/funcionarioAuth";
 import { getPedidosDoDia } from "../db/queries/pedidos";
 import { registrarAtividade } from "../db/queries/atividades";
+import { contaComoFaturamento } from "../lib/faturamento";
 import { fmtBRL } from "../lib/data";
 
 function hojeISO() {
@@ -17,10 +18,10 @@ export async function fecharCaixaDoDia() {
   const dataISO = hojeISO();
 
   const pedidosHoje = await getPedidosDoDia(dono.restauranteId);
-  const finalizados = pedidosHoje.filter((p) => p.status === "finalizado" && p.formaPagamento);
+  const concluidos = pedidosHoje.filter((p) => contaComoFaturamento(p) && p.formaPagamento);
 
   const porForma = { dinheiro: 0, cartao: 0, pix: 0 };
-  for (const p of finalizados) {
+  for (const p of concluidos) {
     if (p.formaPagamento) porForma[p.formaPagamento] += p.total;
   }
   const total = porForma.dinheiro + porForma.cartao + porForma.pix;
