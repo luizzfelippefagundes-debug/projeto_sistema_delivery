@@ -9,20 +9,20 @@ import { getConfiguracoes } from "@/db/queries/configuracoes";
 import { getZonasEntrega } from "@/db/queries/entrega";
 import { getUltimoFechamento } from "@/db/queries/fechamentos";
 import { getPedidosDesde, getPedidosDoDia } from "@/db/queries/pedidos";
-import { fmtBRL, fmtHora } from "@/lib/data";
+import { fmtBRL, fmtHora, inicioDoDia } from "@/lib/data";
 import { contaComoFaturamento } from "@/lib/faturamento";
 import { requireFuncionarioAccess } from "@/lib/funcionarioAuth";
 import { taxasDeConfig } from "@/lib/taxaMaquininha";
 import type { Origem, OrderStatus, Pagamento } from "@/lib/types";
 
 function inicioDaSemana() {
-  const d = new Date();
+  const d = inicioDoDia();
   d.setDate(d.getDate() - 7);
   return d;
 }
 
 function inicioDoMes() {
-  const d = new Date();
+  const d = inicioDoDia();
   d.setDate(d.getDate() - 30);
   return d;
 }

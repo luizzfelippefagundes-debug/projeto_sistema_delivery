@@ -7,15 +7,11 @@ import { assertFuncionario } from "../lib/funcionarioAuth";
 import { getPedidosDoDia } from "../db/queries/pedidos";
 import { registrarAtividade } from "../db/queries/atividades";
 import { contaComoFaturamento } from "../lib/faturamento";
-import { fmtBRL } from "../lib/data";
-
-function hojeISO() {
-  return new Date().toISOString().slice(0, 10);
-}
+import { fmtBRL, getHojeISO } from "../lib/data";
 
 export async function fecharCaixaDoDia() {
   const dono = await assertFuncionario("dono");
-  const dataISO = hojeISO();
+  const dataISO = getHojeISO();
 
   const pedidosHoje = await getPedidosDoDia(dono.restauranteId);
   const concluidos = pedidosHoje.filter((p) => contaComoFaturamento(p) && p.formaPagamento);

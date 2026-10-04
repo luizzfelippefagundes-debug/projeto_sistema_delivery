@@ -44,3 +44,29 @@ export function estaAtrasado(criadoEm: number, status: OrderStatus): boolean {
   if (status !== "novo" && status !== "preparo") return false;
   return Date.now() - criadoEm > MIN_PARA_ATRASADO * 60_000;
 }
+
+export const TIMEZONE_BR = "America/Sao_Paulo";
+
+/** Retorna a data no formato YYYY-MM-DD considerando o fuso horário de Brasília */
+export function getHojeISO(d: Date = new Date()): string {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: TIMEZONE_BR,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return formatter.format(d);
+}
+
+/** Retorna a data às 00:00:00.000 considerando o fuso horário de Brasília */
+export function inicioDoDia(d: Date = new Date()): Date {
+  const isoDate = getHojeISO(d);
+  return new Date(`${isoDate}T00:00:00.000-03:00`);
+}
+
+/** Retorna a data às 23:59:59.999 considerando o fuso horário de Brasília */
+export function fimDoDia(d: Date = new Date()): Date {
+  const isoDate = getHojeISO(d);
+  return new Date(`${isoDate}T23:59:59.999-03:00`);
+}
+

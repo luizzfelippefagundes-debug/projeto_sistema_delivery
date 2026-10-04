@@ -1,14 +1,9 @@
 import MotoboyHistorico, { type PedidoHistorico } from "@/components/MotoboyHistorico";
 import { getEntregasDoMotoboyDesde, getPedidosAbertos } from "@/db/queries/pedidos";
 import { requireFuncionarioAccess } from "@/lib/funcionarioAuth";
+import { inicioDoDia } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
-
-function inicioDoDia() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
 
 export default async function MotoboyHistoricoPage() {
   const funcionario = await requireFuncionarioAccess("motoboy");

@@ -1,6 +1,6 @@
 import PedidosHistoricoTable from "@/components/PedidosHistoricoTable";
 import { getItensAgrupadosPorPedido, getPedidosFiltrados } from "@/db/queries/pedidos";
-import { fmtBRL } from "@/lib/data";
+import { fmtBRL, getHojeISO } from "@/lib/data";
 import { contaComoFaturamento } from "@/lib/faturamento";
 import { requireFuncionarioAccess } from "@/lib/funcionarioAuth";
 import type { OrderStatus, Origem } from "@/lib/types";
@@ -21,13 +21,13 @@ function selectClass() {
 }
 
 function hojeISO() {
-  return new Date().toISOString().slice(0, 10);
+  return getHojeISO();
 }
 
 function haDias(dias: number) {
   const d = new Date();
   d.setDate(d.getDate() - dias);
-  return d.toISOString().slice(0, 10);
+  return getHojeISO(d);
 }
 
 export default async function HistoricoPedidosPage({

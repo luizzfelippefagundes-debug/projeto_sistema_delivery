@@ -2,26 +2,21 @@ import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { getDb } from "../index";
 import { itensPedido, pedidos } from "../schema";
 import { podeFecharConta } from "../../lib/fechamentoMesa";
+import { fimDoDia, inicioDoDia } from "../../lib/data";
 import type { Origem } from "../../lib/types";
 import type { OrderStatus } from "../../lib/types";
-
-function inicioDoDia(d: Date) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-
-function fimDoDia(d: Date) {
-  const x = new Date(d);
-  x.setHours(23, 59, 59, 999);
-  return x;
-}
 
 export async function getPedidosDoDia(restauranteId: string, dia: Date = new Date()) {
   return getDb()
     .select()
     .from(pedidos)
-    .where(and(eq(pedidos.restauranteId, restauranteId), gte(pedidos.criadoEm, inicioDoDia(dia))))
+    .where(
+      and(
+        eq(pedidos.restauranteId, restauranteId),
+        gte(pedidos.criadoEm, inicioDoDia(dia)),
+        lte(pedidos.criadoEm, fimDoDia(dia)),
+      ),
+    )
     .orderBy(pedidos.criadoEm);
 }
 
