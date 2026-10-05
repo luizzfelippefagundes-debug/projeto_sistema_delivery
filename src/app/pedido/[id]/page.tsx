@@ -6,7 +6,7 @@ import { cancelarPedidoCliente } from "@/actions/pedidos.actions";
 import CancelarPedidoButton from "@/components/CancelarPedidoButton";
 import CustomerHeader from "@/components/CustomerHeader";
 import CustomerTabBar from "@/components/CustomerTabBar";
-import OrderTimeline from "@/components/OrderTimeline";
+import PedidoStatusWatcher from "@/components/PedidoStatusWatcher";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -58,8 +58,12 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
         </div>
 
         <Card>
-          <CardContent className="px-5 py-4">
-            <OrderTimeline status={pedido.status} retirada={retirada} />
+          <CardContent className="flex flex-col gap-3 px-5 py-4">
+            <PedidoStatusWatcher
+              pedidoId={pedido.id}
+              statusInicial={pedido.status}
+              retiradaInicial={retirada}
+            />
           </CardContent>
         </Card>
 
