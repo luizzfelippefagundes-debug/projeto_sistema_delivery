@@ -5,7 +5,7 @@ import CustomerTabBar from "@/components/CustomerTabBar";
 import StatusBadge from "@/components/StatusBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { getClientePorClerkId } from "@/db/queries/clientes";
-import { getPedidosPorClienteId, getPedidosPorIds } from "@/db/queries/pedidos";
+import { getItensAgrupadosPorPedido, getPedidosPorClienteId, getPedidosPorIds } from "@/db/queries/pedidos";
 import { getRestaurantePorId, getRestaurantePrincipal } from "@/db/queries/restaurantes";
 import { fmtBRL } from "@/lib/data";
 
@@ -32,6 +32,8 @@ export default async function MeusPedidosPage({
       ? await getPedidosPorIds(idsConvidado)
       : [];
 
+  const itensPorPedido = await getItensAgrupadosPorPedido(pedidos.map((p) => p.id));
+
   const restaurante = cliente
     ? await getRestaurantePorId(cliente.restauranteId)
     : pedidos[0]
@@ -50,24 +52,34 @@ export default async function MeusPedidosPage({
         )}
 
         <div className="flex flex-col gap-3">
-          {pedidos.map((p) => (
-            <Link key={p.id} href={`/pedido/${p.id}`}>
-              <Card className="transition-colors hover:border-primary/40">
-                <CardContent className="flex items-center justify-between gap-3 px-4 py-3">
-                  <div>
-                    <p className="text-sm font-medium">Pedido #{p.id.slice(0, 8)}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {p.criadoEm.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="num text-sm font-semibold">{fmtBRL(p.total)}</span>
-                    <StatusBadge status={p.status} />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+          {pedidos.map((p) => {
+            const itens = itensPorPedido.get(p.id) ?? [];
+            const nomes = itens.map((i) => i.nome);
+            const titulo =
+              nomes.length === 0
+                ? "Pedido"
+                : nomes.length <= 2
+                  ? nomes.join(", ")
+                  : `${nomes.slice(0, 2).join(", ")} +${nomes.length - 2}`;
+            return (
+              <Link key={p.id} href={`/pedido/${p.id}`}>
+                <Card className="transition-colors hover:border-primary/40">
+                  <CardContent className="flex items-center justify-between gap-3 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{titulo}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {p.criadoEm.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <span className="num text-sm font-semibold">{fmtBRL(p.total)}</span>
+                      <StatusBadge status={p.status} />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
       </div>
 
