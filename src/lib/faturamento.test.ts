@@ -12,10 +12,14 @@ describe("contaComoFaturamento", () => {
     expect(contaComoFaturamento({ origem: "salao", status: "finalizado" })).toBe(true);
   });
 
-  it("sempre conta delivery, em qualquer status (mantém o comportamento atual)", () => {
-    expect(contaComoFaturamento({ origem: "delivery", status: "novo" })).toBe(true);
-    expect(contaComoFaturamento({ origem: "delivery", status: "pronto" })).toBe(true);
-    expect(contaComoFaturamento({ origem: "delivery", status: "rota" })).toBe(true);
+  it("não conta delivery em andamento (novo/preparo/pronto/rota)", () => {
+    expect(contaComoFaturamento({ origem: "delivery", status: "novo" })).toBe(false);
+    expect(contaComoFaturamento({ origem: "delivery", status: "preparo" })).toBe(false);
+    expect(contaComoFaturamento({ origem: "delivery", status: "pronto" })).toBe(false);
+    expect(contaComoFaturamento({ origem: "delivery", status: "rota" })).toBe(false);
+  });
+
+  it("conta delivery só depois que foi entregue", () => {
     expect(contaComoFaturamento({ origem: "delivery", status: "entregue" })).toBe(true);
   });
 

@@ -31,7 +31,7 @@ export async function fecharCaixaDoDia() {
       cartao: porForma.cartao,
       pix: porForma.pix,
       total,
-      fechadoPorFuncionarioId: dono.id,
+      fechadoPorFuncionarioId: dono.id
     })
     .onConflictDoUpdate({
       target: [fechamentosCaixa.data, fechamentosCaixa.restauranteId],
