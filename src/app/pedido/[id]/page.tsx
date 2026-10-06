@@ -51,9 +51,20 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
 
       <div className="mx-auto flex w-full max-w-lg flex-col gap-5 p-4 pb-24 md:p-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Pedido #{pedido.id.slice(0, 8)}
-          </p>
+          {(() => {
+            const nomes = itens.map((i) => i.nome);
+            const titulo =
+              nomes.length === 0
+                ? "Pedido"
+                : nomes.length <= 2
+                  ? nomes.join(", ")
+                  : `${nomes.slice(0, 2).join(", ")} +${nomes.length - 2}`;
+            return (
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {titulo}
+              </p>
+            );
+          })()}
           <p className="text-sm text-muted-foreground">Feito há {minAgo(pedido.criadoEm.getTime())}</p>
         </div>
 
