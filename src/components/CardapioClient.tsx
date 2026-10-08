@@ -166,7 +166,7 @@ export default function CardapioClient({
               <div className="relative flex items-center">
                 <Search className="absolute left-3 size-4 text-muted-foreground" />
                 <input
-                  type="search"
+                  type="text"
                   placeholder="Buscar no cardápio..."
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
