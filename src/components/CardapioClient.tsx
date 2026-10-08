@@ -18,50 +18,203 @@ export interface ZonaEntregaResumo {
   tempoEstimadoMin: number;
 }
 
-const NOMES_COMBO_SURPRESA = ["individual", "casal", "família", "familia", "surpresa"];
+const NOMES_SURPRESA = ["surpresa"];
 
-function BannerPromoCombo({ itensPorCategoria }: { itensPorCategoria: Record<string, ItemDoCardapio[]> }) {
-  const [itemAberto, setItemAberto] = useState<ItemDoCardapio | null>(null);
+const PRECO_ORIGINAL_KIDS: Record<string, number> = {
+  "15": 67.50,
+  "30": 122.50,
+  "50": 225.50,
+};
 
+function BannerSurpresa({
+  itensPorCategoria,
+  onAbrirItem,
+}: {
+  itensPorCategoria: Record<string, ItemDoCardapio[]>;
+  onAbrirItem: (item: ItemDoCardapio) => void;
+}) {
   const todosItens = Object.values(itensPorCategoria).flat();
   const combos = todosItens.filter((item) =>
-    NOMES_COMBO_SURPRESA.some((kw) => item.nome.toLowerCase().includes(kw)),
+    NOMES_SURPRESA.some((kw) => item.nome.toLowerCase().includes(kw)),
   );
-
   if (combos.length === 0) return null;
+  return (
+    <div className="overflow-hidden bg-zinc-900">
+      <div className="relative">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/banner-combo-surpresa.png" alt="Promo Combo Surpresa" className="h-48 w-full object-cover object-top" />
+        <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/95 via-zinc-900/20 to-transparent" />
+        <div className="absolute bottom-3 left-4">
+          <p className="text-[9px] font-bold uppercase tracking-widest text-red-400">Promoção especial</p>
+          <h2 className="font-heading text-2xl font-black leading-none text-white">COMBO SURPRESA</h2>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-px bg-zinc-700 p-px">
+        {combos.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onAbrirItem({ ...item, imagemUrl: item.imagemUrl ?? "/banner-combo-surpresa.png" })}
+            className="flex flex-col items-center gap-1 bg-zinc-900 px-2 py-3 text-center transition-colors hover:bg-zinc-800 active:bg-zinc-700"
+          >
+            <span className="text-[10px] font-bold leading-tight text-red-400">
+              {item.nome.replace(/combo surpresa/i, "").trim() || item.nome}
+            </span>
+            <span className="num text-sm font-black text-white">{fmtBRL(item.preco)}</span>
+            <span className="mt-0.5 rounded bg-red-700 px-2 py-0.5 text-[10px] font-semibold text-white">Pedir</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BannerKids({
+  itensPorCategoria,
+  onAbrirItem,
+}: {
+  itensPorCategoria: Record<string, ItemDoCardapio[]>;
+  onAbrirItem: (item: ItemDoCardapio) => void;
+}) {
+  const itensKids = (itensPorCategoria["Especial Kids"] ?? []);
+  if (itensKids.length === 0) return null;
+
+  const tamanhos = ["15", "30", "50"];
+
+  function itemPorTipo(tam: string, tipo: "HOT" | "CRU") {
+    return itensKids.find((i) => i.nome.includes(tam) && i.nome.toUpperCase().includes(tipo)) ?? null;
+  }
+
+  return (
+    <div className="overflow-hidden" style={{ background: "#f5f0e8" }}>
+      <div className="px-4 py-3" style={{ borderBottom: "2px solid #e8dfc8" }}>
+        <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "#9ca3af", marginBottom: 4 }}>
+          Especial Kids
+        </p>
+        <div className="flex gap-1.5 font-heading text-xl font-black leading-none">
+          <span style={{ color: "#16a34a" }}>DIAS</span>
+          <span style={{ color: "#d97706" }}>DAS</span>
+          <span style={{ color: "#2563eb" }}>CRIANÇAS</span>
+        </div>
+      </div>
+      <div className="grid grid-cols-3" style={{ gap: 1, background: "#e8dfc8", padding: 1 }}>
+        {tamanhos.map((tam) => {
+          const hot = itemPorTipo(tam, "HOT");
+          const cru = itemPorTipo(tam, "CRU");
+          const precoOriginal = PRECO_ORIGINAL_KIDS[tam];
+          return (
+            <div key={tam} className="flex flex-col items-center gap-2 px-1 py-2.5" style={{ background: "#faf7f0" }}>
+              <span className="font-heading text-[11px] font-black" style={{ color: "#1a1a1a" }}>{tam} peças</span>
+              {(["HOT", "CRU"] as const).map((tipo, i) => {
+                const item = tipo === "HOT" ? hot : cru;
+                return (
+                  <button
+                    key={tipo}
+                    type="button"
+                    disabled={!item}
+                    onClick={() => item && onAbrirItem(item)}
+                    className="flex w-full flex-col items-center gap-0.5"
+                    style={i === 1 ? { borderTop: "1px solid #e8dfc8", paddingTop: 6 } : {}}
+                  >
+                    <span className="text-[8px] font-bold uppercase tracking-wide" style={{ color: tipo === "HOT" ? "#dc2626" : "#2563eb" }}>
+                      {tipo}
+                    </span>
+                    <span className="num text-[9px]" style={{ color: "#9ca3af", textDecoration: "line-through" }}>
+                      {fmtBRL(precoOriginal)}
+                    </span>
+                    <span
+                      className="num rounded px-1.5 py-0.5 text-[11px] font-black"
+                      style={{ background: "#fbbf24", color: "#1a1a1a" }}
+                    >
+                      {item ? fmtBRL(item.preco) : "—"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function BannerCarousel({ itensPorCategoria }: { itensPorCategoria: Record<string, ItemDoCardapio[]> }) {
+  const [itemAberto, setItemAberto] = useState<ItemDoCardapio | null>(null);
+  const [slide, setSlide] = useState(0);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const startXRef = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const temSurpresa = Object.values(itensPorCategoria).flat().some((i) => i.nome.toLowerCase().includes("surpresa"));
+  const temKids = (itensPorCategoria["Especial Kids"] ?? []).length > 0;
+  const total = [temSurpresa, temKids].filter(Boolean).length;
+
+  function goTo(idx: number) {
+    const next = Math.max(0, Math.min(idx, total - 1));
+    setSlide(next);
+  }
+
+  function resetTimer() {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => setSlide((s) => (s + 1) % total), 4500);
+  }
+
+  useEffect(() => {
+    if (total <= 1) return;
+    resetTimer();
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [total]);
+
+  if (total === 0) return null;
+
+  const slides = [
+    temSurpresa && <BannerSurpresa key="surpresa" itensPorCategoria={itensPorCategoria} onAbrirItem={setItemAberto} />,
+    temKids && <BannerKids key="kids" itensPorCategoria={itensPorCategoria} onAbrirItem={setItemAberto} />,
+  ].filter(Boolean);
 
   return (
     <>
-      <div className="mx-auto w-full max-w-2xl px-4 pt-4 md:px-6">
-        <div className="overflow-hidden rounded-2xl bg-zinc-900 shadow-lg">
-          <div className="relative">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/banner-combo-surpresa.png" alt="Promo Combo Surpresa" className="h-52 w-full object-cover object-top" />
-            <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/95 via-zinc-900/20 to-transparent" />
-            <div className="absolute bottom-3 left-4">
-              <p className="text-xs font-bold uppercase tracking-widest text-red-400">Promoção especial</p>
-              <h2 className="font-heading text-2xl font-black leading-none text-white">
-                COMBO SURPRESA
-              </h2>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-px bg-zinc-700 p-px">
-            {combos.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setItemAberto({ ...item, imagemUrl: item.imagemUrl ?? "/banner-combo-surpresa.png" })}
-                className="flex flex-col items-center gap-1 bg-zinc-900 px-2 py-3 text-center transition-colors hover:bg-zinc-800 active:bg-zinc-700"
+      <div className="mx-auto w-full max-w-2xl pt-4">
+        <div className="overflow-hidden rounded-2xl shadow-lg">
+          {total === 1 ? (
+            slides[0]
+          ) : (
+            <>
+              <div
+                ref={trackRef}
+                className="flex"
+                style={{ transform: `translateX(-${slide * 100}%)`, transition: "transform .4s cubic-bezier(.4,0,.2,1)" }}
+                onTouchStart={(e) => { startXRef.current = e.touches[0].clientX; resetTimer(); }}
+                onTouchEnd={(e) => {
+                  const dx = e.changedTouches[0].clientX - startXRef.current;
+                  if (Math.abs(dx) > 40) goTo(slide + (dx < 0 ? 1 : -1));
+                }}
               >
-                <span className="text-xs font-bold leading-tight text-red-400">{item.nome.replace(/combo surpresa/i, "").trim() || item.nome}</span>
-                <span className="num text-sm font-black text-white">{fmtBRL(item.preco)}</span>
-                <span className="mt-0.5 rounded bg-red-700 px-2 py-0.5 text-[10px] font-semibold text-white">
-                  Pedir
-                </span>
-              </button>
-            ))}
-          </div>
+                {slides.map((s, i) => (
+                  <div key={i} className="w-full shrink-0">
+                    {s}
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-center gap-1.5 bg-zinc-900 pb-2 pt-2">
+                {slides.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => { goTo(i); resetTimer(); }}
+                    aria-label={`Slide ${i + 1}`}
+                    className="h-1.5 rounded-full transition-all"
+                    style={{
+                      width: slide === i ? 18 : 6,
+                      background: slide === i ? "#fff" : "rgba(255,255,255,.3)",
+                    }}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -153,7 +306,7 @@ export default function CardapioClient({
     <div className="flex min-h-screen flex-col bg-background">
       <CustomerHeader nomeRestaurante={nomeRestaurante} slug={slug} souDona={souDona} />
 
-      <BannerPromoCombo itensPorCategoria={itensPorCategoria} />
+      <BannerCarousel itensPorCategoria={itensPorCategoria} />
 
       {categorias.length === 0 ? (
         <div className="flex flex-1 items-center justify-center p-6">
