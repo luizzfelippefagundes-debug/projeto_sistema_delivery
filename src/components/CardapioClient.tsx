@@ -87,7 +87,7 @@ function BannerKids({
 
   return (
     <div className="overflow-hidden" style={{ background: "#f5f0e8" }}>
-      <div className="relative h-40 overflow-hidden">
+      <div className="relative h-24 overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/banner-kids.png" alt="Especial Kids" className="h-full w-full object-cover object-top" />
         <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(245,240,232,.98) 0%, rgba(245,240,232,.3) 55%, transparent 100%)" }} />
