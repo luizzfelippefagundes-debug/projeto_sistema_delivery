@@ -110,7 +110,7 @@ function BannerKids({
                 key={tam}
                 type="button"
                 disabled={!item}
-                onClick={() => item && onAbrirItem(item)}
+                onClick={() => item && onAbrirItem({ ...item, imagemUrl: item.imagemUrl ?? "/banner-kids.png" })}
                 className="flex flex-col items-center gap-1 py-3 transition-colors"
                 style={{ background: "#faf7f0" }}
               >
