@@ -97,44 +97,37 @@ function BannerKids({
           <span style={{ color: "#2563eb" }}>CRIANÇAS</span>
         </div>
       </div>
-      <div className="grid grid-cols-3" style={{ gap: 1, background: "#e8dfc8", padding: 1 }}>
-        {tamanhos.map((tam) => {
-          const hot = itemPorTipo(tam, "HOT");
-          const cru = itemPorTipo(tam, "CRU");
-          const precoOriginal = PRECO_ORIGINAL_KIDS[tam];
-          return (
-            <div key={tam} className="flex flex-col items-center gap-2 px-1 py-2.5" style={{ background: "#faf7f0" }}>
-              <span className="font-heading text-[11px] font-black" style={{ color: "#1a1a1a" }}>{tam} peças</span>
-              {(["HOT", "CRU"] as const).map((tipo, i) => {
-                const item = tipo === "HOT" ? hot : cru;
-                return (
-                  <button
-                    key={tipo}
-                    type="button"
-                    disabled={!item}
-                    onClick={() => item && onAbrirItem(item)}
-                    className="flex w-full flex-col items-center gap-0.5"
-                    style={i === 1 ? { borderTop: "1px solid #e8dfc8", paddingTop: 6 } : {}}
-                  >
-                    <span className="text-[8px] font-bold uppercase tracking-wide" style={{ color: tipo === "HOT" ? "#dc2626" : "#2563eb" }}>
-                      {tipo}
-                    </span>
-                    <span className="num text-[9px]" style={{ color: "#9ca3af", textDecoration: "line-through" }}>
-                      {fmtBRL(precoOriginal)}
-                    </span>
-                    <span
-                      className="num rounded px-1.5 py-0.5 text-[11px] font-black"
-                      style={{ background: "#fbbf24", color: "#1a1a1a" }}
-                    >
-                      {item ? fmtBRL(item.preco) : "—"}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          );
-        })}
-      </div>
+      {(["HOT", "CRU"] as const).map((tipo) => (
+        <div key={tipo} style={{ gap: 1, background: "#e8dfc8", padding: "1px", display: "grid", gridTemplateColumns: "auto 1fr 1fr 1fr" }}>
+          <div className="flex items-center justify-center px-3" style={{ background: "#faf7f0" }}>
+            <span className="text-xs font-black uppercase tracking-wide" style={{ color: tipo === "HOT" ? "#dc2626" : "#2563eb", writingMode: "vertical-rl", transform: "rotate(180deg)" }}>
+              {tipo}
+            </span>
+          </div>
+          {tamanhos.map((tam) => {
+            const item = itemPorTipo(tam, tipo);
+            const precoOriginal = PRECO_ORIGINAL_KIDS[tam];
+            return (
+              <button
+                key={tam}
+                type="button"
+                disabled={!item}
+                onClick={() => item && onAbrirItem(item)}
+                className="flex flex-col items-center gap-1 py-3 transition-colors"
+                style={{ background: "#faf7f0" }}
+              >
+                <span className="font-heading text-sm font-black" style={{ color: "#1a1a1a" }}>{tam} peças</span>
+                <span className="num text-xs" style={{ color: "#9ca3af", textDecoration: "line-through" }}>
+                  {fmtBRL(precoOriginal)}
+                </span>
+                <span className="num rounded-md px-2 py-1 text-sm font-black" style={{ background: "#fbbf24", color: "#1a1a1a" }}>
+                  {item ? fmtBRL(item.preco) : "—"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }
