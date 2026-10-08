@@ -1,8 +1,9 @@
 "use client";
 
-import { ShoppingBag } from "lucide-react";
+import { Package, ShoppingBag } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import CartDrawer from "@/components/CartDrawer";
+import ItemDetalheDialog from "@/components/ItemDetalheDialog";
 import { ItemCard, tintDaCategoria, type ItemDoCardapio } from "@/components/CardapioItemCard";
 import CustomerHeader from "@/components/CustomerHeader";
 import CustomerTabBar from "@/components/CustomerTabBar";
@@ -15,6 +16,64 @@ export interface ZonaEntregaResumo {
   bairro: string;
   taxaEntrega: number;
   tempoEstimadoMin: number;
+}
+
+const NOMES_COMBO_SURPRESA = ["individual", "casal", "família", "familia", "surpresa"];
+
+function BannerPromoCombo({ itensPorCategoria }: { itensPorCategoria: Record<string, ItemDoCardapio[]> }) {
+  const [itemAberto, setItemAberto] = useState<ItemDoCardapio | null>(null);
+
+  const todosItens = Object.values(itensPorCategoria).flat();
+  const combos = todosItens.filter((item) =>
+    NOMES_COMBO_SURPRESA.some((kw) => item.nome.toLowerCase().includes(kw)),
+  );
+
+  if (combos.length === 0) return null;
+
+  return (
+    <>
+      <div className="mx-auto w-full max-w-2xl px-4 pt-4 md:px-6">
+        <div className="overflow-hidden rounded-2xl bg-zinc-900 shadow-lg">
+          <div className="relative">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/banner-combo-surpresa.png" alt="Promo Combo Surpresa" className="h-52 w-full object-cover object-top" />
+            <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/95 via-zinc-900/20 to-transparent" />
+            <div className="absolute bottom-3 left-4">
+              <p className="text-xs font-bold uppercase tracking-widest text-red-400">Promoção especial</p>
+              <h2 className="font-heading text-2xl font-black leading-none text-white">
+                COMBO SURPRESA
+              </h2>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-px bg-zinc-700 p-px">
+            {combos.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setItemAberto({ ...item, imagemUrl: item.imagemUrl ?? "/banner-combo-surpresa.png" })}
+                className="flex flex-col items-center gap-1 bg-zinc-900 px-2 py-3 text-center transition-colors hover:bg-zinc-800 active:bg-zinc-700"
+              >
+                <span className="text-xs font-bold leading-tight text-red-400">{item.nome.replace(/combo surpresa/i, "").trim() || item.nome}</span>
+                <span className="num text-sm font-black text-white">{fmtBRL(item.preco)}</span>
+                <span className="mt-0.5 rounded bg-red-700 px-2 py-0.5 text-[10px] font-semibold text-white">
+                  Pedir
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <ItemDetalheDialog
+        item={itemAberto}
+        tint="bg-status-danger-bg text-status-danger-fg"
+        icon={Package}
+        open={itemAberto !== null}
+        onOpenChange={(v) => { if (!v) setItemAberto(null); }}
+      />
+    </>
+  );
 }
 
 export default function CardapioClient({
@@ -82,6 +141,8 @@ export default function CardapioClient({
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <CustomerHeader nomeRestaurante={nomeRestaurante} slug={slug} souDona={souDona} />
+
+      <BannerPromoCombo itensPorCategoria={itensPorCategoria} />
 
       {categorias.length === 0 ? (
         <div className="flex flex-1 items-center justify-center p-6">
