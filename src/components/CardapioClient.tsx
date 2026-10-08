@@ -1,6 +1,6 @@
 "use client";
 
-import { Package, ShoppingBag } from "lucide-react";
+import { Package, Search, ShoppingBag, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import CartDrawer from "@/components/CartDrawer";
 import ItemDetalheDialog from "@/components/ItemDetalheDialog";
@@ -98,7 +98,18 @@ export default function CardapioClient({
   const categorias = Object.keys(itensPorCategoria);
   const [categoriaAtiva, setCategoriaAtiva] = useState(categorias[0] ?? "");
   const [sacolaAberta, setSacolaAberta] = useState(false);
+  const [busca, setBusca] = useState("");
   const { total, count } = useCart();
+
+  const termoBusca = busca.trim().toLowerCase();
+  const todosItens = Object.values(itensPorCategoria).flat();
+  const resultadosBusca = termoBusca
+    ? todosItens.filter(
+        (item) =>
+          item.nome.toLowerCase().includes(termoBusca) ||
+          item.descricao?.toLowerCase().includes(termoBusca),
+      )
+    : [];
 
   const itensPorId: Record<string, ItemDoCardapio> = {};
   for (const lista of Object.values(itensPorCategoria)) {
@@ -151,45 +162,82 @@ export default function CardapioClient({
       ) : (
         <>
           <div ref={pillBarRef} className="sticky top-14 z-30 border-b border-border bg-background">
-            <div className="mx-auto flex max-w-2xl gap-5 overflow-x-auto px-4 md:px-6">
-              {categorias.map((cat) => (
-                <button
-                  key={cat}
-                  ref={(el) => {
-                    pillRefs.current[cat] = el;
-                  }}
-                  type="button"
-                  onClick={() => irParaCategoria(cat)}
-                  className={`shrink-0 whitespace-nowrap border-b-2 py-3 text-sm transition-colors ${
-                    categoriaAtiva === cat
-                      ? "border-primary font-semibold text-primary"
-                      : "border-transparent font-medium text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
+            <div className="mx-auto max-w-2xl px-4 pt-2 md:px-6">
+              <div className="relative flex items-center">
+                <Search className="absolute left-3 size-4 text-muted-foreground" />
+                <input
+                  type="search"
+                  placeholder="Buscar no cardápio..."
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-muted py-2 pl-9 pr-9 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+                {busca && (
+                  <button
+                    type="button"
+                    onClick={() => setBusca("")}
+                    className="absolute right-3 text-muted-foreground hover:text-foreground"
+                    aria-label="Limpar busca"
+                  >
+                    <X className="size-4" />
+                  </button>
+                )}
+              </div>
             </div>
+
+            {!termoBusca && (
+              <div className="mx-auto flex max-w-2xl gap-5 overflow-x-auto px-4 md:px-6">
+                {categorias.map((cat) => (
+                  <button
+                    key={cat}
+                    ref={(el) => { pillRefs.current[cat] = el; }}
+                    type="button"
+                    onClick={() => irParaCategoria(cat)}
+                    className={`shrink-0 whitespace-nowrap border-b-2 py-3 text-sm transition-colors ${
+                      categoriaAtiva === cat
+                        ? "border-primary font-semibold text-primary"
+                        : "border-transparent font-medium text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className={`mx-auto w-full max-w-2xl flex-1 px-4 md:px-6 ${count ? "pb-40" : "pb-24"}`}>
-            {categorias.map((cat) => (
-              <div
-                key={cat}
-                ref={(el) => {
-                  sectionRefs.current[cat] = el;
-                }}
-                data-categoria={cat}
-              >
-                <h2 className="pt-5 font-heading text-lg font-semibold">{cat}</h2>
+          {termoBusca ? (
+            <div className={`mx-auto w-full max-w-2xl flex-1 px-4 md:px-6 ${count ? "pb-40" : "pb-24"}`}>
+              {resultadosBusca.length === 0 ? (
+                <p className="pt-10 text-center text-sm text-muted-foreground">Nenhum item encontrado para "{busca}".</p>
+              ) : (
                 <div className="flex flex-col">
-                  {itensPorCategoria[cat]?.map((item) => (
-                    <ItemCard key={item.id} item={item} categoria={cat} tint={tintDaCategoria(cat, categorias)} />
-                  ))}
+                  <p className="pt-4 text-xs text-muted-foreground">{resultadosBusca.length} resultado{resultadosBusca.length !== 1 ? "s" : ""}</p>
+                  {resultadosBusca.map((item) => {
+                    const cat = Object.entries(itensPorCategoria).find(([, lista]) => lista.some((i) => i.id === item.id))?.[0] ?? categorias[0];
+                    return <ItemCard key={item.id} item={item} categoria={cat} tint={tintDaCategoria(cat, categorias)} />;
+                  })}
                 </div>
-              </div>
-            ))}
-          </div>
+              )}
+            </div>
+          ) : (
+            <div className={`mx-auto w-full max-w-2xl flex-1 px-4 md:px-6 ${count ? "pb-40" : "pb-24"}`}>
+              {categorias.map((cat) => (
+                <div
+                  key={cat}
+                  ref={(el) => { sectionRefs.current[cat] = el; }}
+                  data-categoria={cat}
+                >
+                  <h2 className="pt-5 font-heading text-lg font-semibold">{cat}</h2>
+                  <div className="flex flex-col">
+                    {itensPorCategoria[cat]?.map((item) => (
+                      <ItemCard key={item.id} item={item} categoria={cat} tint={tintDaCategoria(cat, categorias)} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
 
