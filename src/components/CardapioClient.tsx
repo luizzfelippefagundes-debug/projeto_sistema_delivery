@@ -87,14 +87,17 @@ function BannerKids({
 
   return (
     <div className="overflow-hidden" style={{ background: "#f5f0e8" }}>
-      <div className="px-4 py-3" style={{ borderBottom: "2px solid #e8dfc8" }}>
-        <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "#9ca3af", marginBottom: 4 }}>
-          Especial Kids
-        </p>
-        <div className="flex gap-1.5 font-heading text-xl font-black leading-none">
-          <span style={{ color: "#16a34a" }}>DIAS</span>
-          <span style={{ color: "#d97706" }}>DAS</span>
-          <span style={{ color: "#2563eb" }}>CRIANÇAS</span>
+      <div className="relative h-40 overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/banner-kids.png" alt="Especial Kids" className="h-full w-full object-cover object-top" />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(245,240,232,.98) 0%, rgba(245,240,232,.3) 55%, transparent 100%)" }} />
+        <div className="absolute bottom-3 left-4">
+          <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "#6b7280", marginBottom: 3 }}>Especial Kids</p>
+          <div className="flex gap-1.5 font-heading text-2xl font-black leading-none">
+            <span style={{ color: "#16a34a" }}>DIAS</span>
+            <span style={{ color: "#d97706" }}>DAS</span>
+            <span style={{ color: "#2563eb" }}>CRIANÇAS</span>
+          </div>
         </div>
       </div>
       {(["HOT", "CRU"] as const).map((tipo) => (
