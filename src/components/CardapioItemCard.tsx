@@ -66,7 +66,7 @@ export function ItemCard({ item, categoria, tint }: { item: ItemDoCardapio; cate
           <div className="size-full overflow-hidden rounded-xl bg-muted">
             {item.imagemUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={item.imagemUrl} alt={item.nome} className="size-full object-contain" />
+              <img src={item.imagemUrl} alt={item.nome} className="size-full object-cover" />
             ) : (
               <div className={`flex size-full items-center justify-center ${tint}`}>
                 <Icon className="size-7" />
