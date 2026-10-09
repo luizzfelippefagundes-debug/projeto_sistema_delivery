@@ -2,6 +2,7 @@
 
 import { Package, Search, ShoppingBag, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import AplicarCorMarca from "@/components/AplicarCorMarca";
 import CartDrawer from "@/components/CartDrawer";
 import ItemDetalheDialog from "@/components/ItemDetalheDialog";
 import { ItemCard, tintDaCategoria, type ItemDoCardapio } from "@/components/CardapioItemCard";
@@ -264,6 +265,8 @@ export default function CardapioClient({
   restauranteId,
   slug,
   nomeRestaurante,
+  logoUrl,
+  corPrimaria,
   itensPorCategoria,
   zonasEntrega,
   enderecoLoja,
@@ -272,6 +275,8 @@ export default function CardapioClient({
   restauranteId: string;
   slug: string;
   nomeRestaurante?: string;
+  logoUrl?: string | null;
+  corPrimaria?: string | null;
   itensPorCategoria: Record<string, ItemDoCardapio[]>;
   zonasEntrega: ZonaEntregaResumo[];
   enderecoLoja: string | null;
@@ -335,7 +340,8 @@ export default function CardapioClient({
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <CustomerHeader nomeRestaurante={nomeRestaurante} slug={slug} souDona={souDona} />
+      <AplicarCorMarca cor={corPrimaria ?? null} />
+      <CustomerHeader nomeRestaurante={nomeRestaurante} logoUrl={logoUrl} slug={slug} souDona={souDona} />
 
       <BannerCarousel itensPorCategoria={itensPorCategoria} />
 

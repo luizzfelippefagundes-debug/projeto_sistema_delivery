@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description: descricao,
       url: `/loja/${restaurante.slug}`,
       type: "website",
-      images: ["/logo-icon.png"],
+      images: [restaurante.logoUrl ?? "/logo-icon.png"],
     },
   };
 }
@@ -63,6 +63,8 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
       restauranteId={restaurante.id}
       slug={restaurante.slug}
       nomeRestaurante={restaurante.nome}
+      logoUrl={restaurante.logoUrl}
+      corPrimaria={restaurante.corPrimaria}
       itensPorCategoria={itensPorCategoria}
       zonasEntrega={zonas.map((z) => ({ bairro: z.bairro, taxaEntrega: z.taxaEntrega, tempoEstimadoMin: z.tempoEstimadoMin }))}
       enderecoLoja={config?.enderecoLoja ?? null}

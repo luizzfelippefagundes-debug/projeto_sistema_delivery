@@ -42,7 +42,7 @@ export default async function MeusPedidosPage({
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <CustomerHeader nomeRestaurante={restaurante?.nome} />
+      <CustomerHeader nomeRestaurante={restaurante?.nome} logoUrl={restaurante?.logoUrl} slug={restaurante?.slug} />
 
       <div className="mx-auto flex w-full max-w-lg flex-col gap-4 p-4 pb-24 md:p-6">
         <h1 className="font-heading text-xl font-semibold">Meus pedidos</h1>
