@@ -175,6 +175,18 @@ function BannerCarousel({ itensPorCategoria }: { itensPorCategoria: Record<strin
   }
 
   useEffect(() => {
+    function onMouseMove(e: MouseEvent) { onDragMove(e.clientX); }
+    function onMouseUp(e: MouseEvent) { onDragEnd(e.clientX); }
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slide]);
+
+  useEffect(() => {
     if (total <= 1) return;
     resetTimer();
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
@@ -210,9 +222,6 @@ function BannerCarousel({ itensPorCategoria }: { itensPorCategoria: Record<strin
                 onTouchMove={(e) => onDragMove(e.touches[0].clientX)}
                 onTouchEnd={(e) => onDragEnd(e.changedTouches[0].clientX)}
                 onMouseDown={(e) => { e.preventDefault(); onDragStart(e.clientX); }}
-                onMouseMove={(e) => onDragMove(e.clientX)}
-                onMouseUp={(e) => onDragEnd(e.clientX)}
-                onMouseLeave={(e) => onDragEnd(e.clientX)}
               >
                 {slides.map((s, i) => (
                   <div key={i} className="w-full shrink-0 pointer-events-none" style={{ pointerEvents: isDragging ? "none" : "auto" }}>
