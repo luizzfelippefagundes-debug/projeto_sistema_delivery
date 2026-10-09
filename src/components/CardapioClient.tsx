@@ -314,7 +314,7 @@ export default function CardapioClient({
                   placeholder="Buscar no cardápio..."
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-muted py-2 pl-9 pr-9 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-xl border border-border bg-background py-2 pl-9 pr-9 text-sm shadow-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
                 {busca && (
                   <button
