@@ -1,5 +1,4 @@
-import ClientesDesktopTable from "@/components/ClientesDesktopTable";
-import ClientesMobileList from "@/components/ClientesMobileList";
+import ClientesView from "@/components/ClientesView";
 import { Card, CardContent } from "@/components/ui/card";
 import { getClientesResumo } from "@/db/queries/clientes";
 import { fmtBRL } from "@/lib/data";
@@ -55,8 +54,7 @@ export default async function ClientesPage() {
         </Card>
       </div>
 
-      <ClientesMobileList clientes={clientes} />
-      <ClientesDesktopTable clientes={clientes} />
+      <ClientesView clientes={clientes} />
     </div>
   );
 }
