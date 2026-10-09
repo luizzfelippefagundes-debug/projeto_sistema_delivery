@@ -36,7 +36,6 @@ export default function ItemDetalheDialog({
   const [escolhas, setEscolhas] = useState<Record<string, number>>({});
 
   const ehCombo = item?.qtdPecasEscolha != null && (item?.opcoes.length ?? 0) > 0;
-  const ehEscolhaTipo = ehCombo && (item?.qtdPecasEscolha ?? 0) === 1;
   const qtdEscolhida = totalEscolhido(escolhas);
   const restante = (item?.qtdPecasEscolha ?? 0) - qtdEscolhida;
 
@@ -103,12 +102,12 @@ export default function ItemDetalheDialog({
               {ehCombo && (
                 <div className="flex flex-col gap-2 border-t border-border pt-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold">{ehEscolhaTipo ? "Escolha o tipo" : "Escolha as peças"}</p>
-                    {!ehEscolhaTipo && (
-                      <span className={`num text-sm font-semibold ${qtdEscolhida === item.qtdPecasEscolha ? "text-status-ok-fg" : "text-muted-foreground"}`}>
-                        {qtdEscolhida}/{item.qtdPecasEscolha}
-                      </span>
-                    )}
+                    <p className="text-sm font-semibold">Escolha as peças</p>
+                    <span
+                      className={`num text-sm font-semibold ${qtdEscolhida === item.qtdPecasEscolha ? "text-status-ok-fg" : "text-muted-foreground"}`}
+                    >
+                      {qtdEscolhida}/{item.qtdPecasEscolha}
+                    </span>
                   </div>
                   <div className="flex flex-col gap-1">
                     {item.opcoes.map((op) => {
@@ -186,7 +185,7 @@ export default function ItemDetalheDialog({
         <div className="mt-auto border-t border-border p-4">
           <Button className="w-full" disabled={!podeAdicionar} onClick={confirmar}>
             {ehCombo && !podeAdicionar
-              ? ehEscolhaTipo ? "Escolha o tipo" : `Escolha mais ${restante} ${restante === 1 ? "peça" : "peças"}`
+              ? `Escolha mais ${restante} ${restante === 1 ? "peça" : "peças"}`
               : edicao
                 ? "Salvar alterações"
                 : `Adicionar · ${fmtBRL((item?.preco ?? 0) * (ehCombo ? 1 : qtd))}`}
