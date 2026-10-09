@@ -133,8 +133,10 @@ function BannerKids({
 function BannerCarousel({ itensPorCategoria }: { itensPorCategoria: Record<string, ItemDoCardapio[]> }) {
   const [itemAberto, setItemAberto] = useState<ItemDoCardapio | null>(null);
   const [slide, setSlide] = useState(0);
+  const [dragOffset, setDragOffset] = useState(0);
   const trackRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
+  const isDraggingRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const temSurpresa = Object.values(itensPorCategoria).flat().some((i) => i.nome.toLowerCase().includes("surpresa"));
@@ -144,11 +146,32 @@ function BannerCarousel({ itensPorCategoria }: { itensPorCategoria: Record<strin
   function goTo(idx: number) {
     const next = Math.max(0, Math.min(idx, total - 1));
     setSlide(next);
+    setDragOffset(0);
   }
 
   function resetTimer() {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => setSlide((s) => (s + 1) % total), 4500);
+  }
+
+  function onDragStart(x: number) {
+    isDraggingRef.current = true;
+    startXRef.current = x;
+    setDragOffset(0);
+    resetTimer();
+  }
+
+  function onDragMove(x: number) {
+    if (!isDraggingRef.current) return;
+    setDragOffset(x - startXRef.current);
+  }
+
+  function onDragEnd(x: number) {
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    const dx = x - startXRef.current;
+    setDragOffset(0);
+    if (Math.abs(dx) > 40) goTo(slide + (dx < 0 ? 1 : -1));
   }
 
   useEffect(() => {
@@ -165,6 +188,8 @@ function BannerCarousel({ itensPorCategoria }: { itensPorCategoria: Record<strin
     temKids && <BannerKids key="kids" itensPorCategoria={itensPorCategoria} onAbrirItem={setItemAberto} />,
   ].filter(Boolean);
 
+  const isDragging = dragOffset !== 0;
+
   return (
     <>
       <div className="mx-auto w-full max-w-2xl pt-4">
@@ -175,16 +200,22 @@ function BannerCarousel({ itensPorCategoria }: { itensPorCategoria: Record<strin
             <>
               <div
                 ref={trackRef}
-                className="flex"
-                style={{ transform: `translateX(-${slide * 100}%)`, transition: "transform .4s cubic-bezier(.4,0,.2,1)" }}
-                onTouchStart={(e) => { startXRef.current = e.touches[0].clientX; resetTimer(); }}
-                onTouchEnd={(e) => {
-                  const dx = e.changedTouches[0].clientX - startXRef.current;
-                  if (Math.abs(dx) > 40) goTo(slide + (dx < 0 ? 1 : -1));
+                className="flex select-none"
+                style={{
+                  transform: `translateX(calc(-${slide * 100}% + ${dragOffset}px))`,
+                  transition: isDragging ? "none" : "transform .4s cubic-bezier(.4,0,.2,1)",
+                  cursor: isDragging ? "grabbing" : "grab",
                 }}
+                onTouchStart={(e) => onDragStart(e.touches[0].clientX)}
+                onTouchMove={(e) => onDragMove(e.touches[0].clientX)}
+                onTouchEnd={(e) => onDragEnd(e.changedTouches[0].clientX)}
+                onMouseDown={(e) => { e.preventDefault(); onDragStart(e.clientX); }}
+                onMouseMove={(e) => onDragMove(e.clientX)}
+                onMouseUp={(e) => onDragEnd(e.clientX)}
+                onMouseLeave={(e) => onDragEnd(e.clientX)}
               >
                 {slides.map((s, i) => (
-                  <div key={i} className="w-full shrink-0">
+                  <div key={i} className="w-full shrink-0 pointer-events-none" style={{ pointerEvents: isDragging ? "none" : "auto" }}>
                     {s}
                   </div>
                 ))}
