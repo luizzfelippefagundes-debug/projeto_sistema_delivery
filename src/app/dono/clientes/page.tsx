@@ -17,8 +17,9 @@ export default async function ClientesPage() {
 
   const totalClientes = clientes.length;
   const sumindo = clientes.filter((c) => diasAtras(c.ultimoPedido) > DIAS_SUMINDO).length;
+  const totalGastoGeral = clientes.reduce((s, c) => s + c.totalGasto, 0);
   const ticketMedioGeral = clientes.length
-    ? clientes.reduce((s, c) => s + c.totalGasto, 0) / clientes.reduce((s, c) => s + c.qtdPedidos, 0)
+    ? totalGastoGeral / clientes.reduce((s, c) => s + c.qtdPedidos, 0)
     : 0;
 
   return (
@@ -27,11 +28,17 @@ export default async function ClientesPage() {
         Clientes que já pediram delivery pela Dashi Sushi, com quantas vezes pediram e quanto gastaram.
       </p>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Card className="gap-1 py-4">
           <CardContent className="px-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Clientes</p>
             <p className="num font-heading text-xl font-semibold">{totalClientes}</p>
+          </CardContent>
+        </Card>
+        <Card className="gap-1 py-4">
+          <CardContent className="px-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total gasto</p>
+            <p className="num font-heading text-xl font-semibold">{fmtBRL(totalGastoGeral)}</p>
           </CardContent>
         </Card>
         <Card className="gap-1 py-4">
