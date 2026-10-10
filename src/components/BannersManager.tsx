@@ -4,6 +4,7 @@ import { Check, ImagePlus, Plus, Search, Trash2, X } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 import { adicionarBanner, removerBanner } from "@/actions/cardapio.actions";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -73,15 +74,14 @@ function ModalItens({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/60 sm:items-center sm:p-6">
-      <div className="flex h-full w-full flex-col bg-background sm:h-[85vh] sm:max-w-lg sm:overflow-hidden sm:rounded-2xl sm:border sm:border-border">
-        <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-          <button type="button" onClick={onFechar} className="flex size-8 items-center justify-center rounded-full hover:bg-muted">
-            <X className="size-5" />
-          </button>
-          <span className="font-semibold">Escolher itens</span>
-          {qtd > 0 && <span className="ml-auto text-sm text-muted-foreground">{qtd} selecionado{qtd > 1 ? "s" : ""}</span>}
-        </div>
+    <Dialog open onOpenChange={(aberto) => !aberto && onFechar()}>
+      <DialogContent className="flex h-[80vh] max-h-[85vh] w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+        <DialogHeader className="border-b border-border px-4 py-3 pr-12">
+          <DialogTitle className="flex items-baseline gap-2">
+            Escolher itens
+            {qtd > 0 && <span className="text-sm font-normal text-muted-foreground">{qtd} selecionado{qtd > 1 ? "s" : ""}</span>}
+          </DialogTitle>
+        </DialogHeader>
 
         <div className="border-b border-border px-4 py-3">
           <div className="relative">
@@ -137,13 +137,13 @@ function ModalItens({
           )}
         </div>
 
-        <div className="border-t border-border p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <div className="border-t border-border p-4">
           <Button className="h-12 w-full text-base" onClick={confirmar} disabled={qtd === 0 || algumSemPreco}>
             {qtd === 0 ? "Selecione os itens" : `Adicionar ${qtd} ite${qtd > 1 ? "ns" : "m"}`}
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
