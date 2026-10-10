@@ -36,21 +36,27 @@ export async function enviarComandaParaCozinha(mesa: number, itens: ItemParaEnvi
 
   const db = getDb();
   const total = itens.reduce((s, i) => s + i.preco * i.quantidade, 0);
-  const [pedido] = await db
-    .insert(pedidos)
-    .values({ restauranteId: funcionario.restauranteId, origem: "salao", mesa, status: "novo", total })
-    .returning();
 
-  await db.insert(itensPedido).values(
-    itens.map((i) => ({
-      pedidoId: pedido.id,
-      itemCardapioId: i.itemCardapioId,
-      nome: i.nome,
-      preco: i.preco,
-      quantidade: i.quantidade,
-    })),
+  const pedido = await db.transaction(async (tx) => {
+    const [p] = await tx
+      .insert(pedidos)
+      .values({ restauranteId: funcionario.restauranteId, origem: "salao", mesa, status: "novo", total })
+      .returning();
+    await tx.insert(itensPedido).values(
+      itens.map((i) => ({
+        pedidoId: p.id,
+        itemCardapioId: i.itemCardapioId,
+        nome: i.nome,
+        preco: i.preco,
+        quantidade: i.quantidade,
+      })),
+    );
+    return p;
+  });
+
+  await baixarEstoque(itens.map((i) => ({ itemCardapioId: i.itemCardapioId, quantidade: i.quantidade }))).catch((e) =>
+    console.error("[estoque] falha ao baixar estoque:", e),
   );
-  await baixarEstoque(itens.map((i) => ({ itemCardapioId: i.itemCardapioId, quantidade: i.quantidade })));
   await notificarNovoPedido(funcionario.restauranteId, ["cozinha"], {
     title: `Mesa ${mesa}`,
     body: `${itens.length} item(ns) · ${fmtBRL(total)}`,
@@ -155,6 +161,23 @@ export async function avancarStatusEntrega(pedidoId: string, novoStatus: OrderSt
   }
 }
 
+export async function confirmarEntregaForca(pedidoId: string) {
+  const funcionario = await assertFuncionario("dono");
+  await getDb()
+    .update(pedidos)
+    .set({ status: "entregue" })
+    .where(
+      and(
+        eq(pedidos.id, pedidoId),
+        eq(pedidos.restauranteId, funcionario.restauranteId),
+        eq(pedidos.status, "rota"),
+      ),
+    );
+  revalidatePath("/motoboy");
+  revalidatePath("/dono");
+  revalidatePath("/dono/pedidos");
+}
+
 export interface ItemDoPedidoCliente {
   itemCardapioId: string;
   quantidade: number;
@@ -189,22 +212,27 @@ export async function criarPedidoWhatsapp(dados: {
 
   const total = itensParaSalvar.reduce((s, i) => s + i.preco * i.quantidade, 0);
 
-  const [pedido] = await db
-    .insert(pedidos)
-    .values({
-      restauranteId: dados.restauranteId,
-      origem: "delivery",
-      clienteNome: `WhatsApp ${dados.telefoneCliente}`,
-      telefoneCliente: dados.telefoneCliente,
-      endereco: dados.endereco,
-      status: "novo",
-      formaPagamento: dados.pagamento,
-      total,
-    })
-    .returning();
+  const pedido = await db.transaction(async (tx) => {
+    const [p] = await tx
+      .insert(pedidos)
+      .values({
+        restauranteId: dados.restauranteId,
+        origem: "delivery",
+        clienteNome: `WhatsApp ${dados.telefoneCliente}`,
+        telefoneCliente: dados.telefoneCliente,
+        endereco: dados.endereco,
+        status: "novo",
+        formaPagamento: dados.pagamento,
+        total,
+      })
+      .returning();
+    await tx.insert(itensPedido).values(itensParaSalvar.map((i) => ({ pedidoId: p.id, ...i })));
+    return p;
+  });
 
-  await db.insert(itensPedido).values(itensParaSalvar.map((i) => ({ pedidoId: pedido.id, ...i })));
-  await baixarEstoque(itensParaSalvar.map((i) => ({ itemCardapioId: i.itemCardapioId, quantidade: i.quantidade })));
+  await baixarEstoque(itensParaSalvar.map((i) => ({ itemCardapioId: i.itemCardapioId, quantidade: i.quantidade }))).catch(
+    (e) => console.error("[estoque] falha ao baixar estoque:", e),
+  );
 
   revalidatePath("/cozinha");
   revalidatePath("/motoboy");
@@ -251,13 +279,18 @@ export async function criarPedidoMesa(dados: {
 
   const total = itensParaSalvar.reduce((s, i) => s + i.preco * i.quantidade, 0);
 
-  const [pedido] = await db
-    .insert(pedidos)
-    .values({ restauranteId: dados.restauranteId, origem: "salao", mesa: dados.mesa, status: "novo", total })
-    .returning();
+  const pedido = await db.transaction(async (tx) => {
+    const [p] = await tx
+      .insert(pedidos)
+      .values({ restauranteId: dados.restauranteId, origem: "salao", mesa: dados.mesa, status: "novo", total })
+      .returning();
+    await tx.insert(itensPedido).values(itensParaSalvar.map((i) => ({ pedidoId: p.id, ...i })));
+    return p;
+  });
 
-  await db.insert(itensPedido).values(itensParaSalvar.map((i) => ({ pedidoId: pedido.id, ...i })));
-  await baixarEstoque(itensParaSalvar.map((i) => ({ itemCardapioId: i.itemCardapioId, quantidade: i.quantidade })));
+  await baixarEstoque(itensParaSalvar.map((i) => ({ itemCardapioId: i.itemCardapioId, quantidade: i.quantidade }))).catch(
+    (e) => console.error("[estoque] falha ao baixar estoque:", e),
+  );
   await notificarNovoPedido(dados.restauranteId, ["cozinha", "atendente"], {
     title: `Mesa ${dados.mesa} pediu pelo QR Code`,
     body: `${itensParaSalvar.length} item(ns) · ${fmtBRL(total)}`,
@@ -325,43 +358,50 @@ export async function criarPedidoCliente(dados: {
   // "Meus pedidos" e o acompanhamento depois, sem depender só do nome pra
   // achar o histórico dele.
   const { userId } = await auth();
-  let clienteId: string | null = null;
-  if (userId) {
-    const [existente] = await db.select().from(clientes).where(eq(clientes.clerkUserId, userId));
-    if (existente) {
-      clienteId = existente.id;
-      await db
-        .update(clientes)
-        .set({ nome: nomeLimpo, telefone: telefoneLimpo ?? existente.telefone })
-        .where(eq(clientes.id, existente.id));
-    } else {
-      const [novo] = await db
-        .insert(clientes)
-        .values({ restauranteId: dados.restauranteId, clerkUserId: userId, nome: nomeLimpo, telefone: telefoneLimpo })
-        .returning();
-      clienteId = novo.id;
+
+  const pedido = await db.transaction(async (tx) => {
+    let clienteId: string | null = null;
+    if (userId) {
+      const [existente] = await tx.select().from(clientes).where(eq(clientes.clerkUserId, userId));
+      if (existente) {
+        clienteId = existente.id;
+        await tx
+          .update(clientes)
+          .set({ nome: nomeLimpo, telefone: telefoneLimpo ?? existente.telefone })
+          .where(eq(clientes.id, existente.id));
+      } else {
+        const [novo] = await tx
+          .insert(clientes)
+          .values({ restauranteId: dados.restauranteId, clerkUserId: userId, nome: nomeLimpo, telefone: telefoneLimpo })
+          .returning();
+        clienteId = novo.id;
+      }
     }
-  }
 
-  const [pedido] = await db
-    .insert(pedidos)
-    .values({
-      restauranteId: dados.restauranteId,
-      origem: "delivery",
-      clienteId,
-      clienteNome: nomeLimpo,
-      telefoneCliente: telefoneLimpo,
-      endereco: dados.endereco,
-      status: "novo",
-      formaPagamento: dados.pagamento,
-      taxaEntrega,
-      cpfNota: dados.cpfNota && validarCPF(dados.cpfNota) ? formatarCPF(dados.cpfNota) : null,
-      total,
-    })
-    .returning();
+    const [p] = await tx
+      .insert(pedidos)
+      .values({
+        restauranteId: dados.restauranteId,
+        origem: "delivery",
+        clienteId,
+        clienteNome: nomeLimpo,
+        telefoneCliente: telefoneLimpo,
+        endereco: dados.endereco,
+        status: "novo",
+        formaPagamento: dados.pagamento,
+        taxaEntrega,
+        cpfNota: dados.cpfNota && validarCPF(dados.cpfNota) ? formatarCPF(dados.cpfNota) : null,
+        total,
+      })
+      .returning();
 
-  await db.insert(itensPedido).values(itensParaSalvar.map((i) => ({ pedidoId: pedido.id, ...i })));
-  await baixarEstoque(itensParaSalvar.map((i) => ({ itemCardapioId: i.itemCardapioId, quantidade: i.quantidade })));
+    await tx.insert(itensPedido).values(itensParaSalvar.map((i) => ({ pedidoId: p.id, ...i })));
+    return p;
+  });
+
+  await baixarEstoque(itensParaSalvar.map((i) => ({ itemCardapioId: i.itemCardapioId, quantidade: i.quantidade }))).catch(
+    (e) => console.error("[estoque] falha ao baixar estoque:", e),
+  );
   await notificarNovoPedido(dados.restauranteId, ["cozinha", "atendente"], {
     title: "Novo pedido pelo site!",
     body: `${nomeLimpo} · ${fmtBRL(total)}`,
@@ -434,8 +474,14 @@ export async function cancelarPedidoCliente(pedidoId: string) {
     throw new Error("Esse pedido já entrou em preparo e não pode mais ser cancelado por aqui — fale com o restaurante.");
   }
 
-  await getDb().update(pedidos).set({ status: "cancelado" }).where(eq(pedidos.id, pedidoId));
-  await devolverEstoque(itens.filter((i) => i.itemCardapioId).map((i) => ({ itemCardapioId: i.itemCardapioId!, quantidade: i.quantidade })));
+  const itensParaDevolver = itens
+    .filter((i) => i.itemCardapioId)
+    .map((i) => ({ itemCardapioId: i.itemCardapioId!, quantidade: i.quantidade }));
+  const db = getDb();
+  await db.transaction(async (tx) => {
+    await tx.update(pedidos).set({ status: "cancelado" }).where(eq(pedidos.id, pedidoId));
+    await devolverEstoque(itensParaDevolver, tx);
+  });
 
   await notificarNovoPedido(pedido.restauranteId, ["cozinha", "atendente"], {
     title: "Pedido cancelado pelo cliente",
@@ -465,8 +511,14 @@ export async function cancelarPedidoMesa(restauranteId: string, mesa: number, pe
     throw new Error("Esse pedido já entrou em preparo e não pode mais ser cancelado — chame o atendente.");
   }
 
-  await getDb().update(pedidos).set({ status: "cancelado" }).where(eq(pedidos.id, pedidoId));
-  await devolverEstoque(itens.filter((i) => i.itemCardapioId).map((i) => ({ itemCardapioId: i.itemCardapioId!, quantidade: i.quantidade })));
+  const itensParaDevolver = itens
+    .filter((i) => i.itemCardapioId)
+    .map((i) => ({ itemCardapioId: i.itemCardapioId!, quantidade: i.quantidade }));
+  const db = getDb();
+  await db.transaction(async (tx) => {
+    await tx.update(pedidos).set({ status: "cancelado" }).where(eq(pedidos.id, pedidoId));
+    await devolverEstoque(itensParaDevolver, tx);
+  });
 
   await notificarNovoPedido(restauranteId, ["cozinha", "atendente"], {
     title: `Mesa ${mesa} cancelou um pedido`,

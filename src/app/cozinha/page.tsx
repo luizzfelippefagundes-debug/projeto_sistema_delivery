@@ -33,6 +33,10 @@ export default async function CozinhaPage() {
     itens: (itensPorPedido.get(p.id) ?? []).map((i) => ({ nome: i.nome, quantidade: i.quantidade, observacao: i.observacao })),
   }));
 
+  const deliveryEmRota = abertos
+    .filter((p) => p.status === "rota" && p.origem === "delivery")
+    .map((p) => ({ id: p.id, clienteNome: p.clienteNome, endereco: p.endereco, total: p.total, criadoEm: p.criadoEm.getTime() }));
+
   if (!tambemAtende) {
     return <CozinhaBoard pedidos={pedidosCozinha} />;
   }
@@ -67,6 +71,7 @@ export default async function CozinhaPage() {
       itensCardapio={itensCardapio}
       pedidosPorMesa={pedidosPorMesa}
       pedidosCozinha={pedidosCozinha}
+      deliveryEmRota={deliveryEmRota}
       resumo={resumo}
       taxas={taxasDeConfig(config)}
       numeroMesas={config?.numeroMesas ?? 8}

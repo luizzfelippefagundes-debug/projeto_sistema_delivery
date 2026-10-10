@@ -1,7 +1,8 @@
 "use client";
 
-import { Printer } from "lucide-react";
-import { useState } from "react";
+import { CheckCircle2, Printer } from "lucide-react";
+import { useState, useTransition } from "react";
+import { confirmarEntregaForca } from "@/actions/pedidos.actions";
 import StatusBadge from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,6 +57,14 @@ export default function PedidosHistoricoTable({
   pedidos: { pedido: Pedido; itens: ItemPedido[] }[];
 }) {
   const [selecionado, setSelecionado] = useState<{ pedido: Pedido; itens: ItemPedido[] } | null>(null);
+  const [confirmando, startConfirmar] = useTransition();
+
+  function forcarEntrega(pedidoId: string) {
+    startConfirmar(async () => {
+      await confirmarEntregaForca(pedidoId);
+      setSelecionado(null);
+    });
+  }
 
   return (
     <>
@@ -184,6 +193,16 @@ export default function PedidosHistoricoTable({
               </p>
               {selecionado.pedido.cpfNota && (
                 <p className="text-sm text-muted-foreground">CPF na nota: {selecionado.pedido.cpfNota}</p>
+              )}
+
+              {selecionado.pedido.status === "rota" && (
+                <Button
+                  className="w-full"
+                  disabled={confirmando}
+                  onClick={() => forcarEntrega(selecionado.pedido.id)}
+                >
+                  <CheckCircle2 /> {confirmando ? "Confirmando…" : "Confirmar entrega"}
+                </Button>
               )}
 
               <Button

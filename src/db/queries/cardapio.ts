@@ -93,10 +93,16 @@ export async function baixarEstoque(itens: { itemCardapioId: string; quantidade:
 /** Contrário de `baixarEstoque` — usado quando um pedido é cancelado, pra
  * devolver ao estoque as unidades que tinham sido descontadas na hora da
  * compra. Reativa o item se ele tinha sido pausado automaticamente por ter
- * zerado (mesmo acoplamento que `baixarEstoque` já faz ao contrário). */
-export async function devolverEstoque(itens: { itemCardapioId: string; quantidade: number }[]) {
+ * zerado (mesmo acoplamento que `baixarEstoque` já faz ao contrário).
+ * Aceita um `runner` opcional para rodar dentro de uma transação existente. */
+type QueryRunner = Pick<ReturnType<typeof getDb>, "select" | "update">;
+
+export async function devolverEstoque(
+  itens: { itemCardapioId: string; quantidade: number }[],
+  runner?: QueryRunner,
+) {
   if (itens.length === 0) return;
-  const db = getDb();
+  const db = runner ?? getDb();
   const ids = itens.map((i) => i.itemCardapioId);
   const rows = await db
     .select({ id: itensCardapio.id, estoqueAtual: itensCardapio.estoqueAtual, ativo: itensCardapio.ativo })
