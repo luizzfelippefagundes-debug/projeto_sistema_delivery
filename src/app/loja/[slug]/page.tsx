@@ -66,6 +66,14 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
       itensPorCategoria={itensPorCategoria}
       zonasEntrega={zonas.map((z) => ({ bairro: z.bairro, taxaEntrega: z.taxaEntrega, tempoEstimadoMin: z.tempoEstimadoMin }))}
       enderecoLoja={config?.enderecoLoja ?? null}
+      taxasMaquininha={{
+        taxaPix: config?.taxaPix ?? 0,
+        taxaDebito: config?.taxaDebito ?? 1.39,
+        taxaCreditoVista: config?.taxaCreditoVista ?? 3.34,
+        taxaCredito2x: config?.taxaCredito2x ?? 7.29,
+        taxaCredito3x: config?.taxaCredito3x ?? 8.35,
+        taxaCredito4x: config?.taxaCredito4x ?? 9.23,
+      }}
       souDona={funcionario?.papel === "dono" && funcionario.restauranteId === restaurante.id}
     />
   );

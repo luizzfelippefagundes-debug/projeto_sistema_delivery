@@ -529,3 +529,4 @@ export async function cancelarPedidoMesa(restauranteId: string, mesa: number, pe
   revalidatePath("/cozinha");
   revalidatePath("/atendente");
 }
+

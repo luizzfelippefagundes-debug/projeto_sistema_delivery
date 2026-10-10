@@ -27,6 +27,7 @@ import { formatarCPF, validarCPF } from "@/lib/cpf";
 import { useCart, type CartItem } from "@/lib/cart";
 import { salvarPedidoConvidado } from "@/lib/pedidosConvidado";
 import type { Pagamento } from "@/lib/types";
+import { type FormaRecebimento, type TaxasMaquininha, pagamentoDaForma, percentualDaForma, totalComTaxa } from "@/lib/taxaMaquininha";
 
 type Passo = "carrinho" | "entrega" | "resumo" | "pagamento" | "confirmado";
 type Tipo = "retirada" | "delivery";
@@ -70,6 +71,7 @@ export default function CartDrawer({
   restauranteId,
   zonasEntrega,
   enderecoLoja,
+  taxasMaquininha,
   itensPorId,
   open,
   onOpenChange,
@@ -78,6 +80,7 @@ export default function CartDrawer({
   restauranteId: string;
   zonasEntrega: ZonaEntregaResumo[];
   enderecoLoja: string | null;
+  taxasMaquininha: TaxasMaquininha;
   itensPorId: Record<string, ItemDoCardapio>;
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -93,6 +96,7 @@ export default function CartDrawer({
   const [tipo, setTipo] = useState<Tipo>("delivery");
   const [entrega, setEntrega] = useState<DadosEntrega>(ENTREGA_VAZIA);
   const [pagamento, setPagamento] = useState<Pagamento>("pix");
+  const [formaRecebimento, setFormaRecebimento] = useState<FormaRecebimento>("pix");
   const [pedidoId, setPedidoId] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -107,6 +111,8 @@ export default function CartDrawer({
   );
   const taxaEntrega = tipo === "delivery" ? (zonaEncontrada?.taxaEntrega ?? 0) : 0;
   const totalComEntrega = total + taxaEntrega;
+  const percentualCartao = percentualDaForma(formaRecebimento, taxasMaquininha);
+  const totalFinal = totalComTaxa(totalComEntrega, formaRecebimento, taxasMaquininha);
 
   const enderecoDestino =
     tipo === "delivery" && entrega.rua.trim() && entrega.numero.trim() && entrega.bairro.trim()
@@ -221,7 +227,7 @@ export default function CartDrawer({
           endereco: enderecoFinal,
           bairro: tipo === "delivery" ? entrega.bairro : null,
           telefone: entrega.telefone,
-          pagamento,
+          pagamento: pagamentoDaForma(formaRecebimento),
           clienteNome: cliente,
           cpfNota: cpfNota.trim() || null,
         });
@@ -478,35 +484,44 @@ export default function CartDrawer({
 
           {passo === "pagamento" && (
             <>
-              <div className="flex justify-between rounded-lg border border-border p-3 text-base font-bold">
-                <span>Total</span>
-                <span className="num">{fmtBRL(totalComEntrega)}</span>
-              </div>
-
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Forma de pagamento
-                </p>
-                <div className="flex gap-2">
-                  <Button size="sm" variant={pagamento === "pix" ? "default" : "outline"} onClick={() => setPagamento("pix")}>
-                    Pix
-                  </Button>
-                  <Button size="sm" variant={pagamento === "cartao" ? "default" : "outline"} onClick={() => setPagamento("cartao")}>
-                    Cartão
-                  </Button>
-                  <Button size="sm" variant={pagamento === "dinheiro" ? "default" : "outline"} onClick={() => setPagamento("dinheiro")}>
-                    Dinheiro
-                  </Button>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Forma de pagamento</p>
+                <div className="flex flex-col gap-1.5">
+                  {(
+                    [
+                      { forma: "pix" as FormaRecebimento, label: "Pix" },
+                      { forma: "debito" as FormaRecebimento, label: "Débito" },
+                      { forma: "credito_vista" as FormaRecebimento, label: "Crédito à vista" },
+                      { forma: "credito_2x" as FormaRecebimento, label: "Crédito 2x" },
+                      { forma: "credito_3x" as FormaRecebimento, label: "Crédito 3x" },
+                      { forma: "credito_4x" as FormaRecebimento, label: "Crédito 4x" },
+                    ] as { forma: FormaRecebimento; label: string }[]
+                  ).map(({ forma, label }) => {
+                    const pct = percentualDaForma(forma, taxasMaquininha);
+                    const totalForma = totalComTaxa(totalComEntrega, forma, taxasMaquininha);
+                    const selecionado = formaRecebimento === forma;
+                    return (
+                      <button
+                        key={forma}
+                        type="button"
+                        onClick={() => setFormaRecebimento(forma)}
+                        className={`flex items-center justify-between rounded-xl border px-4 py-3 text-sm transition-colors ${selecionado ? "border-primary bg-primary/5 font-semibold" : "border-border hover:border-primary/50"}`}
+                      >
+                        <span>{label}</span>
+                        <div className="text-right">
+                          {pct > 0 && (
+                            <span className="block text-xs text-muted-foreground">+{pct}% de taxa</span>
+                          )}
+                          <span className="num font-semibold">{fmtBRL(totalForma)}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              <p className="rounded-xl border border-border p-4 text-center text-sm text-muted-foreground">
-                {pagamento === "pix"
-                  ? "Pague com Pix"
-                  : pagamento === "cartao"
-                    ? "Pague no cartão"
-                    : "Pague em dinheiro"}{" "}
-                na hora da {tipo === "retirada" ? "retirada" : "entrega"}, direto com {tipo === "retirada" ? "quem atender" : "o motoboy"}.
+              <p className="rounded-xl border border-border p-3 text-center text-sm text-muted-foreground">
+                Pague na hora da {tipo === "retirada" ? "retirada" : "entrega"}, direto com {tipo === "retirada" ? "quem atender" : "o motoboy"}.
               </p>
 
               {erro && <p className="text-sm text-destructive">{erro}</p>}
@@ -556,6 +571,10 @@ export default function CartDrawer({
         )}
         {passo === "pagamento" && (
           <div className="mt-auto flex flex-col gap-2 border-t border-border p-4">
+            <div className="flex justify-between text-sm font-bold">
+              <span>Total{percentualCartao > 0 ? ` (com taxa ${percentualCartao}%)` : ""}</span>
+              <span className="num">{fmtBRL(totalFinal)}</span>
+            </div>
             <Button disabled={pending} onClick={confirmarPagamento}>
               {pending ? "Confirmando…" : "Confirmar pedido"}
             </Button>

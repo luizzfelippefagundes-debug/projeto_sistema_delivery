@@ -3,6 +3,7 @@
 import { Package, Search, ShoppingBag, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import CartDrawer from "@/components/CartDrawer";
+import type { TaxasMaquininha } from "@/lib/taxaMaquininha";
 import ItemDetalheDialog from "@/components/ItemDetalheDialog";
 import { ItemCard, tintDaCategoria, type ItemDoCardapio } from "@/components/CardapioItemCard";
 import CustomerHeader from "@/components/CustomerHeader";
@@ -267,6 +268,7 @@ export default function CardapioClient({
   itensPorCategoria,
   zonasEntrega,
   enderecoLoja,
+  taxasMaquininha,
   souDona = false,
 }: {
   restauranteId: string;
@@ -275,6 +277,7 @@ export default function CardapioClient({
   itensPorCategoria: Record<string, ItemDoCardapio[]>;
   zonasEntrega: ZonaEntregaResumo[];
   enderecoLoja: string | null;
+  taxasMaquininha: TaxasMaquininha;
   /** A própria dona olhando o cardápio como cliente veria — mostra o menu
    * de trocar de painel no cabeçalho. */
   souDona?: boolean;
@@ -447,6 +450,7 @@ export default function CardapioClient({
         restauranteId={restauranteId}
         zonasEntrega={zonasEntrega}
         enderecoLoja={enderecoLoja}
+        taxasMaquininha={taxasMaquininha}
         itensPorId={itensPorId}
         open={sacolaAberta}
         onOpenChange={setSacolaAberta}
