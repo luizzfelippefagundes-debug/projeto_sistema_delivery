@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import CardapioClient, { type ItemDoCardapio } from "@/components/CardapioClient";
+import { getBannersAtivos } from "@/db/queries/banners";
 import { getItensCardapioAtivos, getOpcoesComboPorItens } from "@/db/queries/cardapio";
 import { getConfiguracoes } from "@/db/queries/configuracoes";
 import { getZonasEntrega } from "@/db/queries/entrega";
@@ -38,11 +39,12 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
   if (!restaurante) notFound();
 
   const { userId } = await auth();
-  const [itens, zonas, config, funcionario] = await Promise.all([
+  const [itens, zonas, config, funcionario, banners] = await Promise.all([
     getItensCardapioAtivos(restaurante.id),
     getZonasEntrega(restaurante.id),
     getConfiguracoes(restaurante.id),
     userId ? getFuncionarioByClerkId(userId) : null,
+    getBannersAtivos(restaurante.id),
   ]);
   const opcoesMapa = await getOpcoesComboPorItens(itens.map((i) => i.id));
   const itensPorCategoria: Record<string, ItemDoCardapio[]> = {};
@@ -74,6 +76,7 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
         taxaCredito3x: config?.taxaCredito3x ?? 8.35,
         taxaCredito4x: config?.taxaCredito4x ?? 9.23,
       }}
+      bannersDona={banners.map((b) => ({ id: b.id, imagemUrl: b.imagemUrl, linkUrl: b.linkUrl }))}
       souDona={funcionario?.papel === "dono" && funcionario.restauranteId === restaurante.id}
     />
   );

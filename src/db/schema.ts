@@ -317,6 +317,18 @@ export const turnos = pgTable("turnos", {
 /** Uma linha por restaurante — hoje só guarda a meta de faturamento mensal
  * usada em Financeiro. `restauranteId` é a própria chave primária (relação
  * 1:1 com `restaurantes`). */
+export const banners = pgTable("banners", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  restauranteId: uuid("restaurante_id")
+    .notNull()
+    .references(() => restaurantes.id, { onDelete: "cascade" }),
+  imagemUrl: text("imagem_url").notNull(),
+  linkUrl: text("link_url"),
+  ordem: integer("ordem").notNull().default(0),
+  ativo: boolean("ativo").notNull().default(true),
+  criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const configuracoes = pgTable("configuracoes", {
   restauranteId: uuid("restaurante_id")
     .primaryKey()

@@ -2,6 +2,7 @@
 
 import { Package, Search, ShoppingBag, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import BannersCarousel from "@/components/BannersCarousel";
 import CartDrawer from "@/components/CartDrawer";
 import type { TaxasMaquininha } from "@/lib/taxaMaquininha";
 import ItemDetalheDialog from "@/components/ItemDetalheDialog";
@@ -269,6 +270,7 @@ export default function CardapioClient({
   zonasEntrega,
   enderecoLoja,
   taxasMaquininha,
+  bannersDona = [],
   souDona = false,
 }: {
   restauranteId: string;
@@ -278,6 +280,7 @@ export default function CardapioClient({
   zonasEntrega: ZonaEntregaResumo[];
   enderecoLoja: string | null;
   taxasMaquininha: TaxasMaquininha;
+  bannersDona?: { id: string; imagemUrl: string; linkUrl: string | null }[];
   /** A própria dona olhando o cardápio como cliente veria — mostra o menu
    * de trocar de painel no cabeçalho. */
   souDona?: boolean;
@@ -339,6 +342,8 @@ export default function CardapioClient({
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <CustomerHeader nomeRestaurante={nomeRestaurante} slug={slug} souDona={souDona} />
+
+      {bannersDona.length > 0 && <BannersCarousel banners={bannersDona} />}
 
       <BannerCarousel itensPorCategoria={itensPorCategoria} />
 
