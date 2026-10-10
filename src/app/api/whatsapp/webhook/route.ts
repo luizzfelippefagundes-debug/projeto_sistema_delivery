@@ -56,7 +56,7 @@ export async function POST(request: Request) {
   const telefone = remoteJid.split("@")[0];
 
   try {
-    const resposta = await processarMensagemWhatsapp(restaurante.id, telefone, texto);
+    const resposta = await processarMensagemWhatsapp(restaurante.id, telefone, texto, restaurante.nome);
     await enviarMensagemWhatsapp(instancia, telefone, resposta);
   } catch (e) {
     console.error("[whatsapp webhook] erro processando mensagem:", e);

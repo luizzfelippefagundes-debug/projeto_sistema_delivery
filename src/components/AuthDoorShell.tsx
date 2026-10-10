@@ -17,9 +17,9 @@ export default function AuthDoorShell({
       <div className="flex items-center gap-2.5">
         <span className="relative flex size-9 shrink-0 overflow-hidden rounded-full">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-icon.png" alt="Dashi Sushi" className="size-full object-cover" />
+          <img src="/logo-icon.png" alt="Logo" className="size-full object-cover" />
         </span>
-        <span className="font-heading text-base font-semibold tracking-tight">Dashi Sushi</span>
+        <span className="font-heading text-base font-semibold tracking-tight">Sistema de Gestão</span>
       </div>
       <div className="flex flex-col items-center gap-1 text-center">
         <h1 className="font-heading text-lg font-semibold">{titulo}</h1>

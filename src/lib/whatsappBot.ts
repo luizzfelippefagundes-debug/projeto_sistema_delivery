@@ -9,8 +9,9 @@ import {
 import { fmtBRL } from "./data";
 import type { ItemCarrinhoWhatsapp, Pagamento } from "./types";
 
-const SAUDACAO =
-  "Oi! Bem-vindo(a) à Dashi Sushi 🍣\n\nDigite *menu* a qualquer momento pra ver o cardápio, ou *cancelar* pra recomeçar.";
+function saudacao(nomeRestaurante: string) {
+  return `Oi! Bem-vindo(a) ao ${nomeRestaurante} 🎉\n\nDigite *menu* a qualquer momento pra ver o cardápio, ou *cancelar* pra recomeçar.`;
+}
 
 function normalizar(texto: string): string {
   return texto.trim().toLowerCase();
@@ -38,6 +39,7 @@ export async function processarMensagemWhatsapp(
   restauranteId: string,
   telefone: string,
   textoRecebido: string,
+  nomeRestaurante = "seu restaurante",
 ): Promise<string> {
   const texto = normalizar(textoRecebido);
   const conversa = await getOuCriarConversa(restauranteId, telefone);
@@ -52,7 +54,7 @@ export async function processarMensagemWhatsapp(
 
   if (texto === "menu" || texto === "cardapio" || texto === "cardápio" || conversa.etapa === "inicio") {
     await atualizarConversa(conversa.id, { etapa: "escolhendo_categoria" });
-    return `${conversa.etapa === "inicio" ? SAUDACAO + "\n\n" : ""}${listarCategorias(categorias)}`;
+    return `${conversa.etapa === "inicio" ? saudacao(nomeRestaurante) + "\n\n" : ""}${listarCategorias(categorias)}`;
   }
 
   if (conversa.etapa === "escolhendo_categoria") {
@@ -147,5 +149,5 @@ export async function processarMensagemWhatsapp(
   }
 
   await resetarConversa(conversa.id);
-  return SAUDACAO;
+  return saudacao(nomeRestaurante);
 }

@@ -3,11 +3,15 @@ import { fmtBRL, minAgo, STATUS_LABEL } from "@/lib/data";
 import { contaComoFaturamento, pedidoConcluido } from "@/lib/faturamento";
 import { requireFuncionarioAccess } from "@/lib/funcionarioAuth";
 import { getItensAgrupadosPorPedido, getPedidosDoDia } from "@/db/queries/pedidos";
+import { getRestaurantePorId } from "@/db/queries/restaurantes";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default async function DonoDashboardPage() {
   const dono = await requireFuncionarioAccess("dono");
-  const pedidosHoje = await getPedidosDoDia(dono.restauranteId);
+  const [pedidosHoje, restaurante] = await Promise.all([
+    getPedidosDoDia(dono.restauranteId),
+    getRestaurantePorId(dono.restauranteId),
+  ]);
   const itensPorPedido = await getItensAgrupadosPorPedido(pedidosHoje.map((p) => p.id));
 
   const faturadoHoje = pedidosHoje.filter(contaComoFaturamento).reduce((s, p) => s + p.total, 0);
@@ -23,7 +27,7 @@ export default async function DonoDashboardPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h2 className="font-heading text-2xl font-semibold">Olá, {dono.nome} 👋</h2>
-        <p className="text-sm text-muted-foreground">Aqui está o resumo de hoje na Dashi Sushi.</p>
+        <p className="text-sm text-muted-foreground">Aqui está o resumo de hoje na {restaurante?.nome ?? "seu restaurante"}.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

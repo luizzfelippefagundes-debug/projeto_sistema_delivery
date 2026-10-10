@@ -1,6 +1,7 @@
 import ClientesView from "@/components/ClientesView";
 import { Card, CardContent } from "@/components/ui/card";
 import { getClientesResumo } from "@/db/queries/clientes";
+import { getRestaurantePorId } from "@/db/queries/restaurantes";
 import { fmtBRL } from "@/lib/data";
 import { requireFuncionarioAccess } from "@/lib/funcionarioAuth";
 
@@ -12,7 +13,10 @@ function diasAtras(data: Date) {
 
 export default async function ClientesPage() {
   const dono = await requireFuncionarioAccess("dono");
-  const clientes = await getClientesResumo(dono.restauranteId);
+  const [clientes, restaurante] = await Promise.all([
+    getClientesResumo(dono.restauranteId),
+    getRestaurantePorId(dono.restauranteId),
+  ]);
 
   const totalClientes = clientes.length;
   const sumindo = clientes.filter((c) => diasAtras(c.ultimoPedido) > DIAS_SUMINDO).length;
@@ -24,7 +28,7 @@ export default async function ClientesPage() {
   return (
     <div className="flex flex-col gap-6">
       <p className="text-sm text-muted-foreground">
-        Clientes que já pediram delivery pela Dashi Sushi, com quantas vezes pediram e quanto gastaram.
+        Clientes que já pediram delivery pelo {restaurante?.nome ?? "restaurante"}, com quantas vezes pediram e quanto gastaram.
       </p>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
