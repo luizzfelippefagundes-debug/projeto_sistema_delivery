@@ -22,6 +22,7 @@ export interface OpcaoComboResumo {
   id: string;
   nome: string;
   limiteQuantidade: number | null;
+  disponivel: boolean;
 }
 
 export async function getOpcoesComboPorItens(itemIds: string[]) {
@@ -34,7 +35,7 @@ export async function getOpcoesComboPorItens(itemIds: string[]) {
     .orderBy(asc(opcoesCombo.ordem));
   for (const row of rows) {
     const lista = mapa.get(row.itemCardapioId) ?? [];
-    lista.push({ id: row.id, nome: row.nome, limiteQuantidade: row.limiteQuantidade });
+    lista.push({ id: row.id, nome: row.nome, limiteQuantidade: row.limiteQuantidade, disponivel: row.disponivel });
     mapa.set(row.itemCardapioId, lista);
   }
   return mapa;
@@ -149,4 +150,35 @@ export async function ajustarEstoque(itemId: string, delta: number) {
     .where(eq(itensCardapio.id, itemId))
     .returning();
   return atualizado;
+}
+
+/** Todos os sabores (opções de combo) de um restaurante, sem duplicatas por
+ * nome — pra gestão de "sabores do dia". Retorna uma entrada por nome único,
+ * com a lista de IDs de todas as ocorrências daquele sabor. */
+export async function getSaboresDoRestaurante(restauranteId: string) {
+  const itens = await getDb()
+    .select({ id: itensCardapio.id })
+    .from(itensCardapio)
+    .where(and(eq(itensCardapio.restauranteId, restauranteId), isNotNull(itensCardapio.qtdPecasEscolha)));
+
+  const itemIds = itens.map((i) => i.id);
+  if (itemIds.length === 0) return [];
+
+  const opcoes = await getDb()
+    .select()
+    .from(opcoesCombo)
+    .where(inArray(opcoesCombo.itemCardapioId, itemIds))
+    .orderBy(asc(opcoesCombo.nome));
+
+  // Agrupar por nome: um sabor pode aparecer em vários itens
+  const porNome = new Map<string, { nome: string; ids: string[]; disponivel: boolean }>();
+  for (const op of opcoes) {
+    const entrada = porNome.get(op.nome) ?? { nome: op.nome, ids: [], disponivel: op.disponivel };
+    entrada.ids.push(op.id);
+    // Se qualquer ocorrência estiver indisponível, o sabor aparece como indisponível
+    if (!op.disponivel) entrada.disponivel = false;
+    porNome.set(op.nome, entrada);
+  }
+
+  return [...porNome.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 }

@@ -111,7 +111,7 @@ export default function ItemDetalheDialog({
                     )}
                   </div>
                   <div className="flex flex-col gap-1">
-                    {item.opcoes.map((op) => {
+                    {item.opcoes.filter((op) => op.disponivel !== false).map((op) => {
                       const q = escolhas[op.nome] ?? 0;
                       const noLimite = op.limiteQuantidade != null && q >= op.limiteQuantidade;
                       return (

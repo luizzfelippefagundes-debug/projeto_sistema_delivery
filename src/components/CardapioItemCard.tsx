@@ -35,7 +35,7 @@ export interface ItemDoCardapio {
   preco: number;
   imagemUrl: string | null;
   qtdPecasEscolha: number | null;
-  opcoes: { id: string; nome: string; limiteQuantidade: number | null }[];
+  opcoes: { id: string; nome: string; limiteQuantidade: number | null; disponivel: boolean }[];
 }
 
 /** Card de um item do cardápio — usado tanto no cardápio de delivery

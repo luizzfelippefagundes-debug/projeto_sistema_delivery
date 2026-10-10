@@ -114,6 +114,8 @@ export const opcoesCombo = pgTable("opcoes_combo", {
    * significa que só o total de peças do combo limita. */
   limiteQuantidade: integer("limite_quantidade"),
   ordem: integer("ordem").notNull().default(0),
+  /** false = sabor pausado hoje (não aparece no cardápio). */
+  disponivel: boolean("disponivel").notNull().default(true),
 });
 
 export const funcionarios = pgTable("funcionarios", {
