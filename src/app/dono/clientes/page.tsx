@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import ClientesView from "@/components/ClientesView";
 import { Card, CardContent } from "@/components/ui/card";
 import { getClientesResumo } from "@/db/queries/clientes";

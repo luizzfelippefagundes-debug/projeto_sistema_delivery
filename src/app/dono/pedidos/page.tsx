@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import PedidosHistoricoTable from "@/components/PedidosHistoricoTable";
 import { getItensAgrupadosPorPedido, getPedidosFiltrados } from "@/db/queries/pedidos";
 import { fmtBRL, getHojeISO } from "@/lib/data";

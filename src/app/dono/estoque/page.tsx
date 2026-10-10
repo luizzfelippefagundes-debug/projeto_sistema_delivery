@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import EstoqueManager from "@/components/EstoqueManager";
 import { getItensComEstoque, getItensSemControleEstoque } from "@/db/queries/cardapio";
 import { requireFuncionarioAccess } from "@/lib/funcionarioAuth";

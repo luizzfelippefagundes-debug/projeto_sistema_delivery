@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { ClipboardList, ShoppingBag, Truck } from "lucide-react";
 import { fmtBRL, minAgo, STATUS_LABEL } from "@/lib/data";
 import { contaComoFaturamento, pedidoConcluido } from "@/lib/faturamento";

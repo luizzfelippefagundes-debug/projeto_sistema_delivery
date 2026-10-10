@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import FuncionariosManager from "@/components/FuncionariosManager";
 import LinksAcessoCard from "@/components/LinksAcessoCard";
 import { getFuncionarios } from "@/db/queries/funcionarios";

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import EnderecoLojaCard from "@/components/EnderecoLojaCard";
 import FecharCaixaButton from "@/components/FecharCaixaButton";
 import OrigemChart, { type ResumoOrigem } from "@/components/OrigemChart";

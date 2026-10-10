@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import CardapioManager from "@/components/CardapioManager";
 import { getItensCardapio, getOpcoesComboPorItens } from "@/db/queries/cardapio";
 import { requireFuncionarioAccess } from "@/lib/funcionarioAuth";
