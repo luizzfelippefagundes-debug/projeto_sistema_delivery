@@ -1,6 +1,6 @@
 "use client";
 
-import { ImagePlus, Plus, Search, Trash2, X } from "lucide-react";
+import { Check, ImagePlus, Plus, Search, Trash2, X } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 import { adicionarBanner, removerBanner } from "@/actions/cardapio.actions";
 import { Button } from "@/components/ui/button";
@@ -38,12 +38,11 @@ function ModalItens({
   onFechar,
 }: {
   itensCardapio: ItemCardapio[];
-  onAdicionar: (nome: string, preco: string) => void;
+  onAdicionar: (itens: { nome: string; preco: string }[]) => void;
   onFechar: () => void;
 }) {
   const [busca, setBusca] = useState("");
-  const [selecionado, setSelecionado] = useState<ItemCardapio | null>(null);
-  const [preco, setPreco] = useState("");
+  const [selecionados, setSelecionados] = useState<Record<string, string>>({});
 
   const termo = busca.toLowerCase();
   const filtrados = itensCardapio.filter((i) => i.nome.toLowerCase().includes(termo));
@@ -51,99 +50,99 @@ function ModalItens({
     (acc[i.categoria] ??= []).push(i);
     return acc;
   }, {});
+  const qtd = Object.keys(selecionados).length;
+  const algumSemPreco = Object.values(selecionados).some((p) => !p.trim());
 
-  function selecionar(item: ItemCardapio) {
-    setSelecionado(item);
-    setPreco(item.preco.toFixed(2).replace(".", ","));
+  function alternar(item: ItemCardapio) {
+    setSelecionados((prev) => {
+      const novo = { ...prev };
+      if (item.id in novo) delete novo[item.id];
+      else novo[item.id] = item.preco.toFixed(2).replace(".", ",");
+      return novo;
+    });
   }
 
   function confirmar() {
-    if (!selecionado || !preco.trim()) return;
-    onAdicionar(selecionado.nome, preco.trim());
+    if (qtd === 0 || algumSemPreco) return;
+    onAdicionar(
+      itensCardapio
+        .filter((i) => i.id in selecionados)
+        .map((i) => ({ nome: i.nome, preco: selecionados[i.id].trim() })),
+    );
     onFechar();
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background">
-      {/* Header */}
-      <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-        <button type="button" onClick={onFechar} className="flex size-8 items-center justify-center rounded-full hover:bg-muted">
-          <X className="size-5" />
-        </button>
-        <span className="font-semibold">Escolher item</span>
-      </div>
+    <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/60 sm:items-center sm:p-6">
+      <div className="flex h-full w-full flex-col bg-background sm:h-[85vh] sm:max-w-lg sm:overflow-hidden sm:rounded-2xl sm:border sm:border-border">
+        <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+          <button type="button" onClick={onFechar} className="flex size-8 items-center justify-center rounded-full hover:bg-muted">
+            <X className="size-5" />
+          </button>
+          <span className="font-semibold">Escolher itens</span>
+          {qtd > 0 && <span className="ml-auto text-sm text-muted-foreground">{qtd} selecionado{qtd > 1 ? "s" : ""}</span>}
+        </div>
 
-      {selecionado ? (
-        /* Tela de preço após selecionar */
-        <div className="flex flex-1 flex-col gap-4 p-4">
-          <div className="rounded-xl border border-border bg-muted/40 p-4">
-            <p className="font-medium">{selecionado.nome}</p>
-            <p className="text-sm text-muted-foreground">{selecionado.categoria}</p>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="preco-promo">Preço promocional (R$)</Label>
-            <Input
-              id="preco-promo"
-              inputMode="decimal"
-              placeholder="Ex: 35,90"
-              value={preco}
-              onChange={(e) => setPreco(e.target.value)}
-              className="h-12 text-base"
-              autoFocus
-            />
-          </div>
-
-          <div className="flex gap-2 mt-auto">
-            <Button className="flex-1 h-12" onClick={confirmar} disabled={!preco.trim()}>
-              Adicionar
-            </Button>
-            <Button variant="outline" className="h-12" onClick={() => setSelecionado(null)}>
-              Voltar
-            </Button>
+        <div className="border-b border-border px-4 py-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Buscar item…" value={busca} onChange={(e) => setBusca(e.target.value)} className="h-10 pl-9" />
           </div>
         </div>
-      ) : (
-        /* Lista de itens */
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <div className="px-4 py-3 border-b border-border">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar item…"
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                className="pl-9 h-10"
-                autoFocus
-              />
+
+        <div className="flex-1 overflow-y-auto">
+          {Object.entries(porCategoria).map(([cat, items]) => (
+            <div key={cat}>
+              <p className="sticky top-0 z-10 bg-muted px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {cat}
+              </p>
+              {items.map((item) => {
+                const marcado = item.id in selecionados;
+                return (
+                  <div key={item.id} className={`border-b border-border/50 ${marcado ? "bg-primary/10" : ""}`}>
+                    <button
+                      type="button"
+                      onClick={() => alternar(item)}
+                      className="flex w-full items-center gap-3 px-4 py-3.5 text-left active:bg-muted"
+                    >
+                      <span
+                        className={`flex size-5 shrink-0 items-center justify-center rounded border ${marcado ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/50"}`}
+                      >
+                        {marcado && <Check className="size-3.5" />}
+                      </span>
+                      <span className="flex-1 font-medium">{item.nome}</span>
+                      <span className="ml-2 shrink-0 text-sm text-muted-foreground">{formatPreco(item.preco)}</span>
+                    </button>
+                    {marcado && (
+                      <div className="flex items-center gap-2 px-4 pb-3 pl-12">
+                        <Label htmlFor={`preco-${item.id}`} className="shrink-0 text-xs text-muted-foreground">
+                          Preço promo R$
+                        </Label>
+                        <Input
+                          id={`preco-${item.id}`}
+                          inputMode="decimal"
+                          value={selecionados[item.id]}
+                          onChange={(e) => setSelecionados((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                          className="h-9 w-28 text-base"
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto">
-            {Object.entries(porCategoria).map(([cat, items]) => (
-              <div key={cat}>
-                <p className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground bg-muted/50 sticky top-0">
-                  {cat}
-                </p>
-                {items.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => selecionar(item)}
-                    className="flex w-full items-center justify-between px-4 py-3.5 text-left hover:bg-muted active:bg-muted border-b border-border/50 last:border-0"
-                  >
-                    <span className="font-medium">{item.nome}</span>
-                    <span className="text-sm text-muted-foreground ml-2 shrink-0">{formatPreco(item.preco)}</span>
-                  </button>
-                ))}
-              </div>
-            ))}
-            {Object.keys(porCategoria).length === 0 && (
-              <p className="px-4 py-8 text-center text-sm text-muted-foreground">Nenhum item encontrado.</p>
-            )}
-          </div>
+          ))}
+          {Object.keys(porCategoria).length === 0 && (
+            <p className="px-4 py-8 text-center text-sm text-muted-foreground">Nenhum item encontrado.</p>
+          )}
         </div>
-      )}
+
+        <div className="border-t border-border p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <Button className="h-12 w-full text-base" onClick={confirmar} disabled={qtd === 0 || algumSemPreco}>
+            {qtd === 0 ? "Selecione os itens" : `Adicionar ${qtd} ite${qtd > 1 ? "ns" : "m"}`}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -172,8 +171,8 @@ export default function BannersManager({
     e.target.value = "";
   }
 
-  function adicionarItem(nome: string, preco: string) {
-    setItensSelecionados((prev) => [...prev, { nome, preco }]);
+  function adicionarItens(novos: { nome: string; preco: string }[]) {
+    setItensSelecionados((prev) => [...prev, ...novos]);
   }
 
   function removerItemLista(idx: number) {
@@ -207,7 +206,7 @@ export default function BannersManager({
       {mostraModal && (
         <ModalItens
           itensCardapio={itensCardapio}
-          onAdicionar={adicionarItem}
+          onAdicionar={adicionarItens}
           onFechar={() => setMostraModal(false)}
         />
       )}
