@@ -2,15 +2,13 @@
 
 import { MapPin, Receipt, ShoppingBag, UtensilsCrossed } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { cancelarPedidoMesa, solicitarFechamentoMesa } from "@/actions/pedidos.actions";
-import CancelarPedidoButton from "@/components/CancelarPedidoButton";
+import { solicitarFechamentoMesa } from "@/actions/pedidos.actions";
 import CartDrawer from "@/components/CartDrawer";
 import { ItemCard, tintDaCategoria, type ItemDoCardapio } from "@/components/CardapioItemCard";
 import CustomerHeader from "@/components/CustomerHeader";
 import DivisaoConta from "@/components/DivisaoConta";
 import StatusBadge from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { podeCancelarPedido } from "@/lib/cancelamento";
 import { fmtBRL } from "@/lib/data";
 import { useCart } from "@/lib/cart";
 import type { OrderStatus } from "@/lib/types";
@@ -197,12 +195,6 @@ export default function CardapioMesaClient({
                         <span className="num">{fmtBRL(item.preco * item.quantidade)}</span>
                       </div>
                     ))}
-                    {podeCancelarPedido(pedido.status) && (
-                      <CancelarPedidoButton
-                        compact
-                        aoConfirmar={() => cancelarPedidoMesa(restauranteId, mesa, pedido.id)}
-                      />
-                    )}
                   </div>
                 ))}
               </div>
@@ -281,6 +273,7 @@ export default function CardapioMesaClient({
         restauranteId={restauranteId}
         zonasEntrega={[]}
         enderecoLoja={null}
+        taxasMaquininha={{ taxaPix: 0, taxaDebito: 1.39, taxaCreditoVista: 3.34, taxaCredito2x: 7.29, taxaCredito3x: 8.35, taxaCredito4x: 9.23 }}
         itensPorId={itensPorId}
         open={sacolaAberta}
         onOpenChange={setSacolaAberta}
