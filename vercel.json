@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/confirmar-entregas",
-      "schedule": "0 * * * *"
+      "schedule": "0 3 * * *"
     }
   ]
 }
