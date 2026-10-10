@@ -76,7 +76,7 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
         taxaCredito3x: config?.taxaCredito3x ?? 8.35,
         taxaCredito4x: config?.taxaCredito4x ?? 9.23,
       }}
-      bannersDona={banners.map((b) => ({ id: b.id, imagemUrl: b.imagemUrl, linkUrl: b.linkUrl }))}
+      bannersDona={banners.map((b) => ({ id: b.id, imagemUrl: b.imagemUrl, linkUrl: b.linkUrl, titulo: b.titulo, itens: b.itens }))}
       souDona={funcionario?.papel === "dono" && funcionario.restauranteId === restaurante.id}
     />
   );

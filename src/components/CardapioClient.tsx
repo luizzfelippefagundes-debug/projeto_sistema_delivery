@@ -280,7 +280,7 @@ export default function CardapioClient({
   zonasEntrega: ZonaEntregaResumo[];
   enderecoLoja: string | null;
   taxasMaquininha: TaxasMaquininha;
-  bannersDona?: { id: string; imagemUrl: string; linkUrl: string | null }[];
+  bannersDona?: { id: string; imagemUrl: string; linkUrl: string | null; titulo: string | null; itens: { id: string; nome: string; precoPromocional: number }[] }[];
   /** A própria dona olhando o cardápio como cliente veria — mostra o menu
    * de trocar de painel no cabeçalho. */
   souDona?: boolean;

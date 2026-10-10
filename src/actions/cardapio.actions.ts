@@ -5,7 +5,7 @@ import { del, put } from "@vercel/blob";
 import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "../db";
-import { banners, itensCardapio, opcoesCombo } from "../db/schema";
+import { bannerItens, banners, itensCardapio, opcoesCombo } from "../db/schema";
 import { ajustarEstoque, definirOpcoesCombo } from "../db/queries/cardapio";
 import { registrarAtividade } from "../db/queries/atividades";
 import { assertFuncionario } from "../lib/funcionarioAuth";
@@ -233,7 +233,14 @@ export async function setSaborDisponivel(nome: string, disponivel: boolean) {
   revalidatePath(`/loja`);
 }
 
-export async function adicionarBanner(base64: string, linkUrl?: string) {
+export async function adicionarBanner(
+  base64: string,
+  opts?: {
+    titulo?: string;
+    linkUrl?: string;
+    itens?: { nome: string; precoPromocional: number }[];
+  },
+) {
   const funcionario = await assertFuncionario("dono");
   const match = base64.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
   if (!match) throw new Error("Formato de imagem inválido");
@@ -249,12 +256,22 @@ export async function adicionarBanner(base64: string, linkUrl?: string) {
     .from(banners)
     .where(eq(banners.restauranteId, funcionario.restauranteId));
   const proximaOrdem = existentes.length > 0 ? Math.max(...existentes.map((b) => b.ordem)) + 1 : 0;
-  await getDb().insert(banners).values({
+  const [banner] = await getDb().insert(banners).values({
     restauranteId: funcionario.restauranteId,
     imagemUrl,
-    linkUrl: linkUrl || null,
+    linkUrl: opts?.linkUrl || null,
+    titulo: opts?.titulo?.trim() || null,
     ordem: proximaOrdem,
-  });
+  }).returning();
+  if (banner && opts?.itens && opts.itens.length > 0) {
+    await getDb().insert(bannerItens).values(
+      opts.itens.map((i) => ({
+        bannerId: banner.id,
+        nome: i.nome.trim(),
+        precoPromocional: i.precoPromocional,
+      })),
+    );
+  }
   revalidatePath("/dono/banners");
   revalidatePath(`/loja`);
 }

@@ -324,9 +324,19 @@ export const banners = pgTable("banners", {
     .references(() => restaurantes.id, { onDelete: "cascade" }),
   imagemUrl: text("imagem_url").notNull(),
   linkUrl: text("link_url"),
+  titulo: text("titulo"),
   ordem: integer("ordem").notNull().default(0),
   ativo: boolean("ativo").notNull().default(true),
   criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const bannerItens = pgTable("banner_itens", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  bannerId: uuid("banner_id")
+    .notNull()
+    .references(() => banners.id, { onDelete: "cascade" }),
+  nome: text("nome").notNull(),
+  precoPromocional: numeric("preco_promocional", { precision: 10, scale: 2, mode: "number" }).notNull(),
 });
 
 export const configuracoes = pgTable("configuracoes", {
