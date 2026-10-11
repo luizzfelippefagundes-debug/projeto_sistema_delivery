@@ -236,7 +236,7 @@ export default function CartDrawer({
           telefone: entrega.telefone,
           forma: formaRecebimento,
           clienteNome: cliente,
-          cpfNota: cpfNota.trim() || null,
+          cpfNota: (pagamentoOnline ? cpfPagador : cpfNota).trim() || null,
           cpfPagador: pagamentoOnline ? cpfPagador : null,
         });
         if ("error" in resultado) {
@@ -484,7 +484,8 @@ export default function CartDrawer({
                 </div>
               </div>
 
-              {mesa == null && (
+              {/* No pagamento online o CPF é pedido uma vez só, no passo de pagamento. */}
+              {mesa == null && !pagamentoOnline && (
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="cpf-nota">CPF na nota (opcional)</Label>
                   <Input
@@ -540,7 +541,7 @@ export default function CartDrawer({
 
               {pagamentoOnline && (
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="cpf-pagador">CPF de quem vai pagar</Label>
+                  <Label htmlFor="cpf-pagador">CPF</Label>
                   <Input
                     id="cpf-pagador"
                     value={cpfPagador}
@@ -601,14 +602,7 @@ export default function CartDrawer({
         )}
         {passo === "resumo" && mesa == null && (
           <div className="mt-auto flex flex-col gap-2 border-t border-border p-4">
-            <Button
-              onClick={() => {
-                setCpfPagador((atual) => atual || cpfNota);
-                setPasso("pagamento");
-              }}
-            >
-              Continuar pro pagamento
-            </Button>
+            <Button onClick={() => setPasso("pagamento")}>Continuar pro pagamento</Button>
             <Button variant="outline" onClick={() => setPasso("entrega")}>
               Voltar
             </Button>

@@ -120,6 +120,7 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
                   valor={aPagar.valor}
                   telefoneInicial={pedido.telefoneCliente}
                   emailInicial={usuario?.primaryEmailAddress?.emailAddress}
+                  cpfInicial={pedido.cpfNota}
                 />
               ) : (
                 <p className="text-sm text-muted-foreground">

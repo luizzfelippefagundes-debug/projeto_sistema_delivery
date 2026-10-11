@@ -89,11 +89,13 @@ export function CartaoPagamento({
   valor,
   telefoneInicial,
   emailInicial,
+  cpfInicial,
 }: {
   pedidoId: string;
   valor: number;
   telefoneInicial?: string | null;
   emailInicial?: string | null;
+  cpfInicial?: string | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -103,7 +105,7 @@ export function CartaoPagamento({
     numero: "",
     validade: "",
     cvv: "",
-    cpfTitular: "",
+    cpfTitular: formatarCPF(cpfInicial ?? ""),
     email: emailInicial ?? "",
     cep: "",
     numeroEndereco: "",
