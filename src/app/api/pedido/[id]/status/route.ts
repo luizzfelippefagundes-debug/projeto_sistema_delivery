@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { getPedidoComItens } from "@/db/queries/pedidos";
-import { expirarSePassouDoPrazo } from "@/lib/pagamentoOnline";
+import { sincronizarPagamento } from "@/lib/pagamentoOnline";
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   let resultado = await getPedidoComItens(id);
   if (!resultado) return NextResponse.json(null, { status: 404 });
   if (resultado.pedido.status === "aguardando_pagamento") {
-    await expirarSePassouDoPrazo(resultado.pedido).catch((e) => console.error("[asaas] falha ao expirar:", e));
+    await sincronizarPagamento(resultado.pedido).catch((e) => console.error("[asaas] falha ao sincronizar pagamento:", e));
     resultado = (await getPedidoComItens(id)) ?? resultado;
   }
   const { pedido } = resultado;

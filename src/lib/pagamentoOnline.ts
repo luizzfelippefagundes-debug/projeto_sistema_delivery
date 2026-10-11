@@ -50,16 +50,16 @@ export async function cancelarPagamentoOnline(pagamentoId: string) {
   revalidatePath("/dono/estoque");
 }
 
-/** Cancela o pedido que passou do prazo sem pagar e apaga a cobrança no
- * Asaas, pra o Pix não poder mais ser pago. Confere o status antes: se o
- * pagamento entrou e o webhook ainda não chegou, confirma em vez de cancelar. */
-export async function expirarSePassouDoPrazo(pedido: {
+/** Pergunta ao Asaas como está a cobrança de um pedido que espera pagamento:
+ * se foi paga, confirma (não depende só do webhook chegar); se passou do
+ * prazo sem pagar, apaga a cobrança, pra o Pix não poder mais ser pago, e
+ * cancela o pedido. */
+export async function sincronizarPagamento(pedido: {
   status: string;
   criadoEm: Date;
   asaasPagamentoId: string | null;
 }): Promise<void> {
   if (pedido.status !== "aguardando_pagamento" || !pedido.asaasPagamentoId) return;
-  if (Date.now() - pedido.criadoEm.getTime() < MINUTOS_PARA_PAGAR * 60_000) return;
 
   const id = pedido.asaasPagamentoId;
   const pagamento = await buscarPagamentoAsaas(id);
@@ -67,6 +67,7 @@ export async function expirarSePassouDoPrazo(pedido: {
     await confirmarPagamentoOnline(id);
     return;
   }
+  if (Date.now() - pedido.criadoEm.getTime() < MINUTOS_PARA_PAGAR * 60_000) return;
   await apagarPagamentoAsaas(id);
   await cancelarPagamentoOnline(id);
 }
@@ -80,7 +81,7 @@ export async function expirarPagamentosVencidos(): Promise<number> {
     .from(pedidos)
     .where(and(eq(pedidos.status, "aguardando_pagamento"), lt(pedidos.criadoEm, limite)));
   for (const pedido of vencidos) {
-    await expirarSePassouDoPrazo(pedido).catch((e) => console.error("[asaas] falha ao expirar pagamento:", e));
+    await sincronizarPagamento(pedido).catch((e) => console.error("[asaas] falha ao sincronizar pagamento:", e));
   }
   return vencidos.length;
 }

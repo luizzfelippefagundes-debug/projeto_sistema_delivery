@@ -14,7 +14,7 @@ import { getPedidoComItens } from "@/db/queries/pedidos";
 import { getRestaurantePorId } from "@/db/queries/restaurantes";
 import { buscarPagamentoAsaas, buscarPixQrCode } from "@/lib/asaas";
 import { fmtBRL, minAgo } from "@/lib/data";
-import { MINUTOS_PARA_PAGAR, expirarSePassouDoPrazo } from "@/lib/pagamentoOnline";
+import { MINUTOS_PARA_PAGAR, sincronizarPagamento } from "@/lib/pagamentoOnline";
 import type { OrderStatus, Pagamento } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +50,7 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
   let resultado = await getPedidoComItens(id);
   if (!resultado) notFound();
   if (resultado.pedido.status === "aguardando_pagamento") {
-    await expirarSePassouDoPrazo(resultado.pedido).catch((e) => console.error("[asaas] falha ao expirar:", e));
+    await sincronizarPagamento(resultado.pedido).catch((e) => console.error("[asaas] falha ao sincronizar pagamento:", e));
     resultado = (await getPedidoComItens(id)) ?? resultado;
   }
   const { pedido, itens } = resultado;
