@@ -70,6 +70,16 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
   const pagamento = statusPagamento(pedido.formaPagamento, pedido.status, !!pedido.asaasPagamentoId);
   const aPagar = pedido.status === "aguardando_pagamento" ? await dadosPagamento(pedido) : null;
   const usuario = aPagar?.tipo === "cartao" ? await currentUser() : null;
+  // No cartão o cliente paga a taxa por cima do total; o valor cobrado de
+  // verdade fica no Asaas.
+  const valorCobrado =
+    pedido.formaPagamento === "cartao" && pedido.asaasPagamentoId
+      ? (aPagar?.valor ??
+        (await buscarPagamentoAsaas(pedido.asaasPagamentoId)
+          .then((c) => c.value)
+          .catch(() => null)))
+      : null;
+  const taxaCartao = valorCobrado != null && valorCobrado > pedido.total ? valorCobrado - pedido.total : 0;
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -173,9 +183,15 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
                 <span className="num">{fmtBRL(pedido.taxaEntrega)}</span>
               </div>
             )}
+            {taxaCartao > 0 && (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Taxa do cartão</span>
+                <span className="num">{fmtBRL(taxaCartao)}</span>
+              </div>
+            )}
             <div className="flex justify-between border-t border-border pt-3 text-sm font-semibold">
               <span>Total</span>
-              <span className="num">{fmtBRL(pedido.total)}</span>
+              <span className="num">{fmtBRL(pedido.total + taxaCartao)}</span>
             </div>
           </CardContent>
         </Card>
