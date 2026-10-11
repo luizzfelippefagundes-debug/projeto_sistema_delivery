@@ -1,9 +1,10 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { Banknote, MapPinned, Store } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import CustomerHeader from "@/components/CustomerHeader";
 import CustomerTabBar from "@/components/CustomerTabBar";
+import { CartaoPagamento, PixPagamento } from "@/components/PagamentoOnline";
 import PedidoStatusWatcher from "@/components/PedidoStatusWatcher";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { getClientePorClerkId } from "@/db/queries/clientes";
 import { getPedidoComItens } from "@/db/queries/pedidos";
 import { getRestaurantePorId } from "@/db/queries/restaurantes";
+import { buscarPagamentoAsaas, buscarPixQrCode } from "@/lib/asaas";
 import { fmtBRL, minAgo } from "@/lib/data";
+import { MINUTOS_PARA_PAGAR, expirarSePassouDoPrazo } from "@/lib/pagamentoOnline";
 import type { OrderStatus, Pagamento } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -27,10 +30,29 @@ function statusPagamento(forma: Pagamento | null, status: OrderStatus, online: b
   return { pago: false, label: "Pague em dinheiro na entrega/retirada" };
 }
 
+/** Dados pra tela de pagar na própria página; null se não der pra montar
+ * (aí o card mostra só o aviso de tentar de novo). */
+async function dadosPagamento(pedido: { asaasPagamentoId: string | null; formaPagamento: Pagamento | null }) {
+  if (!pedido.asaasPagamentoId) return null;
+  try {
+    const cobranca = await buscarPagamentoAsaas(pedido.asaasPagamentoId);
+    if (pedido.formaPagamento !== "pix") return { tipo: "cartao" as const, valor: cobranca.value };
+    const qr = await buscarPixQrCode(pedido.asaasPagamentoId);
+    return { tipo: "pix" as const, valor: cobranca.value, qr };
+  } catch (e) {
+    console.error("[asaas] falha ao carregar pagamento do pedido", e);
+    return null;
+  }
+}
+
 export default async function PedidoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const resultado = await getPedidoComItens(id);
+  let resultado = await getPedidoComItens(id);
   if (!resultado) notFound();
+  if (resultado.pedido.status === "aguardando_pagamento") {
+    await expirarSePassouDoPrazo(resultado.pedido).catch((e) => console.error("[asaas] falha ao expirar:", e));
+    resultado = (await getPedidoComItens(id)) ?? resultado;
+  }
   const { pedido, itens } = resultado;
 
   // Pedido de quem não tinha conta (checkout sem login) não tem dono pra
@@ -45,7 +67,9 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
 
   const restaurante = await getRestaurantePorId(pedido.restauranteId);
   const retirada = !pedido.endereco || /retirada/i.test(pedido.endereco);
-  const pagamento = statusPagamento(pedido.formaPagamento, pedido.status, !!pedido.asaasCheckoutId);
+  const pagamento = statusPagamento(pedido.formaPagamento, pedido.status, !!pedido.asaasPagamentoId);
+  const aPagar = pedido.status === "aguardando_pagamento" ? await dadosPagamento(pedido) : null;
+  const usuario = aPagar?.tipo === "cartao" ? await currentUser() : null;
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -70,18 +94,28 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
           <p className="text-sm text-muted-foreground">Feito há {minAgo(pedido.criadoEm.getTime())}</p>
         </div>
 
-        {pedido.status === "aguardando_pagamento" && pedido.asaasCheckoutLink && (
+        {pedido.status === "aguardando_pagamento" && (
           <Card className="border-status-warn-fg/40">
-            <CardContent className="flex flex-col gap-3 px-5 py-4">
-              <div>
-                <p className="font-semibold">Falta pagar pra enviar seu pedido</p>
+            <CardContent className="px-5 py-4">
+              {aPagar?.tipo === "pix" ? (
+                <PixPagamento
+                  qrCodeBase64={aPagar.qr.encodedImage}
+                  copiaECola={aPagar.qr.payload}
+                  valor={aPagar.valor}
+                  expiraEm={pedido.criadoEm.getTime() + MINUTOS_PARA_PAGAR * 60_000}
+                />
+              ) : aPagar?.tipo === "cartao" ? (
+                <CartaoPagamento
+                  pedidoId={pedido.id}
+                  valor={aPagar.valor}
+                  telefoneInicial={pedido.telefoneCliente}
+                  emailInicial={usuario?.primaryEmailAddress?.emailAddress}
+                />
+              ) : (
                 <p className="text-sm text-muted-foreground">
-                  Ele só vai pra cozinha depois que o pagamento for confirmado. O link vale 15 minutos.
+                  Não deu pra carregar o pagamento agora. Atualize a página em instantes.
                 </p>
-              </div>
-              <a href={pedido.asaasCheckoutLink}>
-                <Button className="h-11 w-full">Pagar agora</Button>
-              </a>
+              )}
             </CardContent>
           </Card>
         )}

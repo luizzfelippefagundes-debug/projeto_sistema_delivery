@@ -106,6 +106,7 @@ export default function CartDrawer({
   const [distanciaReal, setDistanciaReal] = useState<DistanciaReal | null>(null);
   const [calculandoDistancia, setCalculandoDistancia] = useState(false);
   const [cpfNota, setCpfNota] = useState("");
+  const [cpfPagador, setCpfPagador] = useState("");
 
   const zonaEncontrada = useMemo(
     () => (tipo === "delivery" ? encontrarZona(zonasEntrega, entrega.bairro) : null),
@@ -215,11 +216,15 @@ export default function CartDrawer({
 
   function confirmarPagamento() {
     setErro(null);
+    if (pagamentoOnline && !validarCPF(cpfPagador)) {
+      setErro("Informe um CPF válido pra pagar.");
+      return;
+    }
     const cliente = entrega.nome.trim() || user?.fullName || user?.username || "Cliente do site";
     const enderecoFinal = tipo === "retirada" ? "Retirada no balcão" : montarEndereco(entrega);
     startTransition(async () => {
       try {
-        const { pedidoId, linkPagamento } = await criarPedidoCliente({
+        const resultado = await criarPedidoCliente({
           restauranteId,
           itens: items.map((i) => ({
             itemCardapioId: i.itemCardapioId,
@@ -232,12 +237,21 @@ export default function CartDrawer({
           forma: formaRecebimento,
           clienteNome: cliente,
           cpfNota: cpfNota.trim() || null,
+          cpfPagador: pagamentoOnline ? cpfPagador : null,
         });
+        if ("error" in resultado) {
+          setErro(resultado.error);
+          return;
+        }
+        const { pedidoId } = resultado;
         salvarPedidoConvidado(pedidoId);
         clear();
         setCpfNota("");
-        if (linkPagamento) {
-          window.location.href = linkPagamento;
+        if (pagamentoOnline) {
+          // O Pix e o cartão são pagos na página do pedido.
+          onOpenChange(false);
+          setPasso("carrinho");
+          router.push(`/pedido/${pedidoId}`);
           return;
         }
         setPedidoId(pedidoId);
@@ -524,9 +538,27 @@ export default function CartDrawer({
                 </div>
               </div>
 
+              {pagamentoOnline && (
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="cpf-pagador">CPF de quem vai pagar</Label>
+                  <Input
+                    id="cpf-pagador"
+                    value={cpfPagador}
+                    onChange={(e) => setCpfPagador(formatarCPF(e.target.value))}
+                    placeholder="000.000.000-00"
+                    inputMode="numeric"
+                  />
+                  {cpfPagador.replace(/\D/g, "").length === 11 && !validarCPF(cpfPagador) && (
+                    <p className="text-xs text-destructive">Esse CPF não parece válido.</p>
+                  )}
+                </div>
+              )}
+
               <p className="rounded-xl border border-border p-3 text-center text-sm text-muted-foreground">
                 {pagamentoOnline
-                  ? "O pagamento é feito online, numa página segura do Asaas. Seu pedido vai pra cozinha assim que o pagamento for confirmado. Você tem 15 minutos pra pagar."
+                  ? formaRecebimento === "pix"
+                    ? "Na próxima tela aparece o QR Code e o código copia e cola. Seu pedido vai pra cozinha assim que o Pix cair. Você tem 15 minutos pra pagar."
+                    : "Na próxima tela você digita os dados do cartão. Seu pedido vai pra cozinha assim que o pagamento for aprovado."
                   : `Pague na hora da ${tipo === "retirada" ? "retirada" : "entrega"}, direto com ${tipo === "retirada" ? "quem atender" : "o motoboy"}.`}
               </p>
 
@@ -569,7 +601,14 @@ export default function CartDrawer({
         )}
         {passo === "resumo" && mesa == null && (
           <div className="mt-auto flex flex-col gap-2 border-t border-border p-4">
-            <Button onClick={() => setPasso("pagamento")}>Continuar pro pagamento</Button>
+            <Button
+              onClick={() => {
+                setCpfPagador((atual) => atual || cpfNota);
+                setPasso("pagamento");
+              }}
+            >
+              Continuar pro pagamento
+            </Button>
             <Button variant="outline" onClick={() => setPasso("entrega")}>
               Voltar
             </Button>
@@ -585,7 +624,9 @@ export default function CartDrawer({
               {pagamentoOnline
                 ? pending
                   ? "Gerando pagamento…"
-                  : "Ir para o pagamento"
+                  : formaRecebimento === "pix"
+                    ? "Gerar Pix"
+                    : "Pagar com cartão"
                 : pending
                   ? "Confirmando…"
                   : "Confirmar pedido"}

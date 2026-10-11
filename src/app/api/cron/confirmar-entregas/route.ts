@@ -3,6 +3,7 @@ import { and, eq, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import { pedidos } from "@/db/schema";
+import { expirarPagamentosVencidos } from "@/lib/pagamentoOnline";
 
 export const dynamic = "force-dynamic";
 
@@ -25,9 +26,12 @@ export async function GET(request: Request) {
     )
     .returning({ id: pedidos.id });
 
+  // Pedidos que ficaram esperando Pix sem ninguém voltar na página.
+  const expirados = await expirarPagamentosVencidos();
+
   revalidatePath("/motoboy");
   revalidatePath("/dono");
   revalidatePath("/dono/pedidos");
 
-  return NextResponse.json({ confirmados: atualizados.length, ids: atualizados.map((p) => p.id) });
+  return NextResponse.json({ expirados, confirmados: atualizados.length, ids: atualizados.map((p) => p.id) });
 }

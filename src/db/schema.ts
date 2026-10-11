@@ -193,9 +193,11 @@ export const pedidos = pgTable("pedidos", {
    * informativo (não emite nota fiscal sozinho, é só o dado guardado pra
    * quem for lançar manualmente). */
   cpfNota: text("cpf_nota"),
-  /** Checkout do Asaas de pedidos pagos online — o webhook acha o pedido
-   * por esse id quando o pagamento é confirmado ou expira. */
-  asaasCheckoutId: text("asaas_checkout_id").unique(),
+  /** Cobrança do Asaas (pay_...) de pedidos pagos online — o webhook acha o
+   * pedido por esse id quando o pagamento é confirmado. A coluna mantém o
+   * nome da época em que usávamos o checkout hospedado do Asaas. */
+  asaasPagamentoId: text("asaas_checkout_id").unique(),
+  /** Sem uso desde que o pagamento passou a ser na nossa tela. */
   asaasCheckoutLink: text("asaas_checkout_link"),
   total: money("total").notNull(),
   criadoEm: timestamp("criado_em").notNull().defaultNow(),

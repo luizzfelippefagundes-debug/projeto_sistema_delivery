@@ -7,18 +7,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ erro: "não autorizado" }, { status: 401 });
   }
 
-  const payload = (await req.json().catch(() => null)) as { event?: string; checkout?: { id?: string } } | null;
-  const checkoutId = payload?.checkout?.id;
-  console.log("[asaas] webhook", payload?.event, checkoutId);
+  const payload = (await req.json().catch(() => null)) as { event?: string; payment?: { id?: string } } | null;
+  const pagamentoId = payload?.payment?.id;
+  console.log("[asaas] webhook", payload?.event, pagamentoId);
 
-  // Evento sem checkout (ou de outro tipo) responde 200 mesmo assim: o Asaas
+  // Evento sem cobrança (ou de outro tipo) responde 200 mesmo assim: o Asaas
   // pausa a fila inteira depois de 15 falhas seguidas.
-  if (!checkoutId) return NextResponse.json({ ok: true });
+  if (!pagamentoId) return NextResponse.json({ ok: true });
 
-  if (payload.event === "CHECKOUT_PAID") {
-    await confirmarPagamentoOnline(checkoutId);
-  } else if (payload.event === "CHECKOUT_EXPIRED" || payload.event === "CHECKOUT_CANCELED") {
-    await cancelarPagamentoOnline(checkoutId);
+  // Pix chega como RECEIVED; cartão como CONFIRMED.
+  if (payload.event === "PAYMENT_RECEIVED" || payload.event === "PAYMENT_CONFIRMED") {
+    await confirmarPagamentoOnline(pagamentoId);
+  } else if (payload.event === "PAYMENT_DELETED" || payload.event === "PAYMENT_OVERDUE") {
+    await cancelarPagamentoOnline(pagamentoId);
   }
 
   return NextResponse.json({ ok: true });

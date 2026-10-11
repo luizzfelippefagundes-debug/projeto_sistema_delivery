@@ -4,66 +4,154 @@ const API_URL = process.env.ASAAS_API_URL || "https://api.asaas.com/v3";
 
 export type CobrancaOnline = "PIX" | "CREDIT_CARD";
 
+/** Menor cobrança que o Asaas aceita. */
+export const VALOR_MINIMO_ONLINE = 5;
+
 /** Ligado só depois que a conta do Asaas for aprovada; até lá o cliente paga na entrega. */
 export function pagamentoOnlineAtivo(): boolean {
   return process.env.ASAAS_PAGAMENTO_ONLINE === "true";
 }
 
-async function imagemBase64(origem: string): Promise<string> {
-  // O Asaas exige imagem em todo item do checkout; usamos o logo da loja.
-  const res = await fetch(`${origem}/logo-icon.png`);
-  if (!res.ok) throw new Error("Não deu pra carregar o logo pro checkout.");
-  return Buffer.from(await res.arrayBuffer()).toString("base64");
+export class AsaasError extends Error {
+  constructor(
+    public status: number,
+    public body: unknown,
+  ) {
+    super(`Asaas respondeu ${status}`);
+    this.name = "AsaasError";
+  }
 }
 
-export async function criarCheckoutAsaas(dados: {
-  pedidoId: string;
-  origem: string;
-  cobranca: CobrancaOnline;
-  valor: number;
-  descricao: string;
-  cliente: { nome: string; telefone: string | null; cpf: string | null };
-}): Promise<{ id: string; link: string }> {
+async function asaasFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const apiKey = process.env.ASAAS_API_KEY;
   if (!apiKey) throw new Error("Pagamento online indisponível no momento.");
 
-  const urlPedido = `${dados.origem}/pedido/${dados.pedidoId}`;
-  const telefone = dados.cliente.telefone?.replace(/\D/g, "") || undefined;
-  const cpf = dados.cliente.cpf?.replace(/\D/g, "") || undefined;
-
-  const res = await fetch(`${API_URL}/checkouts`, {
-    method: "POST",
+  const res = await fetch(`${API_URL}${path}`, {
+    ...init,
     headers: {
       "Content-Type": "application/json",
       "User-Agent": "dashi-sushi",
       access_token: apiKey,
+      ...init?.headers,
     },
+  });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    // Nunca logar o corpo da requisição: no cartão ele leva número e CVV.
+    console.error("[asaas] erro", init?.method ?? "GET", path, res.status, JSON.stringify(body));
+    throw new AsaasError(res.status, body);
+  }
+  return body as T;
+}
+
+/** Primeira mensagem de erro que o Asaas devolveu, pra mostrar pro cliente. */
+export function mensagemErroAsaas(err: unknown): string | null {
+  if (!(err instanceof AsaasError)) return null;
+  const errors = (err.body as { errors?: Array<{ description?: string }> } | null)?.errors;
+  return errors?.[0]?.description ?? null;
+}
+
+export type StatusPagamentoAsaas =
+  | "PENDING"
+  | "RECEIVED"
+  | "CONFIRMED"
+  | "OVERDUE"
+  | "REFUNDED"
+  | "RECEIVED_IN_CASH"
+  | (string & {});
+
+export interface PagamentoAsaas {
+  id: string;
+  status: StatusPagamentoAsaas;
+  /** Com a taxa do cartão já somada — pode ser maior que o total do pedido. */
+  value: number;
+}
+
+export function pagamentoQuitado(status: StatusPagamentoAsaas): boolean {
+  return status === "RECEIVED" || status === "CONFIRMED" || status === "RECEIVED_IN_CASH";
+}
+
+/** Cria o cliente e a cobrança avulsa do pedido. O pagamento em si acontece
+ * na nossa página do pedido: Pix pelo QR Code, cartão por `pagarComCartao`. */
+export async function criarCobrancaAsaas(dados: {
+  pedidoId: string;
+  cobranca: CobrancaOnline;
+  valor: number;
+  descricao: string;
+  cliente: { nome: string; telefone: string | null; cpf: string };
+}): Promise<PagamentoAsaas> {
+  const telefone = dados.cliente.telefone?.replace(/\D/g, "") || undefined;
+  const cliente = await asaasFetch<{ id: string }>("/customers", {
+    method: "POST",
     body: JSON.stringify({
-      billingTypes: [dados.cobranca],
-      chargeTypes: ["DETACHED"],
-      minutesToExpire: 15,
-      externalReference: dados.pedidoId,
-      callback: { successUrl: urlPedido, cancelUrl: urlPedido, expiredUrl: urlPedido },
-      items: [
-        {
-          externalReference: dados.pedidoId,
-          name: `Pedido #${dados.pedidoId.slice(0, 8)}`,
-          description: dados.descricao.slice(0, 150),
-          quantity: 1,
-          value: Math.round(dados.valor * 100) / 100,
-          imageBase64: await imagemBase64(dados.origem),
-        },
-      ],
-      customerData: { name: dados.cliente.nome, phone: telefone, cpfCnpj: cpf },
+      name: dados.cliente.nome,
+      cpfCnpj: dados.cliente.cpf.replace(/\D/g, ""),
+      mobilePhone: telefone,
+      notificationDisabled: true,
     }),
   });
 
-  if (!res.ok) {
-    console.error("[asaas] falha ao criar checkout:", res.status, await res.text());
-    throw new Error("Não deu pra gerar o pagamento. Tente de novo em instantes.");
-  }
-  const checkout = (await res.json()) as { id: string; link: string };
-  return { id: checkout.id, link: checkout.link };
+  return asaasFetch<PagamentoAsaas>("/payments", {
+    method: "POST",
+    body: JSON.stringify({
+      customer: cliente.id,
+      billingType: dados.cobranca,
+      value: Math.round(dados.valor * 100) / 100,
+      dueDate: hojeEmSaoPaulo(),
+      description: dados.descricao.slice(0, 500),
+      externalReference: dados.pedidoId,
+    }),
+  });
+}
+
+function hojeEmSaoPaulo(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
+}
+
+export function buscarPagamentoAsaas(id: string): Promise<PagamentoAsaas> {
+  return asaasFetch<PagamentoAsaas>(`/payments/${encodeURIComponent(id)}`);
+}
+
+export async function apagarPagamentoAsaas(id: string): Promise<void> {
+  await asaasFetch(`/payments/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export interface PixQrCode {
+  encodedImage: string;
+  payload: string;
+}
+
+export function buscarPixQrCode(id: string): Promise<PixQrCode> {
+  return asaasFetch<PixQrCode>(`/payments/${encodeURIComponent(id)}/pixQrCode`);
+}
+
+export interface DadosCartao {
+  holderName: string;
+  number: string;
+  expiryMonth: string;
+  expiryYear: string;
+  ccv: string;
+}
+
+export interface TitularCartao {
+  name: string;
+  email: string;
+  cpfCnpj: string;
+  postalCode: string;
+  addressNumber: string;
+  phone: string;
+}
+
+/** Dados do cartão só passam em memória até o Asaas: nunca gravar nem logar. */
+export function pagarComCartao(
+  id: string,
+  creditCard: DadosCartao,
+  creditCardHolderInfo: TitularCartao,
+): Promise<PagamentoAsaas> {
+  return asaasFetch<PagamentoAsaas>(`/payments/${encodeURIComponent(id)}/payWithCreditCard`, {
+    method: "POST",
+    body: JSON.stringify({ creditCard, creditCardHolderInfo }),
+  });
 }
 
 export function tokenWebhookValido(recebido: string | null): boolean {

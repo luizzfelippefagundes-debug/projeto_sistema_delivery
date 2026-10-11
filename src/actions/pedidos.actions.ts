@@ -4,7 +4,6 @@ import { randomUUID } from "node:crypto";
 import { auth } from "@clerk/nextjs/server";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { getDb } from "../db";
 import { clientes, itensCardapio, itensPedido, pedidos, restaurantes, solicitacoesFechamento } from "../db/schema";
 import { baixarEstoque, devolverEstoque } from "../db/queries/cardapio";
@@ -21,7 +20,17 @@ import { podeCancelarPedido } from "../lib/cancelamento";
 import { podeFecharConta } from "../lib/fechamentoMesa";
 import { mesaValida } from "../lib/mesa";
 import { notificarNovoPedido } from "../lib/webPush";
-import { criarCheckoutAsaas, pagamentoOnlineAtivo } from "../lib/asaas";
+import {
+  type DadosCartao,
+  type TitularCartao,
+  VALOR_MINIMO_ONLINE,
+  criarCobrancaAsaas,
+  mensagemErroAsaas,
+  pagamentoOnlineAtivo,
+  pagamentoQuitado,
+  pagarComCartao,
+} from "../lib/asaas";
+import { confirmarPagamentoOnline } from "../lib/pagamentoOnline";
 import { type FormaRecebimento, pagamentoDaForma, taxasDeConfig, totalComTaxa } from "../lib/taxaMaquininha";
 import type { OrderStatus, Pagamento } from "../lib/types";
 
@@ -316,10 +325,13 @@ export async function criarPedidoCliente(dados: {
   forma: FormaRecebimento;
   clienteNome: string;
   cpfNota?: string | null;
-}): Promise<{ pedidoId: string; linkPagamento: string | null }> {
+  /** CPF de quem paga — o Asaas exige pra gerar a cobrança online. */
+  cpfPagador?: string | null;
+}): Promise<{ pedidoId: string } | { error: string }> {
   if (dados.itens.length === 0) throw new Error("Sua sacola está vazia.");
   const online = pagamentoOnlineAtivo();
   if (online && dados.forma !== "pix" && dados.forma !== "credito_vista") throw new Error("Forma de pagamento inválida.");
+  if (online && !(dados.cpfPagador && validarCPF(dados.cpfPagador))) return { error: "Informe um CPF válido pra pagar." };
 
   const db = getDb();
   const idsUnicos = dados.itens.map((i) => i.itemCardapioId);
@@ -408,36 +420,115 @@ export async function criarPedidoCliente(dados: {
     revalidatePath("/motoboy");
     revalidatePath("/dono");
     revalidatePath("/dono/estoque");
-    return { pedidoId: pedido.id, linkPagamento: null };
+    return { pedidoId: pedido.id };
   }
 
   // Taxa recalculada no servidor, igual a entrega — o valor cobrado nunca vem do navegador.
   const config = await getConfiguracoes(dados.restauranteId);
   const valorCobrado = totalComTaxa(total, dados.forma, taxasDeConfig(config));
 
-  const h = await headers();
-  const origem = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
-
+  // Erros daqui voltam como `{ error }`: em produção o Next troca a mensagem
+  // de uma exceção de server action por um texto genérico.
+  let erro: string | null = null;
   try {
-    const checkout = await criarCheckoutAsaas({
+    if (valorCobrado < VALOR_MINIMO_ONLINE) {
+      erro = `O pagamento online é a partir de ${fmtBRL(VALOR_MINIMO_ONLINE)}.`;
+      throw new Error(erro);
+    }
+    const cobranca = await criarCobrancaAsaas({
       pedidoId: pedido.id,
-      origem,
       cobranca: dados.forma === "pix" ? "PIX" : "CREDIT_CARD",
       valor: valorCobrado,
       descricao: itensParaSalvar.map((i) => `${i.quantidade}x ${i.nome}`).join(", "),
-      cliente: { nome: nomeLimpo, telefone: telefoneLimpo, cpf: dados.cpfNota ?? null },
+      cliente: { nome: nomeLimpo, telefone: telefoneLimpo, cpf: dados.cpfPagador! },
     });
-    await db
-      .update(pedidos)
-      .set({ asaasCheckoutId: checkout.id, asaasCheckoutLink: checkout.link })
-      .where(eq(pedidos.id, pedido.id));
+    await db.update(pedidos).set({ asaasPagamentoId: cobranca.id }).where(eq(pedidos.id, pedido.id));
     revalidatePath("/dono/estoque");
-    return { pedidoId: pedido.id, linkPagamento: checkout.link };
+    return { pedidoId: pedido.id };
   } catch (e) {
     await db.update(pedidos).set({ status: "cancelado" }).where(eq(pedidos.id, pedido.id));
     await devolverEstoque(itensEstoque).catch((err) => console.error("[estoque] falha ao devolver estoque:", err));
-    throw e;
+    console.error("[asaas] falha ao gerar cobrança do pedido", pedido.id, e);
+    return { error: erro ?? mensagemErroAsaas(e) ?? "Não deu pra gerar o pagamento. Tente de novo em instantes." };
   }
+}
+
+export interface FormularioCartao {
+  nomeNoCartao: string;
+  numero: string;
+  validade: string;
+  cvv: string;
+  cpfTitular: string;
+  email: string;
+  cep: string;
+  numeroEndereco: string;
+  telefone: string;
+}
+
+const soDigitos = (v: string) => v.replace(/\D/g, "");
+
+function validarFormularioCartao(
+  f: FormularioCartao,
+): { error: string } | { creditCard: DadosCartao; titular: TitularCartao } {
+  const numero = soDigitos(f.numero);
+  const [mes = "", ano = ""] = f.validade.split("/").map(soDigitos);
+  const cvv = soDigitos(f.cvv);
+  const cpf = soDigitos(f.cpfTitular);
+  const cep = soDigitos(f.cep);
+  const telefone = soDigitos(f.telefone);
+
+  if (!f.nomeNoCartao.trim()) return { error: "Informe o nome impresso no cartão." };
+  if (numero.length < 13 || numero.length > 19) return { error: "Número do cartão inválido." };
+  if (Number(mes) < 1 || Number(mes) > 12 || (ano.length !== 2 && ano.length !== 4)) {
+    return { error: "Validade inválida, use MM/AA." };
+  }
+  if (cvv.length < 3 || cvv.length > 4) return { error: "CVV inválido." };
+  if (!validarCPF(cpf)) return { error: "CPF do titular inválido." };
+  if (!/^\S+@\S+\.\S+$/.test(f.email.trim())) return { error: "E-mail inválido." };
+  if (cep.length !== 8) return { error: "CEP inválido." };
+  if (!f.numeroEndereco.trim()) return { error: "Informe o número do endereço." };
+  if (telefone.length < 10 || telefone.length > 11) return { error: "Telefone inválido, use DDD + número." };
+
+  const creditCard: DadosCartao = {
+    holderName: f.nomeNoCartao.trim(),
+    number: numero,
+    expiryMonth: mes.padStart(2, "0"),
+    expiryYear: ano.length === 2 ? `20${ano}` : ano,
+    ccv: cvv,
+  };
+  const titular: TitularCartao = {
+    name: f.nomeNoCartao.trim(),
+    email: f.email.trim(),
+    cpfCnpj: cpf,
+    postalCode: cep,
+    addressNumber: f.numeroEndereco.trim(),
+    phone: telefone,
+  };
+  return { creditCard, titular };
+}
+
+/** Cobra o pedido com o cartão digitado na nossa página. Os dados do cartão
+ * só passam por aqui a caminho do Asaas — nunca são gravados nem logados. */
+export async function pagarPedidoComCartao(
+  pedidoId: string,
+  formulario: FormularioCartao,
+): Promise<{ error: string } | { ok: true }> {
+  const validado = validarFormularioCartao(formulario);
+  if ("error" in validado) return validado;
+
+  const [pedido] = await getDb().select().from(pedidos).where(eq(pedidos.id, pedidoId));
+  if (!pedido?.asaasPagamentoId || pedido.formaPagamento !== "cartao") return { error: "Pedido não encontrado." };
+  if (pedido.status !== "aguardando_pagamento") return { error: "Esse pedido não está mais aguardando pagamento." };
+
+  try {
+    const pagamento = await pagarComCartao(pedido.asaasPagamentoId, validado.creditCard, validado.titular);
+    // O webhook também confirma; aqui é pra o cliente ver na hora.
+    if (pagamentoQuitado(pagamento.status)) await confirmarPagamentoOnline(pedido.asaasPagamentoId);
+  } catch (e) {
+    return { error: mensagemErroAsaas(e) ?? "Pagamento não aprovado. Confira os dados ou tente outro cartão." };
+  }
+  revalidatePath(`/pedido/${pedidoId}`);
+  return { ok: true };
 }
 
 /** Liga à conta de quem acabou de logar os pedidos que ela fez como
