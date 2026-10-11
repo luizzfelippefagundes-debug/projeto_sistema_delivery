@@ -498,15 +498,7 @@ export default function CartDrawer({
                   {(
                     [
                       { forma: "pix" as FormaRecebimento, label: "Pix" },
-                      ...(pagamentoOnline
-                        ? [{ forma: "credito_vista" as FormaRecebimento, label: "Cartão de crédito" }]
-                        : [
-                            { forma: "debito" as FormaRecebimento, label: "Débito" },
-                            { forma: "credito_vista" as FormaRecebimento, label: "Crédito à vista" },
-                            { forma: "credito_2x" as FormaRecebimento, label: "Crédito 2x" },
-                            { forma: "credito_3x" as FormaRecebimento, label: "Crédito 3x" },
-                            { forma: "credito_4x" as FormaRecebimento, label: "Crédito 4x" },
-                          ]),
+                      { forma: "credito_vista" as FormaRecebimento, label: "Cartão de crédito" },
                     ] as { forma: FormaRecebimento; label: string }[]
                   ).map(({ forma, label }) => {
                     const pct = percentualDaForma(forma, taxasMaquininha);
