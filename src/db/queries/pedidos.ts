@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte, ne, sql } from "drizzle-orm";
 import { getDb } from "../index";
 import { itensPedido, pedidos } from "../schema";
 import { podeFecharConta } from "../../lib/fechamentoMesa";
@@ -13,6 +13,7 @@ export async function getPedidosDoDia(restauranteId: string, dia: Date = new Dat
     .where(
       and(
         eq(pedidos.restauranteId, restauranteId),
+        ne(pedidos.status, "aguardando_pagamento"),
         gte(pedidos.criadoEm, inicioDoDia(dia)),
         lte(pedidos.criadoEm, fimDoDia(dia)),
       ),
@@ -24,7 +25,7 @@ export async function getPedidosAbertos(restauranteId: string) {
   return getDb()
     .select()
     .from(pedidos)
-    .where(and(eq(pedidos.restauranteId, restauranteId), sql`${pedidos.status} NOT IN ('finalizado', 'cancelado')`))
+    .where(and(eq(pedidos.restauranteId, restauranteId), sql`${pedidos.status} NOT IN ('finalizado', 'cancelado', 'aguardando_pagamento')`))
     .orderBy(pedidos.criadoEm);
 }
 
@@ -32,7 +33,7 @@ export async function getPedidosDesde(restauranteId: string, desde: Date) {
   return getDb()
     .select()
     .from(pedidos)
-    .where(and(eq(pedidos.restauranteId, restauranteId), gte(pedidos.criadoEm, desde)))
+    .where(and(eq(pedidos.restauranteId, restauranteId), ne(pedidos.status, "aguardando_pagamento"), gte(pedidos.criadoEm, desde)))
     .orderBy(pedidos.criadoEm);
 }
 
@@ -45,7 +46,7 @@ export interface FiltroPedidos {
 
 export async function getPedidosFiltrados(restauranteId: string, filtro: FiltroPedidos) {
   const condicoes = [eq(pedidos.restauranteId, restauranteId)];
-  if (filtro.status) condicoes.push(eq(pedidos.status, filtro.status));
+  condicoes.push(filtro.status ? eq(pedidos.status, filtro.status) : ne(pedidos.status, "aguardando_pagamento"));
   if (filtro.origem) condicoes.push(eq(pedidos.origem, filtro.origem));
   if (filtro.de) condicoes.push(gte(pedidos.criadoEm, inicioDoDia(filtro.de)));
   if (filtro.ate) condicoes.push(lte(pedidos.criadoEm, fimDoDia(filtro.ate)));

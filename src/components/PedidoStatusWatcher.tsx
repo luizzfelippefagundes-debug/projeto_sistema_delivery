@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import OrderTimeline from "@/components/OrderTimeline";
 import { pedidoConcluido } from "@/lib/faturamento";
@@ -9,6 +10,7 @@ import type { OrderStatus } from "@/lib/types";
 const POLL_INTERVAL = 5_000;
 
 const MENSAGEM_STATUS: Partial<Record<OrderStatus, string>> = {
+  novo: "Pagamento confirmado! Seu pedido foi pra cozinha.",
   preparo: "Seu pedido entrou em preparo! 🍣",
   pronto: "Pedido pronto!",
   rota: "Seu pedido saiu pra entrega! 🛵",
@@ -25,6 +27,7 @@ export default function PedidoStatusWatcher({
   statusInicial: OrderStatus;
   retiradaInicial: boolean;
 }) {
+  const router = useRouter();
   const [status, setStatus] = useState(statusInicial);
   const [retirada, setRetirada] = useState(retiradaInicial);
   const [banner, setBanner] = useState<string | null>(null);
@@ -41,6 +44,8 @@ export default function PedidoStatusWatcher({
         const data: { status: OrderStatus; retirada: boolean } = await res.json();
 
         if (data.status !== prevStatus.current) {
+          // Saiu de "aguardando pagamento": recarrega pra sumir o card de pagar e atualizar o selo.
+          if (prevStatus.current === "aguardando_pagamento") router.refresh();
           prevStatus.current = data.status;
           setStatus(data.status);
           setRetirada(data.retirada);
@@ -60,7 +65,7 @@ export default function PedidoStatusWatcher({
       clearInterval(interval);
       if (bannerTimer.current) clearTimeout(bannerTimer.current);
     };
-  }, [pedidoId, status, retirada]);
+  }, [pedidoId, status, retirada, router]);
 
   return (
     <>

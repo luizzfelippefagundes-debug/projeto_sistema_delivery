@@ -28,6 +28,7 @@ export const statusPedidoEnum = pgEnum("status_pedido", [
   "entregue",
   "finalizado",
   "cancelado",
+  "aguardando_pagamento",
 ]);
 
 export const formaPagamentoEnum = pgEnum("forma_pagamento", ["dinheiro", "cartao", "pix"]);
@@ -192,6 +193,10 @@ export const pedidos = pgTable("pedidos", {
    * informativo (não emite nota fiscal sozinho, é só o dado guardado pra
    * quem for lançar manualmente). */
   cpfNota: text("cpf_nota"),
+  /** Checkout do Asaas de pedidos pagos online — o webhook acha o pedido
+   * por esse id quando o pagamento é confirmado ou expira. */
+  asaasCheckoutId: text("asaas_checkout_id").unique(),
+  asaasCheckoutLink: text("asaas_checkout_link"),
   total: money("total").notNull(),
   criadoEm: timestamp("criado_em").notNull().defaultNow(),
 });

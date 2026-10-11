@@ -10,6 +10,7 @@ const STATUS_CLASS: Record<OrderStatus, string> = {
   entregue: "bg-status-muted-bg text-status-muted-fg",
   finalizado: "bg-status-muted-bg text-status-muted-fg",
   cancelado: "bg-status-danger-bg text-status-danger-fg",
+  aguardando_pagamento: "bg-status-warn-bg text-status-warn-fg",
 };
 
 export default function StatusBadge({ status }: { status: OrderStatus }) {

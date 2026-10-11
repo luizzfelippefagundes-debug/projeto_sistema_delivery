@@ -12,11 +12,16 @@ import { getClientePorClerkId } from "@/db/queries/clientes";
 import { getPedidoComItens } from "@/db/queries/pedidos";
 import { getRestaurantePorId } from "@/db/queries/restaurantes";
 import { fmtBRL, minAgo } from "@/lib/data";
-import type { Pagamento } from "@/lib/types";
+import type { OrderStatus, Pagamento } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-function statusPagamento(forma: Pagamento | null) {
+function statusPagamento(forma: Pagamento | null, status: OrderStatus, online: boolean) {
+  if (online) {
+    if (status === "aguardando_pagamento") return { pago: false, label: "Aguardando pagamento online" };
+    if (status === "cancelado") return { pago: false, label: "Pagamento não realizado" };
+    return { pago: true, label: forma === "pix" ? "Pago no Pix" : "Pago no cartão" };
+  }
   if (forma === "pix") return { pago: true, label: "Pago no Pix" };
   if (forma === "cartao") return { pago: false, label: "Pague no cartão na entrega/retirada" };
   return { pago: false, label: "Pague em dinheiro na entrega/retirada" };
@@ -40,7 +45,7 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
 
   const restaurante = await getRestaurantePorId(pedido.restauranteId);
   const retirada = !pedido.endereco || /retirada/i.test(pedido.endereco);
-  const pagamento = statusPagamento(pedido.formaPagamento);
+  const pagamento = statusPagamento(pedido.formaPagamento, pedido.status, !!pedido.asaasCheckoutId);
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -64,6 +69,22 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
           })()}
           <p className="text-sm text-muted-foreground">Feito há {minAgo(pedido.criadoEm.getTime())}</p>
         </div>
+
+        {pedido.status === "aguardando_pagamento" && pedido.asaasCheckoutLink && (
+          <Card className="border-status-warn-fg/40">
+            <CardContent className="flex flex-col gap-3 px-5 py-4">
+              <div>
+                <p className="font-semibold">Falta pagar pra enviar seu pedido</p>
+                <p className="text-sm text-muted-foreground">
+                  Ele só vai pra cozinha depois que o pagamento for confirmado. O link vale 15 minutos.
+                </p>
+              </div>
+              <a href={pedido.asaasCheckoutLink}>
+                <Button className="h-11 w-full">Pagar agora</Button>
+              </a>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardContent className="flex flex-col gap-3 px-5 py-4">

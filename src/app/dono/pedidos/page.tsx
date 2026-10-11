@@ -16,6 +16,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
   entregue: "Entregue",
   finalizado: "Finalizado",
   cancelado: "Cancelado",
+  aguardando_pagamento: "Aguardando pagamento",
 };
 
 function selectClass() {

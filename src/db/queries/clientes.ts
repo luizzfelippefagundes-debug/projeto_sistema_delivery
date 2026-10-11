@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, ne, notInArray, sql } from "drizzle-orm";
 import { getDb } from "../index";
 import { clientes, itensPedido, pedidos } from "../schema";
 
@@ -21,7 +21,7 @@ export async function getClientesResumo(restauranteId: string) {
       ultimoPedido: sql<string>`max(${pedidos.criadoEm})`,
     })
     .from(pedidos)
-    .where(and(eq(pedidos.restauranteId, restauranteId), isNotNull(pedidos.clienteNome)))
+    .where(and(eq(pedidos.restauranteId, restauranteId), isNotNull(pedidos.clienteNome), notInArray(pedidos.status, ["aguardando_pagamento", "cancelado"])))
     .groupBy(pedidos.clienteNome)
     .orderBy(desc(sql`sum(${pedidos.total})`));
 
@@ -40,7 +40,7 @@ export async function getHistoricoCliente(restauranteId: string, nome: string) {
   const pedidosDoCliente = await getDb()
     .select()
     .from(pedidos)
-    .where(and(eq(pedidos.restauranteId, restauranteId), eq(pedidos.clienteNome, nome)))
+    .where(and(eq(pedidos.restauranteId, restauranteId), eq(pedidos.clienteNome, nome), ne(pedidos.status, "aguardando_pagamento")))
     .orderBy(desc(pedidos.criadoEm));
 
   if (pedidosDoCliente.length === 0) return [];

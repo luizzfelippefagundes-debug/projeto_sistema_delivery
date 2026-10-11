@@ -27,7 +27,7 @@ import { formatarCPF, validarCPF } from "@/lib/cpf";
 import { useCart, type CartItem } from "@/lib/cart";
 import { salvarPedidoConvidado } from "@/lib/pedidosConvidado";
 import type { Pagamento } from "@/lib/types";
-import { type FormaRecebimento, type TaxasMaquininha, pagamentoDaForma, percentualDaForma, totalComTaxa } from "@/lib/taxaMaquininha";
+import { type FormaRecebimento, type TaxasMaquininha, percentualDaForma, totalComTaxa } from "@/lib/taxaMaquininha";
 
 type Passo = "carrinho" | "entrega" | "resumo" | "pagamento" | "confirmado";
 type Tipo = "retirada" | "delivery";
@@ -217,7 +217,7 @@ export default function CartDrawer({
     const enderecoFinal = tipo === "retirada" ? "Retirada no balcão" : montarEndereco(entrega);
     startTransition(async () => {
       try {
-        const { pedidoId } = await criarPedidoCliente({
+        const { pedidoId, linkPagamento } = await criarPedidoCliente({
           restauranteId,
           itens: items.map((i) => ({
             itemCardapioId: i.itemCardapioId,
@@ -227,15 +227,14 @@ export default function CartDrawer({
           endereco: enderecoFinal,
           bairro: tipo === "delivery" ? entrega.bairro : null,
           telefone: entrega.telefone,
-          pagamento: pagamentoDaForma(formaRecebimento),
+          pagamento: formaRecebimento === "pix" ? "pix" : "credito",
           clienteNome: cliente,
           cpfNota: cpfNota.trim() || null,
         });
-        setPedidoId(pedidoId);
         salvarPedidoConvidado(pedidoId);
         clear();
         setCpfNota("");
-        setPasso("confirmado");
+        window.location.href = linkPagamento;
       } catch (e) {
         setErro(e instanceof Error ? e.message : "Não deu pra confirmar o pedido.");
       }
@@ -490,11 +489,7 @@ export default function CartDrawer({
                   {(
                     [
                       { forma: "pix" as FormaRecebimento, label: "Pix" },
-                      { forma: "debito" as FormaRecebimento, label: "Débito" },
-                      { forma: "credito_vista" as FormaRecebimento, label: "Crédito à vista" },
-                      { forma: "credito_2x" as FormaRecebimento, label: "Crédito 2x" },
-                      { forma: "credito_3x" as FormaRecebimento, label: "Crédito 3x" },
-                      { forma: "credito_4x" as FormaRecebimento, label: "Crédito 4x" },
+                      { forma: "credito_vista" as FormaRecebimento, label: "Cartão de crédito" },
                     ] as { forma: FormaRecebimento; label: string }[]
                   ).map(({ forma, label }) => {
                     const pct = percentualDaForma(forma, taxasMaquininha);
@@ -521,7 +516,8 @@ export default function CartDrawer({
               </div>
 
               <p className="rounded-xl border border-border p-3 text-center text-sm text-muted-foreground">
-                Pague na hora da {tipo === "retirada" ? "retirada" : "entrega"}, direto com {tipo === "retirada" ? "quem atender" : "o motoboy"}.
+                O pagamento é feito online, numa página segura do Asaas. Seu pedido vai pra cozinha assim que o pagamento for
+                confirmado. Você tem 15 minutos pra pagar.
               </p>
 
               {erro && <p className="text-sm text-destructive">{erro}</p>}
@@ -576,7 +572,7 @@ export default function CartDrawer({
               <span className="num">{fmtBRL(totalFinal)}</span>
             </div>
             <Button disabled={pending} onClick={confirmarPagamento}>
-              {pending ? "Confirmando…" : "Confirmar pedido"}
+              {pending ? "Gerando pagamento…" : "Ir para o pagamento"}
             </Button>
             <Button variant="outline" onClick={() => setPasso("resumo")}>
               Voltar

@@ -28,6 +28,7 @@ export const STATUS_LABEL: Record<OrderStatus, string> = {
   entregue: "Entregue",
   finalizado: "Finalizado",
   cancelado: "Cancelado",
+  aguardando_pagamento: "Aguardando pagamento",
 };
 
 export function origemLabel(pedido: { origem: Origem; mesa?: number | null; clienteNome?: string | null }): string {

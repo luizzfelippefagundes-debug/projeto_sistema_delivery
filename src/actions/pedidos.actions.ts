@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { getDb } from "../db";
 import { clientes, itensCardapio, itensPedido, pedidos, restaurantes, solicitacoesFechamento } from "../db/schema";
 import { baixarEstoque, devolverEstoque } from "../db/queries/cardapio";
@@ -19,7 +20,9 @@ import { podeCancelarPedido } from "../lib/cancelamento";
 import { podeFecharConta } from "../lib/fechamentoMesa";
 import { mesaValida } from "../lib/mesa";
 import { notificarNovoPedido } from "../lib/webPush";
-import type { OrderStatus, Pagamento } from "../lib/types";
+import { criarCheckoutAsaas } from "../lib/asaas";
+import { taxasDeConfig, totalComTaxa } from "../lib/taxaMaquininha";
+import type { OrderStatus, Pagamento, PagamentoOnline } from "../lib/types";
 
 export interface ItemParaEnviar {
   itemCardapioId: string;
@@ -316,11 +319,12 @@ export async function criarPedidoCliente(dados: {
   endereco: string;
   bairro?: string | null;
   telefone?: string;
-  pagamento: Pagamento;
+  pagamento: PagamentoOnline;
   clienteNome: string;
   cpfNota?: string | null;
 }) {
   if (dados.itens.length === 0) throw new Error("Sua sacola está vazia.");
+  if (dados.pagamento !== "pix" && dados.pagamento !== "credito") throw new Error("Forma de pagamento inválida.");
 
   const db = getDb();
   const idsUnicos = dados.itens.map((i) => i.itemCardapioId);
@@ -387,8 +391,8 @@ export async function criarPedidoCliente(dados: {
         clienteNome: nomeLimpo,
         telefoneCliente: telefoneLimpo,
         endereco: dados.endereco,
-        status: "novo",
-        formaPagamento: dados.pagamento,
+        status: "aguardando_pagamento",
+        formaPagamento: dados.pagamento === "pix" ? "pix" : "cartao",
         taxaEntrega,
         cpfNota: dados.cpfNota && validarCPF(dados.cpfNota) ? formatarCPF(dados.cpfNota) : null,
         total,
@@ -399,22 +403,38 @@ export async function criarPedidoCliente(dados: {
     return p;
   });
 
-  await baixarEstoque(itensParaSalvar.map((i) => ({ itemCardapioId: i.itemCardapioId, quantidade: i.quantidade }))).catch(
-    (e) => console.error("[estoque] falha ao baixar estoque:", e),
-  );
-  await notificarNovoPedido(dados.restauranteId, ["cozinha", "atendente"], {
-    title: "Novo pedido pelo site!",
-    body: `${nomeLimpo} · ${fmtBRL(total)}`,
-    url: "/cozinha",
-  });
+  // Estoque fica reservado enquanto o pagamento está pendente; volta se o
+  // checkout expirar (ver `cancelarPagamentoOnline`).
+  const itensEstoque = itensParaSalvar.map((i) => ({ itemCardapioId: i.itemCardapioId, quantidade: i.quantidade }));
+  await baixarEstoque(itensEstoque).catch((e) => console.error("[estoque] falha ao baixar estoque:", e));
 
-  revalidatePath("/cozinha");
-  revalidatePath("/motoboy");
-  revalidatePath("/dono");
-  revalidatePath("/dono/cardapio");
-  revalidatePath("/dono/estoque");
+  // Taxa recalculada no servidor, igual a entrega — o valor cobrado nunca vem do navegador.
+  const config = await getConfiguracoes(dados.restauranteId);
+  const valorCobrado = totalComTaxa(total, dados.pagamento === "pix" ? "pix" : "credito_vista", taxasDeConfig(config));
 
-  return { pedidoId: pedido.id };
+  const h = await headers();
+  const origem = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
+
+  try {
+    const checkout = await criarCheckoutAsaas({
+      pedidoId: pedido.id,
+      origem,
+      cobranca: dados.pagamento === "pix" ? "PIX" : "CREDIT_CARD",
+      valor: valorCobrado,
+      descricao: itensParaSalvar.map((i) => `${i.quantidade}x ${i.nome}`).join(", "),
+      cliente: { nome: nomeLimpo, telefone: telefoneLimpo, cpf: dados.cpfNota ?? null },
+    });
+    await db
+      .update(pedidos)
+      .set({ asaasCheckoutId: checkout.id, asaasCheckoutLink: checkout.link })
+      .where(eq(pedidos.id, pedido.id));
+    revalidatePath("/dono/estoque");
+    return { pedidoId: pedido.id, linkPagamento: checkout.link };
+  } catch (e) {
+    await db.update(pedidos).set({ status: "cancelado" }).where(eq(pedidos.id, pedido.id));
+    await devolverEstoque(itensEstoque).catch((err) => console.error("[estoque] falha ao devolver estoque:", err));
+    throw e;
+  }
 }
 
 /** Liga à conta de quem acabou de logar os pedidos que ela fez como
