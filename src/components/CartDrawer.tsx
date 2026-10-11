@@ -107,6 +107,9 @@ export default function CartDrawer({
   const [calculandoDistancia, setCalculandoDistancia] = useState(false);
   const [cpfNota, setCpfNota] = useState("");
   const [cpfPagador, setCpfPagador] = useState("");
+  /** Pedido criado, indo pra página do pedido pagar. Cobre o carrinho com um
+   * carregando até a navegação terminar, pra não parecer que travou. */
+  const [indoPagar, setIndoPagar] = useState(false);
 
   const zonaEncontrada = useMemo(
     () => (tipo === "delivery" ? encontrarZona(zonasEntrega, entrega.bairro) : null),
@@ -248,9 +251,9 @@ export default function CartDrawer({
         clear();
         setCpfNota("");
         if (pagamentoOnline) {
-          // O Pix e o cartão são pagos na página do pedido.
-          onOpenChange(false);
-          setPasso("carrinho");
+          // O Pix e o cartão são pagos na página do pedido. O carrinho fica
+          // aberto com o carregando até ela abrir (o componente some junto).
+          setIndoPagar(true);
           router.push(`/pedido/${pedidoId}`);
           return;
         }
@@ -275,6 +278,19 @@ export default function CartDrawer({
     <>
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="flex max-h-[85vh] w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+        {indoPagar && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background p-6 text-center"
+          >
+            <Loader2 className="size-8 animate-spin text-primary" />
+            <p className="font-semibold">
+              {formaRecebimento === "pix" ? "Gerando seu Pix…" : "Preparando o pagamento…"}
+            </p>
+            <p className="text-sm text-muted-foreground">Só um instante, já vamos abrir a tela de pagamento.</p>
+          </div>
+        )}
         <DialogHeader className="p-4 pb-0">
           <DialogTitle>
             {passo === "carrinho" && "Sua sacola"}
