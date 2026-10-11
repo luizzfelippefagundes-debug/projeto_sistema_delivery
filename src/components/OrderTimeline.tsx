@@ -1,4 +1,4 @@
-import { Check, ChefHat, ClipboardCheck, PackageCheck, Truck, X } from "lucide-react";
+import { Check, ChefHat, ClipboardCheck, Clock, PackageCheck, Truck, X } from "lucide-react";
 import type { OrderStatus } from "@/lib/types";
 
 const PASSOS_ENTREGA = [
@@ -25,6 +25,20 @@ export default function OrderTimeline({ status, retirada }: { status: OrderStatu
           <X className="size-4" />
         </div>
         <p className="text-sm font-medium text-foreground">Pedido cancelado</p>
+      </div>
+    );
+  }
+
+  if (status === "aguardando_pagamento") {
+    return (
+      <div className="flex gap-3">
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-status-warn-bg text-status-warn-fg">
+          <Clock className="size-4" />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-foreground">Aguardando pagamento</p>
+          <p className="text-xs text-muted-foreground">O pedido vai pra cozinha assim que o pagamento for confirmado.</p>
+        </div>
       </div>
     );
   }

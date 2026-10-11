@@ -24,6 +24,8 @@ import {
   type DadosCartao,
   type TitularCartao,
   VALOR_MINIMO_ONLINE,
+  apagarPagamentoAsaas,
+  buscarPixQrCode,
   criarCobrancaAsaas,
   mensagemErroAsaas,
   pagamentoOnlineAtivo,
@@ -443,6 +445,14 @@ export async function criarPedidoCliente(dados: {
       cliente: { nome: nomeLimpo, telefone: telefoneLimpo, cpf: dados.cpfPagador! },
     });
     await db.update(pedidos).set({ asaasPagamentoId: cobranca.id }).where(eq(pedidos.id, pedido.id));
+    // O Asaas cria a cobrança Pix mesmo sem chave Pix na conta e só falha ao
+    // gerar o QR Code — confere aqui pra o cliente ver o erro ainda no carrinho.
+    if (dados.forma === "pix") {
+      await buscarPixQrCode(cobranca.id).catch(async (e) => {
+        await apagarPagamentoAsaas(cobranca.id).catch(() => {});
+        throw e;
+      });
+    }
     revalidatePath("/dono/estoque");
     return { pedidoId: pedido.id };
   } catch (e) {
