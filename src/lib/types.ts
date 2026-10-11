@@ -12,8 +12,6 @@ export type Origem = "salao" | "delivery";
 
 export type Pagamento = "dinheiro" | "cartao" | "pix";
 
-export type PagamentoOnline = "pix" | "credito";
-
 export interface ItemCardapio {
   id: string;
   nome: string;

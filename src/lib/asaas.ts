@@ -4,6 +4,11 @@ const API_URL = process.env.ASAAS_API_URL || "https://api.asaas.com/v3";
 
 export type CobrancaOnline = "PIX" | "CREDIT_CARD";
 
+/** Ligado só depois que a conta do Asaas for aprovada; até lá o cliente paga na entrega. */
+export function pagamentoOnlineAtivo(): boolean {
+  return process.env.ASAAS_PAGAMENTO_ONLINE === "true";
+}
+
 async function imagemBase64(origem: string): Promise<string> {
   // O Asaas exige imagem em todo item do checkout; usamos o logo da loja.
   const res = await fetch(`${origem}/logo-icon.png`);

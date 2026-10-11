@@ -272,6 +272,7 @@ export default function CardapioClient({
   taxasMaquininha,
   bannersDona = [],
   souDona = false,
+  pagamentoOnline = false,
 }: {
   restauranteId: string;
   slug: string;
@@ -284,6 +285,7 @@ export default function CardapioClient({
   /** A própria dona olhando o cardápio como cliente veria — mostra o menu
    * de trocar de painel no cabeçalho. */
   souDona?: boolean;
+  pagamentoOnline?: boolean;
 }) {
   const categorias = Object.keys(itensPorCategoria);
   const [categoriaAtiva, setCategoriaAtiva] = useState(categorias[0] ?? "");
@@ -459,6 +461,7 @@ export default function CardapioClient({
         itensPorId={itensPorId}
         open={sacolaAberta}
         onOpenChange={setSacolaAberta}
+        pagamentoOnline={pagamentoOnline}
       />
     </div>
   );

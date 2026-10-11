@@ -21,9 +21,9 @@ import { podeCancelarPedido } from "../lib/cancelamento";
 import { podeFecharConta } from "../lib/fechamentoMesa";
 import { mesaValida } from "../lib/mesa";
 import { notificarNovoPedido } from "../lib/webPush";
-import { criarCheckoutAsaas } from "../lib/asaas";
-import { taxasDeConfig, totalComTaxa } from "../lib/taxaMaquininha";
-import type { OrderStatus, Pagamento, PagamentoOnline } from "../lib/types";
+import { criarCheckoutAsaas, pagamentoOnlineAtivo } from "../lib/asaas";
+import { type FormaRecebimento, pagamentoDaForma, taxasDeConfig, totalComTaxa } from "../lib/taxaMaquininha";
+import type { OrderStatus, Pagamento } from "../lib/types";
 
 export interface ItemParaEnviar {
   itemCardapioId: string;
@@ -313,12 +313,13 @@ export async function criarPedidoCliente(dados: {
   endereco: string;
   bairro?: string | null;
   telefone?: string;
-  pagamento: PagamentoOnline;
+  forma: FormaRecebimento;
   clienteNome: string;
   cpfNota?: string | null;
-}) {
+}): Promise<{ pedidoId: string; linkPagamento: string | null }> {
   if (dados.itens.length === 0) throw new Error("Sua sacola está vazia.");
-  if (dados.pagamento !== "pix" && dados.pagamento !== "credito") throw new Error("Forma de pagamento inválida.");
+  const online = pagamentoOnlineAtivo();
+  if (online && dados.forma !== "pix" && dados.forma !== "credito_vista") throw new Error("Forma de pagamento inválida.");
 
   const db = getDb();
   const idsUnicos = dados.itens.map((i) => i.itemCardapioId);
@@ -383,8 +384,8 @@ export async function criarPedidoCliente(dados: {
       clienteNome: nomeLimpo,
       telefoneCliente: telefoneLimpo,
       endereco: dados.endereco,
-      status: "aguardando_pagamento",
-      formaPagamento: dados.pagamento === "pix" ? "pix" : "cartao",
+      status: online ? "aguardando_pagamento" : "novo",
+      formaPagamento: pagamentoDaForma(dados.forma),
       taxaEntrega,
       cpfNota: dados.cpfNota && validarCPF(dados.cpfNota) ? formatarCPF(dados.cpfNota) : null,
       total,
@@ -397,9 +398,22 @@ export async function criarPedidoCliente(dados: {
   const itensEstoque = itensParaSalvar.map((i) => ({ itemCardapioId: i.itemCardapioId, quantidade: i.quantidade }));
   await baixarEstoque(itensEstoque).catch((e) => console.error("[estoque] falha ao baixar estoque:", e));
 
+  if (!online) {
+    await notificarNovoPedido(dados.restauranteId, ["cozinha", "atendente"], {
+      title: "Novo pedido pelo site!",
+      body: `${nomeLimpo} · ${fmtBRL(total)}`,
+      url: "/cozinha",
+    });
+    revalidatePath("/cozinha");
+    revalidatePath("/motoboy");
+    revalidatePath("/dono");
+    revalidatePath("/dono/estoque");
+    return { pedidoId: pedido.id, linkPagamento: null };
+  }
+
   // Taxa recalculada no servidor, igual a entrega — o valor cobrado nunca vem do navegador.
   const config = await getConfiguracoes(dados.restauranteId);
-  const valorCobrado = totalComTaxa(total, dados.pagamento === "pix" ? "pix" : "credito_vista", taxasDeConfig(config));
+  const valorCobrado = totalComTaxa(total, dados.forma, taxasDeConfig(config));
 
   const h = await headers();
   const origem = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
@@ -408,7 +422,7 @@ export async function criarPedidoCliente(dados: {
     const checkout = await criarCheckoutAsaas({
       pedidoId: pedido.id,
       origem,
-      cobranca: dados.pagamento === "pix" ? "PIX" : "CREDIT_CARD",
+      cobranca: dados.forma === "pix" ? "PIX" : "CREDIT_CARD",
       valor: valorCobrado,
       descricao: itensParaSalvar.map((i) => `${i.quantidade}x ${i.nome}`).join(", "),
       cliente: { nome: nomeLimpo, telefone: telefoneLimpo, cpf: dados.cpfNota ?? null },

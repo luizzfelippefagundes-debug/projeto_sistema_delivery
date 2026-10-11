@@ -76,6 +76,7 @@ export default function CartDrawer({
   open,
   onOpenChange,
   mesa,
+  pagamentoOnline = false,
 }: {
   restauranteId: string;
   zonasEntrega: ZonaEntregaResumo[];
@@ -87,6 +88,7 @@ export default function CartDrawer({
   /** Presente quando o carrinho foi aberto pelo QR code de uma mesa — pula
    * entrega e pagamento, manda direto pra cozinha via criarPedidoMesa. */
   mesa?: number;
+  pagamentoOnline?: boolean;
 }) {
   const { items, total, setQty, clear } = useCart();
   const { user } = useUser();
@@ -227,16 +229,23 @@ export default function CartDrawer({
           endereco: enderecoFinal,
           bairro: tipo === "delivery" ? entrega.bairro : null,
           telefone: entrega.telefone,
-          pagamento: formaRecebimento === "pix" ? "pix" : "credito",
+          forma: formaRecebimento,
           clienteNome: cliente,
           cpfNota: cpfNota.trim() || null,
         });
         salvarPedidoConvidado(pedidoId);
         clear();
         setCpfNota("");
-        window.location.href = linkPagamento;
+        if (linkPagamento) {
+          window.location.href = linkPagamento;
+          return;
+        }
+        setPedidoId(pedidoId);
+        setPasso("confirmado");
       } catch (e) {
-        setErro(e instanceof Error ? e.message : "Não deu pra confirmar o pedido.");
+        // Em produção o Next troca a mensagem de erro de server action por um texto genérico do React.
+        const msg = e instanceof Error && !e.message.includes("react.dev/errors") ? e.message : null;
+        setErro(msg ?? "Não deu pra confirmar o pedido. Tente de novo em instantes.");
       }
     });
   }
@@ -489,7 +498,15 @@ export default function CartDrawer({
                   {(
                     [
                       { forma: "pix" as FormaRecebimento, label: "Pix" },
-                      { forma: "credito_vista" as FormaRecebimento, label: "Cartão de crédito" },
+                      ...(pagamentoOnline
+                        ? [{ forma: "credito_vista" as FormaRecebimento, label: "Cartão de crédito" }]
+                        : [
+                            { forma: "debito" as FormaRecebimento, label: "Débito" },
+                            { forma: "credito_vista" as FormaRecebimento, label: "Crédito à vista" },
+                            { forma: "credito_2x" as FormaRecebimento, label: "Crédito 2x" },
+                            { forma: "credito_3x" as FormaRecebimento, label: "Crédito 3x" },
+                            { forma: "credito_4x" as FormaRecebimento, label: "Crédito 4x" },
+                          ]),
                     ] as { forma: FormaRecebimento; label: string }[]
                   ).map(({ forma, label }) => {
                     const pct = percentualDaForma(forma, taxasMaquininha);
@@ -516,8 +533,9 @@ export default function CartDrawer({
               </div>
 
               <p className="rounded-xl border border-border p-3 text-center text-sm text-muted-foreground">
-                O pagamento é feito online, numa página segura do Asaas. Seu pedido vai pra cozinha assim que o pagamento for
-                confirmado. Você tem 15 minutos pra pagar.
+                {pagamentoOnline
+                  ? "O pagamento é feito online, numa página segura do Asaas. Seu pedido vai pra cozinha assim que o pagamento for confirmado. Você tem 15 minutos pra pagar."
+                  : `Pague na hora da ${tipo === "retirada" ? "retirada" : "entrega"}, direto com ${tipo === "retirada" ? "quem atender" : "o motoboy"}.`}
               </p>
 
               {erro && <p className="text-sm text-destructive">{erro}</p>}
@@ -572,7 +590,13 @@ export default function CartDrawer({
               <span className="num">{fmtBRL(totalFinal)}</span>
             </div>
             <Button disabled={pending} onClick={confirmarPagamento}>
-              {pending ? "Gerando pagamento…" : "Ir para o pagamento"}
+              {pagamentoOnline
+                ? pending
+                  ? "Gerando pagamento…"
+                  : "Ir para o pagamento"
+                : pending
+                  ? "Confirmando…"
+                  : "Confirmar pedido"}
             </Button>
             <Button variant="outline" onClick={() => setPasso("resumo")}>
               Voltar
