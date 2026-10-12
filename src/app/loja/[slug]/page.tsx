@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import CardapioClient, { type ItemDoCardapio } from "@/components/CardapioClient";
 import { getBannersAtivos } from "@/db/queries/banners";
-import { pagamentoOnlineAtivo } from "@/lib/asaas";
+import { buscarTaxaCartaoAsaas, pagamentoOnlineAtivo } from "@/lib/asaas";
 import { getItensCardapioAtivos, getOpcoesComboPorItens } from "@/db/queries/cardapio";
 import { getConfiguracoes } from "@/db/queries/configuracoes";
 import { getZonasEntrega } from "@/db/queries/entrega";
@@ -48,6 +48,8 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
     getBannersAtivos(restaurante.id),
   ]);
   const opcoesMapa = await getOpcoesComboPorItens(itens.map((i) => i.id));
+  const online = pagamentoOnlineAtivo();
+  const taxaCartaoOnline = online ? await buscarTaxaCartaoAsaas() : null;
   const itensPorCategoria: Record<string, ItemDoCardapio[]> = {};
   for (const item of itens) {
     (itensPorCategoria[item.categoria] ??= []).push({
@@ -79,7 +81,8 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
       }}
       bannersDona={banners.map((b) => ({ id: b.id, imagemUrl: b.imagemUrl, linkUrl: b.linkUrl, titulo: b.titulo, itens: b.itens }))}
       souDona={funcionario?.papel === "dono" && funcionario.restauranteId === restaurante.id}
-      pagamentoOnline={pagamentoOnlineAtivo()}
+      pagamentoOnline={online}
+      taxaCartaoOnline={taxaCartaoOnline}
     />
   );
 }

@@ -26,6 +26,7 @@ import {
   VALOR_MINIMO_ONLINE,
   apagarPagamentoAsaas,
   buscarPixQrCode,
+  buscarTaxaCartaoAsaas,
   criarCobrancaAsaas,
   mensagemErroAsaas,
   pagamentoOnlineAtivo,
@@ -33,7 +34,13 @@ import {
   pagarComCartao,
 } from "../lib/asaas";
 import { confirmarPagamentoOnline } from "../lib/pagamentoOnline";
-import { type FormaRecebimento, pagamentoDaForma, taxasDeConfig, totalComTaxa } from "../lib/taxaMaquininha";
+import {
+  type FormaRecebimento,
+  pagamentoDaForma,
+  taxasDeConfig,
+  totalCartaoOnline,
+  totalComTaxa,
+} from "../lib/taxaMaquininha";
 import type { OrderStatus, Pagamento } from "../lib/types";
 
 export interface ItemParaEnviar {
@@ -427,7 +434,10 @@ export async function criarPedidoCliente(dados: {
 
   // Taxa recalculada no servidor, igual a entrega — o valor cobrado nunca vem do navegador.
   const config = await getConfiguracoes(dados.restauranteId);
-  const valorCobrado = totalComTaxa(total, dados.forma, taxasDeConfig(config));
+  const valorCobrado =
+    dados.forma === "credito_vista"
+      ? totalCartaoOnline(total, await buscarTaxaCartaoAsaas())
+      : totalComTaxa(total, dados.forma, taxasDeConfig(config));
 
   // Erros daqui voltam como `{ error }`: em produção o Next troca a mensagem
   // de uma exceção de server action por um texto genérico.

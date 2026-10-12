@@ -4,7 +4,7 @@ import { Package, Search, ShoppingBag, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import BannersCarousel from "@/components/BannersCarousel";
 import CartDrawer from "@/components/CartDrawer";
-import type { TaxasMaquininha } from "@/lib/taxaMaquininha";
+import type { TaxaCartaoOnline, TaxasMaquininha } from "@/lib/taxaMaquininha";
 import ItemDetalheDialog from "@/components/ItemDetalheDialog";
 import { ItemCard, tintDaCategoria, type ItemDoCardapio } from "@/components/CardapioItemCard";
 import CustomerHeader from "@/components/CustomerHeader";
@@ -273,6 +273,7 @@ export default function CardapioClient({
   bannersDona = [],
   souDona = false,
   pagamentoOnline = false,
+  taxaCartaoOnline = null,
 }: {
   restauranteId: string;
   slug: string;
@@ -286,6 +287,7 @@ export default function CardapioClient({
    * de trocar de painel no cabeçalho. */
   souDona?: boolean;
   pagamentoOnline?: boolean;
+  taxaCartaoOnline?: TaxaCartaoOnline | null;
 }) {
   const categorias = Object.keys(itensPorCategoria);
   const [categoriaAtiva, setCategoriaAtiva] = useState(categorias[0] ?? "");
@@ -462,6 +464,7 @@ export default function CardapioClient({
         open={sacolaAberta}
         onOpenChange={setSacolaAberta}
         pagamentoOnline={pagamentoOnline}
+        taxaCartaoOnline={taxaCartaoOnline}
       />
     </div>
   );

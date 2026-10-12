@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pagamentoDaForma, percentualDaForma, totalComTaxa, type TaxasMaquininha } from "./taxaMaquininha";
+import { pagamentoDaForma, percentualDaForma, totalCartaoOnline, totalComTaxa, type TaxasMaquininha } from "./taxaMaquininha";
 
 const taxas: TaxasMaquininha = {
   taxaPix: 0,
@@ -58,5 +58,26 @@ describe("pagamentoDaForma", () => {
     expect(pagamentoDaForma("credito_2x")).toBe("cartao");
     expect(pagamentoDaForma("credito_3x")).toBe("cartao");
     expect(pagamentoDaForma("credito_4x")).toBe("cartao");
+  });
+});
+
+describe("totalCartaoOnline", () => {
+  const taxa = { percentual: 2.99, fixo: 0.49 };
+
+  it("sobra o total do pedido depois da tarifa do Asaas", () => {
+    for (const total of [5, 7, 50, 80, 150, 333.33]) {
+      const cobrado = totalCartaoOnline(total, taxa);
+      const liquido = cobrado - (cobrado * taxa.percentual) / 100 - taxa.fixo;
+      expect(liquido).toBeGreaterThanOrEqual(total - 1e-9);
+      expect(liquido - total).toBeLessThan(0.01);
+    }
+  });
+
+  it("calcula o exemplo da Coca de R$ 7,00", () => {
+    expect(totalCartaoOnline(7, taxa)).toBe(7.73);
+  });
+
+  it("sem tarifa, cobra o próprio total", () => {
+    expect(totalCartaoOnline(10, { percentual: 0, fixo: 0 })).toBe(10);
   });
 });

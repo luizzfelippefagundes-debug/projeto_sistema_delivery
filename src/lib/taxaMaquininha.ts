@@ -55,6 +55,21 @@ export function totalComTaxa(total: number, forma: FormaRecebimento, taxas: Taxa
   return total * (1 + percentualDaForma(forma, taxas) / 100);
 }
 
+/** Tarifa do Asaas no cartão de crédito online: percentual + valor fixo por cobrança. */
+export interface TaxaCartaoOnline {
+  percentual: number;
+  fixo: number;
+}
+
+/** Total a cobrar no cartão online pra, depois da tarifa do Asaas, sobrar o
+ * total do pedido. A tarifa incide sobre o valor cobrado (que já inclui a
+ * própria taxa), por isso divide em vez de só somar o percentual. Arredonda
+ * pra cima pra nunca faltar centavo. */
+export function totalCartaoOnline(total: number, taxa: TaxaCartaoOnline): number {
+  const bruto = (total + taxa.fixo) / (1 - taxa.percentual / 100);
+  return Math.ceil(bruto * 100 - 1e-6) / 100;
+}
+
 /** Monta o objeto de taxas a partir da linha de `configuracoes` (ou dos
  * defaults da maquininha da Dashi Sushi, se o restaurante ainda não tiver
  * linha de configuração salva). */

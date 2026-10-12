@@ -27,7 +27,13 @@ import { formatarCPF, validarCPF } from "@/lib/cpf";
 import { useCart, type CartItem } from "@/lib/cart";
 import { salvarPedidoConvidado } from "@/lib/pedidosConvidado";
 import type { Pagamento } from "@/lib/types";
-import { type FormaRecebimento, type TaxasMaquininha, percentualDaForma, totalComTaxa } from "@/lib/taxaMaquininha";
+import {
+  type FormaRecebimento,
+  type TaxaCartaoOnline,
+  type TaxasMaquininha,
+  totalCartaoOnline,
+  totalComTaxa,
+} from "@/lib/taxaMaquininha";
 
 type Passo = "carrinho" | "entrega" | "resumo" | "pagamento" | "confirmado";
 type Tipo = "retirada" | "delivery";
@@ -77,6 +83,7 @@ export default function CartDrawer({
   onOpenChange,
   mesa,
   pagamentoOnline = false,
+  taxaCartaoOnline = null,
 }: {
   restauranteId: string;
   zonasEntrega: ZonaEntregaResumo[];
@@ -89,6 +96,9 @@ export default function CartDrawer({
    * entrega e pagamento, manda direto pra cozinha via criarPedidoMesa. */
   mesa?: number;
   pagamentoOnline?: boolean;
+  /** Tarifa do Asaas no crédito: no pagamento online ela substitui o
+   * percentual da maquininha, pra a dona receber o valor cheio. */
+  taxaCartaoOnline?: TaxaCartaoOnline | null;
 }) {
   const { items, total, setQty, clear } = useCart();
   const { user } = useUser();
@@ -117,8 +127,14 @@ export default function CartDrawer({
   );
   const taxaEntrega = tipo === "delivery" ? (zonaEncontrada?.taxaEntrega ?? 0) : 0;
   const totalComEntrega = total + taxaEntrega;
-  const percentualCartao = percentualDaForma(formaRecebimento, taxasMaquininha);
-  const totalFinal = totalComTaxa(totalComEntrega, formaRecebimento, taxasMaquininha);
+  function totalDaForma(forma: FormaRecebimento) {
+    if (pagamentoOnline && taxaCartaoOnline && forma === "credito_vista") {
+      return totalCartaoOnline(totalComEntrega, taxaCartaoOnline);
+    }
+    return totalComTaxa(totalComEntrega, forma, taxasMaquininha);
+  }
+  const totalFinal = totalDaForma(formaRecebimento);
+  const taxaFinal = totalFinal - totalComEntrega;
 
   const enderecoDestino =
     tipo === "delivery" && entrega.rua.trim() && entrega.numero.trim() && entrega.bairro.trim()
@@ -532,8 +548,8 @@ export default function CartDrawer({
                       { forma: "credito_vista" as FormaRecebimento, label: "Cartão de crédito" },
                     ] as { forma: FormaRecebimento; label: string }[]
                   ).map(({ forma, label }) => {
-                    const pct = percentualDaForma(forma, taxasMaquininha);
-                    const totalForma = totalComTaxa(totalComEntrega, forma, taxasMaquininha);
+                    const totalForma = totalDaForma(forma);
+                    const taxaForma = totalForma - totalComEntrega;
                     const selecionado = formaRecebimento === forma;
                     return (
                       <button
@@ -544,8 +560,8 @@ export default function CartDrawer({
                       >
                         <span>{label}</span>
                         <div className="text-right">
-                          {pct > 0 && (
-                            <span className="block text-xs text-muted-foreground">+{pct}% de taxa</span>
+                          {taxaForma >= 0.01 && (
+                            <span className="block text-xs text-muted-foreground">+{fmtBRL(taxaForma)} de taxa</span>
                           )}
                           <span className="num font-semibold">{fmtBRL(totalForma)}</span>
                         </div>
@@ -627,7 +643,7 @@ export default function CartDrawer({
         {passo === "pagamento" && (
           <div className="mt-auto flex flex-col gap-2 border-t border-border p-4">
             <div className="flex justify-between text-sm font-bold">
-              <span>Total{percentualCartao > 0 ? ` (com taxa ${percentualCartao}%)` : ""}</span>
+              <span>Total{taxaFinal >= 0.01 ? ` (com taxa de ${fmtBRL(taxaFinal)})` : ""}</span>
               <span className="num">{fmtBRL(totalFinal)}</span>
             </div>
             <Button disabled={pending} onClick={confirmarPagamento}>
