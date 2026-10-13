@@ -15,6 +15,8 @@ export const dynamic = "force-dynamic";
 export default async function CozinhaPage() {
   const funcionario = await requireFuncionarioAccess("cozinha");
   const tambemAtende = funcionario.papel === "dono" || funcionario.acessosExtras.includes("atendente");
+  const podeDespachar =
+    funcionario.papel === "dono" || funcionario.papel === "motoboy" || funcionario.acessosExtras.includes("motoboy");
 
   const abertos = await getPedidosAbertos(funcionario.restauranteId);
   const doCozinha = abertos.filter((p) => p.status === "novo" || p.status === "preparo" || p.status === "pronto");
@@ -39,7 +41,7 @@ export default async function CozinhaPage() {
     .map((p) => ({ id: p.id, clienteNome: p.clienteNome, endereco: p.endereco, total: p.total, criadoEm: p.criadoEm.getTime() }));
 
   if (!tambemAtende) {
-    return <CozinhaBoard pedidos={pedidosCozinha} />;
+    return <CozinhaBoard pedidos={pedidosCozinha} podeDespachar={podeDespachar} />;
   }
 
   const [itensCardapioTodos, pedidosHoje, config, mesasQuerFechar] = await Promise.all([
@@ -72,6 +74,7 @@ export default async function CozinhaPage() {
       itensCardapio={itensCardapio}
       pedidosPorMesa={pedidosPorMesa}
       pedidosCozinha={pedidosCozinha}
+      podeDespachar={podeDespachar}
       deliveryEmRota={deliveryEmRota}
       resumo={resumo}
       taxas={taxasDeConfig(config)}

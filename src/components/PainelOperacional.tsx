@@ -28,6 +28,7 @@ export default function PainelOperacional({
   itensCardapio,
   pedidosPorMesa,
   pedidosCozinha,
+  podeDespachar = false,
   deliveryEmRota = [],
   resumo,
   taxas,
@@ -37,6 +38,7 @@ export default function PainelOperacional({
   itensCardapio: ItemCardapio[];
   pedidosPorMesa: Record<number, PedidoAbertoResumo[]>;
   pedidosCozinha: PedidoCozinha[];
+  podeDespachar?: boolean;
   deliveryEmRota?: PedidoRota[];
   resumo: { pedidosHoje: number; faturadoHoje: number; atrasados: number };
   taxas: TaxasMaquininha;
@@ -107,7 +109,7 @@ export default function PainelOperacional({
 
       <div>
         <h2 className="mb-3 font-heading text-lg font-semibold">Pedidos pra cozinha</h2>
-        <CozinhaBoard pedidos={pedidosCozinha} />
+        <CozinhaBoard pedidos={pedidosCozinha} podeDespachar={podeDespachar} />
       </div>
     </div>
   );

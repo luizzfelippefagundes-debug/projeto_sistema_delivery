@@ -163,11 +163,13 @@ export async function avancarStatusEntrega(pedidoId: string, novoStatus: OrderSt
     .update(pedidos)
     .set({
       status: novoStatus,
-      ...(novoStatus === "rota" ? { entregadorId: funcionario.id } : {}),
+      // A dona também despacha pela Atendimento; só motoboy conta como entregador no histórico.
+      ...(novoStatus === "rota" && funcionario.papel === "motoboy" ? { entregadorId: funcionario.id } : {}),
     })
     .where(and(eq(pedidos.id, pedidoId), eq(pedidos.restauranteId, funcionario.restauranteId)))
     .returning();
   revalidatePath("/motoboy");
+  revalidatePath("/cozinha");
   revalidatePath("/dono");
 
   if (pedido?.telefoneCliente && (novoStatus === "rota" || novoStatus === "entregue")) {
