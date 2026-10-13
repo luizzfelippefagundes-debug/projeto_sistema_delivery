@@ -13,7 +13,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const doisHorasAtras = new Date(Date.now() - 2 * 60 * 60 * 1000);
+  // Conta desde a criação do pedido, e tem pedido que leva mais de 3h só pra ficar pronto.
+  const seisHorasAtras = new Date(Date.now() - 6 * 60 * 60 * 1000);
 
   const atualizados = await getDb()
     .update(pedidos)
@@ -21,7 +22,7 @@ export async function GET(request: Request) {
     .where(
       and(
         eq(pedidos.status, "rota"),
-        lt(pedidos.criadoEm, doisHorasAtras),
+        lt(pedidos.criadoEm, seisHorasAtras),
       ),
     )
     .returning({ id: pedidos.id });

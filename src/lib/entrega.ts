@@ -14,3 +14,13 @@ export function encontrarZona<T extends { bairro: string }>(zonas: T[], bairro: 
   if (!alvo) return null;
   return zonas.find((z) => normalizar(z.bairro) === alvo) ?? null;
 }
+
+/** Endereço só com rua, número e bairro, pro Google Maps/Waze acharem o
+ * lugar: o carrinho grava "Rua, 12 - complemento - Bairro (Ref: ...)" e o
+ * complemento e a referência fazem a busca do mapa falhar. */
+export function enderecoParaMapa(endereco: string): string {
+  const semReferencia = endereco.replace(/\s*\(Ref:[\s\S]*\)\s*$/, "").trim();
+  const partes = semReferencia.split(" - ");
+  if (partes.length < 3) return semReferencia;
+  return `${partes[0]} - ${partes[partes.length - 1]}`;
+}

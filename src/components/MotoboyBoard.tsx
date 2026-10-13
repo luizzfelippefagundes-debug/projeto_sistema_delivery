@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import StatusBadge from "@/components/StatusBadge";
 import { fmtBRL } from "@/lib/data";
+import { enderecoParaMapa } from "@/lib/entrega";
 import type { OrderStatus, Pagamento } from "@/lib/types";
 
 export interface PedidoEntrega {
@@ -38,7 +39,7 @@ function iniciais(nome: string) {
 }
 
 function navUrls(endereco: string, enderecoLoja: string | null) {
-  const destino = encodeURIComponent(endereco);
+  const destino = encodeURIComponent(enderecoParaMapa(endereco));
   const origem = enderecoLoja ? encodeURIComponent(enderecoLoja) : "";
   const googleMaps = origem
     ? `https://www.google.com/maps/dir/?api=1&origin=${origem}&destination=${destino}&travelmode=driving`

@@ -41,19 +41,19 @@ describe("minAgo e estaAtrasado", () => {
     expect(minAgo(Date.now() - 5 * 60_000)).toBe("5 min");
   });
 
-  it("não considera atrasado antes dos 20 minutos", () => {
-    const criadoEm = Date.now() - 19 * 60_000;
+  it("não considera atrasado antes das 4 horas", () => {
+    const criadoEm = Date.now() - (4 * 60 - 1) * 60_000;
     expect(estaAtrasado(criadoEm, "novo")).toBe(false);
   });
 
-  it("considera atrasado depois dos 20 minutos, só em novo/preparo", () => {
-    const criadoEm = Date.now() - 21 * 60_000;
+  it("considera atrasado depois das 4 horas, só em novo/preparo", () => {
+    const criadoEm = Date.now() - (4 * 60 + 1) * 60_000;
     expect(estaAtrasado(criadoEm, "novo")).toBe(true);
     expect(estaAtrasado(criadoEm, "preparo")).toBe(true);
   });
 
   it("nunca considera atrasado pedido já pronto/entregue/finalizado", () => {
-    const criadoEm = Date.now() - 60 * 60_000;
+    const criadoEm = Date.now() - 5 * 60 * 60_000;
     expect(estaAtrasado(criadoEm, "pronto")).toBe(false);
     expect(estaAtrasado(criadoEm, "entregue")).toBe(false);
     expect(estaAtrasado(criadoEm, "finalizado")).toBe(false);

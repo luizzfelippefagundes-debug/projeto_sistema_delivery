@@ -27,6 +27,7 @@ export default async function CozinhaPage() {
     origem: p.origem,
     mesa: p.mesa,
     clienteNome: p.clienteNome,
+    endereco: p.endereco,
     status: p.status,
     total: p.total,
     criadoEm: p.criadoEm.getTime(),

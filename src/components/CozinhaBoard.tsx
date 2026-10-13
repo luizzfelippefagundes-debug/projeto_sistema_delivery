@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Printer } from "lucide-react";
+import { AlertTriangle, MapPin, Printer } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useTransition } from "react";
 import { avancarStatusCozinha } from "@/actions/pedidos.actions";
@@ -15,6 +15,7 @@ export interface PedidoCozinha {
   origem: "salao" | "delivery";
   mesa: number | null;
   clienteNome: string | null;
+  endereco: string | null;
   status: OrderStatus;
   total: number;
   criadoEm: number;
@@ -87,6 +88,12 @@ export default function CozinhaBoard({ pedidos }: { pedidos: PedidoCozinha[] }) 
                           </Button>
                         </div>
                       </div>
+                      {o.origem === "delivery" && o.endereco && (
+                        <p className="flex items-start gap-1.5 text-sm">
+                          <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                          <span>{o.endereco}</span>
+                        </p>
+                      )}
                       <ul className="list-disc pl-4 text-xs text-muted-foreground">
                         {o.itens.map((i) => (
                           <li key={i.nome}>

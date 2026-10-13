@@ -38,8 +38,9 @@ export function origemLabel(pedido: { origem: Origem; mesa?: number | null; clie
 
 /** Minutos a partir dos quais um pedido ainda em "novo"/"preparo" é
  * considerado atrasado — usado tanto no resumo do dia quanto pra destacar
- * o cartão na cozinha. */
-export const MIN_PARA_ATRASADO = 20;
+ * o cartão na cozinha. Alto de propósito: tem pedido grande que leva mais de
+ * 3 horas pra ficar pronto. */
+export const MIN_PARA_ATRASADO = 4 * 60;
 
 export function estaAtrasado(criadoEm: number, status: OrderStatus): boolean {
   if (status !== "novo" && status !== "preparo") return false;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { encontrarZona } from "./entrega";
+import { encontrarZona, enderecoParaMapa } from "./entrega";
 
 describe("encontrarZona", () => {
   const zonas = [
@@ -32,5 +32,27 @@ describe("encontrarZona", () => {
 
   it("retorna null quando não há zonas cadastradas", () => {
     expect(encontrarZona([], "Centro")).toBeNull();
+  });
+});
+
+describe("enderecoParaMapa", () => {
+  it("tira a referência do final", () => {
+    expect(enderecoParaMapa("Rua das Flores, 120 - Centro (Ref: casa azul perto da padaria)")).toBe(
+      "Rua das Flores, 120 - Centro",
+    );
+  });
+
+  it("tira o complemento entre o número e o bairro", () => {
+    expect(enderecoParaMapa("Rua das Flores, 120 - Apto 32 bloco B - Centro (Ref: portão preto)")).toBe(
+      "Rua das Flores, 120 - Centro",
+    );
+  });
+
+  it("mantém endereço sem complemento nem referência", () => {
+    expect(enderecoParaMapa("Av. Brasil, 45 - São José")).toBe("Av. Brasil, 45 - São José");
+  });
+
+  it("não mexe em endereço digitado livre (WhatsApp)", () => {
+    expect(enderecoParaMapa("rua tal 50 bairro centro")).toBe("rua tal 50 bairro centro");
   });
 });
