@@ -23,6 +23,7 @@ export interface ItemCardapio {
   estoqueAtual: number | null;
   estoqueMinimo: number | null;
   qtdPecasEscolha: number | null;
+  escolhaLivre: boolean;
 }
 
 export type PapelFuncionario = "dono" | "atendente" | "cozinha" | "motoboy";

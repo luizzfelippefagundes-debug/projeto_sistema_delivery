@@ -353,7 +353,7 @@ export default function CartDrawer({
                             onClick={() => setEditando(i)}
                             className="mt-0.5 flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                           >
-                            <Pencil className="size-3" /> Editar peças
+                            <Pencil className="size-3" /> Editar escolhas
                           </button>
                         </>
                       )}

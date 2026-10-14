@@ -86,6 +86,9 @@ export const itensCardapio = pgTable("itens_cardapio", {
    * cliente escolhe as peças (ver opcoesCombo) até bater essa quantidade
    * antes de conseguir adicionar na sacola. */
   qtdPecasEscolha: integer("qtd_pecas_escolha"),
+  /** "Monte do seu jeito" (ex: poke): o cliente marca de 1 até
+   * `qtdPecasEscolha` opções, em vez de precisar fechar a quantidade exata. */
+  escolhaLivre: boolean("escolha_livre").notNull().default(false),
   ativo: boolean("ativo").notNull().default(true),
   criadoEm: timestamp("criado_em").notNull().defaultNow(),
 });

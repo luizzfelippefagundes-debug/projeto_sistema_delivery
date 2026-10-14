@@ -35,6 +35,7 @@ export interface ItemDoCardapio {
   preco: number;
   imagemUrl: string | null;
   qtdPecasEscolha: number | null;
+  escolhaLivre?: boolean;
   opcoes: { id: string; nome: string; limiteQuantidade: number | null; disponivel: boolean }[];
 }
 

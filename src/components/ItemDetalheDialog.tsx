@@ -1,6 +1,6 @@
 "use client";
 
-import { Minus, Plus } from "lucide-react";
+import { Check, Minus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   Dialog,
@@ -36,7 +36,8 @@ export default function ItemDetalheDialog({
   const [escolhas, setEscolhas] = useState<Record<string, number>>({});
 
   const ehCombo = item?.qtdPecasEscolha != null && (item?.opcoes.length ?? 0) > 0;
-  const ehEscolhaTipo = ehCombo && (item?.qtdPecasEscolha ?? 0) === 1;
+  const ehMonteSeuJeito = ehCombo && !!item?.escolhaLivre;
+  const ehEscolhaTipo = ehCombo && !ehMonteSeuJeito && (item?.qtdPecasEscolha ?? 0) === 1;
   const qtdEscolhida = totalEscolhido(escolhas);
   const restante = (item?.qtdPecasEscolha ?? 0) - qtdEscolhida;
 
@@ -71,7 +72,7 @@ export default function ItemDetalheDialog({
     onOpenChange(false);
   }
 
-  const podeAdicionar = !ehCombo || qtdEscolhida === item?.qtdPecasEscolha;
+  const podeAdicionar = !ehCombo || (ehMonteSeuJeito ? qtdEscolhida >= 1 : qtdEscolhida === item?.qtdPecasEscolha);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -100,7 +101,40 @@ export default function ItemDetalheDialog({
               </div>
               <span className="num text-lg font-bold text-primary">{fmtBRL(item.preco)}</span>
 
-              {ehCombo && (
+              {ehMonteSeuJeito && (
+                <div className="flex flex-col gap-2 border-t border-border pt-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold">Monte do seu jeito</p>
+                    <span className={`num text-sm font-semibold ${qtdEscolhida > 0 ? "text-status-ok-fg" : "text-muted-foreground"}`}>
+                      {qtdEscolhida} {qtdEscolhida === 1 ? "escolhido" : "escolhidos"}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    {item.opcoes.filter((op) => op.disponivel !== false).map((op) => {
+                      const marcado = (escolhas[op.nome] ?? 0) > 0;
+                      return (
+                        <button
+                          key={op.id}
+                          type="button"
+                          aria-pressed={marcado}
+                          disabled={!marcado && restante <= 0}
+                          onClick={() => ajustarEscolha(op.nome, marcado ? -1 : 1)}
+                          className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors disabled:opacity-50 ${marcado ? "border-primary bg-primary/5 font-medium" : "border-border hover:border-primary/50"}`}
+                        >
+                          <span
+                            className={`flex size-5 shrink-0 items-center justify-center rounded border ${marcado ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/50"}`}
+                          >
+                            {marcado && <Check className="size-3.5" />}
+                          </span>
+                          {op.nome}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {ehCombo && !ehMonteSeuJeito && (
                 <div className="flex flex-col gap-2 border-t border-border pt-3">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-semibold">{ehEscolhaTipo ? "Escolha o tipo" : "Escolha as peças"}</p>
@@ -186,7 +220,9 @@ export default function ItemDetalheDialog({
         <div className="mt-auto border-t border-border p-4">
           <Button className="w-full" disabled={!podeAdicionar} onClick={confirmar}>
             {ehCombo && !podeAdicionar
-              ? ehEscolhaTipo ? "Escolha o tipo" : `Escolha mais ${restante} ${restante === 1 ? "peça" : "peças"}`
+              ? ehMonteSeuJeito
+                ? "Escolha pelo menos 1 ingrediente"
+                : ehEscolhaTipo ? "Escolha o tipo" : `Escolha mais ${restante} ${restante === 1 ? "peça" : "peças"}`
               : edicao
                 ? "Salvar alterações"
                 : `Adicionar · ${fmtBRL((item?.preco ?? 0) * (ehCombo ? 1 : qtd))}`}

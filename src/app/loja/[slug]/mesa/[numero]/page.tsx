@@ -44,6 +44,7 @@ export default async function LojaMesaPage({
       preco: item.preco,
       imagemUrl: item.imagemUrl,
       qtdPecasEscolha: item.qtdPecasEscolha,
+      escolhaLivre: item.escolhaLivre,
       opcoes: opcoesMapa.get(item.id) ?? [],
     });
   }

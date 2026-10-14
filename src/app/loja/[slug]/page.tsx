@@ -59,6 +59,7 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
       preco: item.preco,
       imagemUrl: item.imagemUrl,
       qtdPecasEscolha: item.qtdPecasEscolha,
+      escolhaLivre: item.escolhaLivre,
       opcoes: opcoesMapa.get(item.id) ?? [],
     });
   }

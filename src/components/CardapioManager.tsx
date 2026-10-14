@@ -100,7 +100,7 @@ export default function CardapioManager({
                     </Badge>
                     {item.qtdPecasEscolha != null && (
                       <Badge className="bg-status-neutral-bg text-status-neutral-fg">
-                        Combo · {item.qtdPecasEscolha} peças
+                        {item.escolhaLivre ? "Monte do seu jeito" : `Combo · ${item.qtdPecasEscolha} peças`}
                       </Badge>
                     )}
                     {item.estoqueAtual != null && (
@@ -169,7 +169,11 @@ export default function CardapioManager({
                         <div>
                           {item.nome}
                           {item.qtdPecasEscolha != null && (
-                            <p className="text-xs text-muted-foreground">Combo · {item.qtdPecasEscolha} peças para escolher</p>
+                            <p className="text-xs text-muted-foreground">
+                              {item.escolhaLivre
+                                ? "Monte do seu jeito: cliente escolhe os ingredientes"
+                                : `Combo · ${item.qtdPecasEscolha} peças para escolher`}
+                            </p>
                           )}
                         </div>
                       </div>
