@@ -213,7 +213,7 @@ export default function BannersManager({
 
       <div className="flex flex-col gap-6">
         <p className="text-sm text-muted-foreground">
-          Banners aparecem no topo do cardápio. Recomendado: imagem horizontal (16:9), até 2 MB.
+          Banners aparecem no topo do cardápio. A imagem aparece inteira, no formato que você subir (quadrada, em pé ou deitada). Até 2 MB.
         </p>
 
         {!mostraForm ? (
@@ -232,7 +232,7 @@ export default function BannersManager({
               {base64Preview ? (
                 <div className="relative rounded-xl overflow-hidden border border-border">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={base64Preview} alt="Preview" className="aspect-[16/6] w-full object-cover" />
+                  <img src={base64Preview} alt="Preview" className="mx-auto block h-auto max-h-72 w-auto max-w-full" />
                   <button
                     type="button"
                     onClick={() => setBase64Preview(null)}
@@ -312,7 +312,7 @@ export default function BannersManager({
             {banners.map((b) => (
               <div key={b.id} className="relative overflow-hidden rounded-xl border border-border">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={b.imagemUrl} alt="" className="aspect-[16/6] w-full object-cover" />
+                <img src={b.imagemUrl} alt="" className="mx-auto block h-auto max-h-72 w-auto max-w-full" />
                 {(b.titulo || b.itens.length > 0) && (
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2">
                     {b.titulo && <p className="text-white font-semibold text-sm">{b.titulo}</p>}

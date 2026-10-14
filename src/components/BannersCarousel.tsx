@@ -49,61 +49,64 @@ export default function BannersCarousel({ banners }: { banners: Banner[] }) {
     );
 
   return (
-    <div className="relative w-full overflow-hidden">
-      <Wrapper>
-        <div className="relative">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={banner.imagemUrl}
-            alt={banner.titulo ?? ""}
-            className="aspect-[16/5] w-full object-cover"
-          />
-          {temOverlay && (
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2">
-              {banner.titulo && (
-                <p className="text-white font-semibold text-sm leading-tight">{banner.titulo}</p>
-              )}
-              {banner.itens.length > 0 && (
-                <p className="text-white/90 text-xs mt-0.5">
-                  {banner.itens.map((i) => `${i.nome} ${formatPreco(i.precoPromocional)}`).join(" + ")}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      </Wrapper>
-
-      {banners.length > 1 && (
-        <>
-          <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1.5">
-            {banners.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => avancar(i)}
-                aria-label={`Ir para banner ${i + 1}`}
-                className={`size-1.5 rounded-full transition-all ${i === atual ? "w-4 bg-white" : "bg-white/50"}`}
-              />
-            ))}
+    <div className="mx-auto w-full max-w-2xl pt-4">
+      <div className="relative overflow-hidden rounded-2xl bg-muted shadow-lg">
+        <Wrapper>
+          {/* Arte no formato original (a dona sobe quadrado, retrato ou paisagem); só limita a altura. */}
+          <div className="relative mx-auto w-fit">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={banner.imagemUrl}
+              alt={banner.titulo ?? ""}
+              className="block h-auto max-h-[480px] w-auto max-w-full"
+            />
+            {temOverlay && (
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2">
+                {banner.titulo && (
+                  <p className="text-white font-semibold text-sm leading-tight">{banner.titulo}</p>
+                )}
+                {banner.itens.length > 0 && (
+                  <p className="text-white/90 text-xs mt-0.5">
+                    {banner.itens.map((i) => `${i.nome} ${formatPreco(i.precoPromocional)}`).join(" + ")}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
-          <button
-            type="button"
-            onClick={() => avancar(atual - 1)}
-            aria-label="Anterior"
-            className="absolute left-2 top-1/2 -translate-y-1/2 flex size-7 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            onClick={() => avancar(atual + 1)}
-            aria-label="Próximo"
-            className="absolute right-2 top-1/2 -translate-y-1/2 flex size-7 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
-          >
-            ›
-          </button>
-        </>
-      )}
+        </Wrapper>
+
+        {banners.length > 1 && (
+          <>
+            <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1.5">
+              {banners.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => avancar(i)}
+                  aria-label={`Ir para banner ${i + 1}`}
+                  className={`size-1.5 rounded-full transition-all ${i === atual ? "w-4 bg-white" : "bg-white/50"}`}
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => avancar(atual - 1)}
+              aria-label="Anterior"
+              className="absolute left-2 top-1/2 -translate-y-1/2 flex size-7 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={() => avancar(atual + 1)}
+              aria-label="Próximo"
+              className="absolute right-2 top-1/2 -translate-y-1/2 flex size-7 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
+            >
+              ›
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }
