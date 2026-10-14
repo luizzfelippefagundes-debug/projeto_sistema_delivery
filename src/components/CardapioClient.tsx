@@ -3,7 +3,6 @@
 import { Package, Search, ShoppingBag, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import AvisoFuncionamento from "@/components/AvisoFuncionamento";
-import BannersCarousel from "@/components/BannersCarousel";
 import type { Horarios } from "@/lib/horario";
 import CartDrawer from "@/components/CartDrawer";
 import type { TaxaCartaoOnline, TaxasMaquininha } from "@/lib/taxaMaquininha";
@@ -134,7 +133,77 @@ function BannerKids({
   );
 }
 
-function BannerCarousel({ itensPorCategoria }: { itensPorCategoria: Record<string, ItemDoCardapio[]> }) {
+type BannerDaDona = {
+  id: string;
+  imagemUrl: string;
+  linkUrl: string | null;
+  titulo: string | null;
+  itens: { id: string; nome: string; precoPromocional: number }[];
+};
+
+/** Banner que a dona sobe pelo painel, no mesmo formato dos fixos: a arte em
+ * cima e um "Pedir" por item ligado ao banner, que abre o item do cardápio
+ * com o mesmo nome. */
+function BannerDona({
+  banner,
+  itensPorCategoria,
+  onAbrirItem,
+}: {
+  banner: BannerDaDona;
+  itensPorCategoria: Record<string, ItemDoCardapio[]>;
+  onAbrirItem: (item: ItemDoCardapio) => void;
+}) {
+  const todosItens = Object.values(itensPorCategoria).flat();
+  const opcoes = banner.itens
+    .map((b) => ({ banner: b, item: todosItens.find((i) => i.nome === b.nome) }))
+    .filter((o): o is { banner: BannerDaDona["itens"][number]; item: ItemDoCardapio } => o.item != null);
+
+  return (
+    <div className="overflow-hidden bg-zinc-900">
+      <div className="relative">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={banner.imagemUrl} alt={banner.titulo ?? ""} className="h-56 w-full object-cover object-top" />
+        {banner.titulo && (
+          <>
+            <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/95 via-zinc-900/20 to-transparent" />
+            <h2 className="absolute bottom-3 left-4 font-heading text-2xl font-black leading-none text-white">
+              {banner.titulo}
+            </h2>
+          </>
+        )}
+      </div>
+      {opcoes.length > 0 && (
+        <div
+          className="grid gap-px bg-zinc-700 p-px"
+          style={{ gridTemplateColumns: `repeat(${Math.min(opcoes.length, 3)}, minmax(0, 1fr))` }}
+        >
+          {opcoes.map(({ banner: b, item }) => (
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => onAbrirItem({ ...item, imagemUrl: item.imagemUrl ?? banner.imagemUrl })}
+              className="flex flex-col items-center gap-1 bg-zinc-900 px-2 py-3 text-center transition-colors hover:bg-zinc-800 active:bg-zinc-700"
+            >
+              <span className="text-[10px] font-bold leading-tight text-red-400">
+                {b.nome.includes(" · ") ? b.nome.split(" · ").slice(1).join(" · ") : b.nome}
+              </span>
+              <span className="num text-sm font-black text-white">{fmtBRL(b.precoPromocional)}</span>
+              <span className="mt-0.5 rounded bg-red-700 px-2 py-0.5 text-[10px] font-semibold text-white">Pedir</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BannerCarousel({
+  itensPorCategoria,
+  bannersDona,
+}: {
+  itensPorCategoria: Record<string, ItemDoCardapio[]>;
+  bannersDona: BannerDaDona[];
+}) {
   const [itemAberto, setItemAberto] = useState<ItemDoCardapio | null>(null);
   const [slide, setSlide] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
@@ -145,7 +214,7 @@ function BannerCarousel({ itensPorCategoria }: { itensPorCategoria: Record<strin
 
   const temSurpresa = Object.values(itensPorCategoria).flat().some((i) => i.nome.toLowerCase().includes("surpresa"));
   const temKids = (itensPorCategoria["Especial Kids"] ?? []).length > 0;
-  const total = [temSurpresa, temKids].filter(Boolean).length;
+  const total = bannersDona.length + [temSurpresa, temKids].filter(Boolean).length;
 
   function goTo(idx: number) {
     const next = Math.max(0, Math.min(idx, total - 1));
@@ -200,6 +269,9 @@ function BannerCarousel({ itensPorCategoria }: { itensPorCategoria: Record<strin
   if (total === 0) return null;
 
   const slides = [
+    ...bannersDona.map((b) => (
+      <BannerDona key={b.id} banner={b} itensPorCategoria={itensPorCategoria} onAbrirItem={setItemAberto} />
+    )),
     temSurpresa && <BannerSurpresa key="surpresa" itensPorCategoria={itensPorCategoria} onAbrirItem={setItemAberto} />,
     temKids && <BannerKids key="kids" itensPorCategoria={itensPorCategoria} onAbrirItem={setItemAberto} />,
   ].filter(Boolean);
@@ -285,7 +357,7 @@ export default function CardapioClient({
   zonasEntrega: ZonaEntregaResumo[];
   enderecoLoja: string | null;
   taxasMaquininha: TaxasMaquininha;
-  bannersDona?: { id: string; imagemUrl: string; linkUrl: string | null; titulo: string | null; itens: { id: string; nome: string; precoPromocional: number }[] }[];
+  bannersDona?: BannerDaDona[];
   /** A própria dona olhando o cardápio como cliente veria — mostra o menu
    * de trocar de painel no cabeçalho. */
   souDona?: boolean;
@@ -352,9 +424,7 @@ export default function CardapioClient({
       <CustomerHeader nomeRestaurante={nomeRestaurante} slug={slug} souDona={souDona} />
       <AvisoFuncionamento horarios={horarios} />
 
-      {bannersDona.length > 0 && <BannersCarousel banners={bannersDona} />}
-
-      <BannerCarousel itensPorCategoria={itensPorCategoria} />
+      <BannerCarousel itensPorCategoria={itensPorCategoria} bannersDona={bannersDona} />
 
       {categorias.length === 0 ? (
         <div className="flex flex-1 items-center justify-center p-6">

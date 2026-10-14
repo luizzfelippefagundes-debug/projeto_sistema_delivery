@@ -39,6 +39,13 @@ export default function ItemDetalheDialog({
   const ehMonteSeuJeito = ehCombo && !!item?.escolhaLivre;
   const ehEscolhaTipo = ehCombo && !ehMonteSeuJeito && (item?.qtdPecasEscolha ?? 0) === 1;
   const qtdEscolhida = totalEscolhido(escolhas);
+  const opcoesDisponiveis = (item?.opcoes ?? []).filter((op) => op.disponivel !== false);
+  // "Monte do seu jeito": opções com grupo são escolha única obrigatória (ex: salmão cru ou grelhado).
+  const grupos = [...new Set(opcoesDisponiveis.map((op) => op.grupo).filter((g): g is string => !!g))];
+  const opcoesLivres = opcoesDisponiveis.filter((op) => !op.grupo);
+  const livresMarcadas = opcoesLivres.filter((op) => (escolhas[op.nome] ?? 0) > 0).length;
+  const maxLivres = Math.max(0, (item?.qtdPecasEscolha ?? opcoesLivres.length) - grupos.length);
+  const grupoPendente = grupos.find((g) => !opcoesDisponiveis.some((op) => op.grupo === g && (escolhas[op.nome] ?? 0) > 0));
   const restante = (item?.qtdPecasEscolha ?? 0) - qtdEscolhida;
 
   useEffect(() => {
@@ -53,6 +60,15 @@ export default function ItemDetalheDialog({
   function ajustarEscolha(nome: string, delta: number) {
     if (!item) return;
     setEscolhas((prev) => aplicarEscolha(prev, item.opcoes, item.qtdPecasEscolha ?? 0, nome, delta));
+  }
+
+  function escolherNoGrupo(grupo: string, nome: string) {
+    setEscolhas((prev) => {
+      const sem = Object.fromEntries(
+        Object.entries(prev).filter(([n]) => !opcoesDisponiveis.some((op) => op.grupo === grupo && op.nome === n)),
+      );
+      return { [nome]: 1, ...sem };
+    });
   }
 
   function confirmar() {
@@ -72,7 +88,8 @@ export default function ItemDetalheDialog({
     onOpenChange(false);
   }
 
-  const podeAdicionar = !ehCombo || (ehMonteSeuJeito ? qtdEscolhida >= 1 : qtdEscolhida === item?.qtdPecasEscolha);
+  const podeAdicionar =
+    !ehCombo || (ehMonteSeuJeito ? !grupoPendente && livresMarcadas >= 1 : qtdEscolhida === item?.qtdPecasEscolha);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -101,24 +118,64 @@ export default function ItemDetalheDialog({
               </div>
               <span className="num text-lg font-bold text-primary">{fmtBRL(item.preco)}</span>
 
+              {ehMonteSeuJeito &&
+                grupos.map((grupo) => (
+                  <div key={grupo} className="flex flex-col gap-2 border-t border-border pt-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold">{grupo}</p>
+                      <span className="text-xs text-muted-foreground">escolha 1</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {opcoesDisponiveis
+                        .filter((op) => op.grupo === grupo)
+                        .map((op) => {
+                          const marcado = (escolhas[op.nome] ?? 0) > 0;
+                          return (
+                            <button
+                              key={op.id}
+                              type="button"
+                              role="radio"
+                              aria-checked={marcado}
+                              onClick={() => escolherNoGrupo(grupo, op.nome)}
+                              className={`flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${marcado ? "border-primary bg-primary/5 font-medium" : "border-border hover:border-primary/50"}`}
+                            >
+                              <span
+                                className={`flex size-4 shrink-0 items-center justify-center rounded-full border ${marcado ? "border-primary" : "border-muted-foreground/50"}`}
+                              >
+                                {marcado && <span className="size-2 rounded-full bg-primary" />}
+                              </span>
+                              {op.nome}
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </div>
+                ))}
+
               {ehMonteSeuJeito && (
                 <div className="flex flex-col gap-2 border-t border-border pt-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold">Monte do seu jeito</p>
-                    <span className={`num text-sm font-semibold ${qtdEscolhida > 0 ? "text-status-ok-fg" : "text-muted-foreground"}`}>
-                      {qtdEscolhida} {qtdEscolhida === 1 ? "escolhido" : "escolhidos"}
+                    <p className="text-sm font-semibold">{grupos.length > 0 ? "Ingredientes" : "Monte do seu jeito"}</p>
+                    <span className={`num text-sm font-semibold ${livresMarcadas > 0 ? "text-status-ok-fg" : "text-muted-foreground"}`}>
+                      {livresMarcadas} {livresMarcadas === 1 ? "escolhido" : "escolhidos"}
                     </span>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    {item.opcoes.filter((op) => op.disponivel !== false).map((op) => {
+                    {opcoesLivres.map((op) => {
                       const marcado = (escolhas[op.nome] ?? 0) > 0;
                       return (
                         <button
                           key={op.id}
                           type="button"
                           aria-pressed={marcado}
-                          disabled={!marcado && restante <= 0}
-                          onClick={() => ajustarEscolha(op.nome, marcado ? -1 : 1)}
+                          disabled={!marcado && livresMarcadas >= maxLivres}
+                          onClick={() =>
+                            setEscolhas((prev) =>
+                              marcado
+                                ? Object.fromEntries(Object.entries(prev).filter(([n]) => n !== op.nome))
+                                : { ...prev, [op.nome]: 1 },
+                            )
+                          }
                           className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors disabled:opacity-50 ${marcado ? "border-primary bg-primary/5 font-medium" : "border-border hover:border-primary/50"}`}
                         >
                           <span
@@ -221,7 +278,9 @@ export default function ItemDetalheDialog({
           <Button className="w-full" disabled={!podeAdicionar} onClick={confirmar}>
             {ehCombo && !podeAdicionar
               ? ehMonteSeuJeito
-                ? "Escolha pelo menos 1 ingrediente"
+                ? grupoPendente
+                  ? `Escolha: ${textoGrupo(opcoesDisponiveis, grupoPendente)}`
+                  : "Escolha pelo menos 1 ingrediente"
                 : ehEscolhaTipo ? "Escolha o tipo" : `Escolha mais ${restante} ${restante === 1 ? "peça" : "peças"}`
               : edicao
                 ? "Salvar alterações"
@@ -231,4 +290,10 @@ export default function ItemDetalheDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+/** "Salmão cru ou Salmão grelhado" — o que falta escolher no grupo. */
+function textoGrupo(opcoes: { nome: string; grupo?: string | null }[], grupo: string) {
+  const nomes = opcoes.filter((op) => op.grupo === grupo).map((op) => op.nome);
+  return nomes.length > 1 ? `${nomes.slice(0, -1).join(", ")} ou ${nomes[nomes.length - 1]}` : grupo;
 }

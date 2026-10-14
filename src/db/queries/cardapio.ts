@@ -23,6 +23,7 @@ export interface OpcaoComboResumo {
   nome: string;
   limiteQuantidade: number | null;
   disponivel: boolean;
+  grupo: string | null;
 }
 
 export async function getOpcoesComboPorItens(itemIds: string[]) {
@@ -35,7 +36,13 @@ export async function getOpcoesComboPorItens(itemIds: string[]) {
     .orderBy(asc(opcoesCombo.ordem));
   for (const row of rows) {
     const lista = mapa.get(row.itemCardapioId) ?? [];
-    lista.push({ id: row.id, nome: row.nome, limiteQuantidade: row.limiteQuantidade, disponivel: row.disponivel });
+    lista.push({
+      id: row.id,
+      nome: row.nome,
+      limiteQuantidade: row.limiteQuantidade,
+      disponivel: row.disponivel,
+      grupo: row.grupo,
+    });
     mapa.set(row.itemCardapioId, lista);
   }
   return mapa;
@@ -48,12 +55,24 @@ export async function definirOpcoesCombo(
   opcoes: { nome: string; limiteQuantidade: number | null }[],
 ) {
   const db = getDb();
+  // O editor do painel não mexe em grupo: guarda o de cada opção pelo nome pra não perder ao recriar.
+  const antigas = await db
+    .select({ nome: opcoesCombo.nome, grupo: opcoesCombo.grupo })
+    .from(opcoesCombo)
+    .where(eq(opcoesCombo.itemCardapioId, itemCardapioId));
+  const grupoPorNome = new Map(antigas.map((o) => [o.nome, o.grupo]));
   await db.delete(opcoesCombo).where(eq(opcoesCombo.itemCardapioId, itemCardapioId));
   const limpas = opcoes.filter((o) => o.nome.trim());
   if (limpas.length === 0) return;
-  await db
-    .insert(opcoesCombo)
-    .values(limpas.map((o, ordem) => ({ itemCardapioId, nome: o.nome.trim(), limiteQuantidade: o.limiteQuantidade, ordem })));
+  await db.insert(opcoesCombo).values(
+    limpas.map((o, ordem) => ({
+      itemCardapioId,
+      nome: o.nome.trim(),
+      limiteQuantidade: o.limiteQuantidade,
+      ordem,
+      grupo: grupoPorNome.get(o.nome.trim()) ?? null,
+    })),
+  );
 }
 
 /** Itens com controle de estoque ligado (estoqueAtual não nulo) —

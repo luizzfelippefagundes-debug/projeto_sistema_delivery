@@ -119,6 +119,9 @@ export const opcoesCombo = pgTable("opcoes_combo", {
   /** Máximo dessa peça específica que o cliente pode escolher — nulo
    * significa que só o total de peças do combo limita. */
   limiteQuantidade: integer("limite_quantidade"),
+  /** Opções com o mesmo grupo viram uma escolha única obrigatória (ex:
+   * "Salmão": cru ou grelhado). Nulo = opção da lista livre/combo. */
+  grupo: text("grupo"),
   ordem: integer("ordem").notNull().default(0),
   /** false = sabor pausado hoje (não aparece no cardápio). */
   disponivel: boolean("disponivel").notNull().default(true),
