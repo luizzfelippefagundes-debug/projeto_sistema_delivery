@@ -26,6 +26,8 @@ import type { DistanciaReal } from "@/lib/googleMaps";
 import { formatarCPF, validarCPF } from "@/lib/cpf";
 import { useCart, type CartItem } from "@/lib/cart";
 import { salvarPedidoConvidado } from "@/lib/pedidosConvidado";
+import { useLojaAberta } from "@/components/AvisoFuncionamento";
+import { type Horarios, resumoHorarios, statusFuncionamento, textoStatus } from "@/lib/horario";
 import type { Pagamento } from "@/lib/types";
 import {
   type FormaRecebimento,
@@ -84,6 +86,7 @@ export default function CartDrawer({
   mesa,
   pagamentoOnline = false,
   taxaCartaoOnline = null,
+  horarios = null,
 }: {
   restauranteId: string;
   zonasEntrega: ZonaEntregaResumo[];
@@ -99,6 +102,7 @@ export default function CartDrawer({
   /** Tarifa do Asaas no crédito: no pagamento online ela substitui o
    * percentual da maquininha, pra a dona receber o valor cheio. */
   taxaCartaoOnline?: TaxaCartaoOnline | null;
+  horarios?: Horarios | null;
 }) {
   const { items, total, setQty, clear } = useCart();
   const { user } = useUser();
@@ -109,6 +113,8 @@ export default function CartDrawer({
   const [entrega, setEntrega] = useState<DadosEntrega>(ENTREGA_VAZIA);
   const [pagamento, setPagamento] = useState<Pagamento>("pix");
   const [formaRecebimento, setFormaRecebimento] = useState<FormaRecebimento>("pix");
+  // Comanda da mesa não depende do horário do delivery.
+  const lojaFechada = useLojaAberta(mesa == null ? horarios : null) === false;
   /** Dinheiro é pago na entrega mesmo com o pagamento online ligado. */
   const pagaOnline = pagamentoOnline && formaRecebimento !== "dinheiro";
   const [pedidoId, setPedidoId] = useState<string | null>(null);
@@ -321,6 +327,12 @@ export default function CartDrawer({
         <CheckoutStepper etapaAtual={passo} etapas={mesa != null ? ETAPAS_MESA : undefined} />
 
         <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-4 pb-4">
+          {lojaFechada && passo !== "confirmado" && horarios && (
+            <p className="rounded-xl border border-status-danger-fg/30 bg-status-danger-bg px-3 py-2 text-sm text-status-danger-fg">
+              {textoStatus(statusFuncionamento(horarios))}. Dá pra montar a sacola, mas o pedido só pode ser feito
+              dentro do horário ({resumoHorarios(horarios)}).
+            </p>
+          )}
           {passo === "carrinho" && (
             <>
               <div className="flex flex-col gap-3">
@@ -652,7 +664,7 @@ export default function CartDrawer({
               <span>Total{taxaFinal >= 0.01 ? ` (com taxa de ${fmtBRL(taxaFinal)})` : ""}</span>
               <span className="num">{fmtBRL(totalFinal)}</span>
             </div>
-            <Button disabled={pending} onClick={confirmarPagamento}>
+            <Button disabled={pending || lojaFechada} onClick={confirmarPagamento}>
               {pagaOnline
                 ? pending
                   ? "Gerando pagamento…"

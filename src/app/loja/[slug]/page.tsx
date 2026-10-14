@@ -81,6 +81,7 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
       }}
       bannersDona={banners.map((b) => ({ id: b.id, imagemUrl: b.imagemUrl, linkUrl: b.linkUrl, titulo: b.titulo, itens: b.itens }))}
       souDona={funcionario?.papel === "dono" && funcionario.restauranteId === restaurante.id}
+      horarios={config?.horarios ?? null}
       pagamentoOnline={online}
       taxaCartaoOnline={taxaCartaoOnline}
     />

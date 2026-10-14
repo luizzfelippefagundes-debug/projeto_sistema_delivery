@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import EnderecoLojaCard from "@/components/EnderecoLojaCard";
+import HorarioFuncionamentoCard from "@/components/HorarioFuncionamentoCard";
 import FecharCaixaButton from "@/components/FecharCaixaButton";
 import OrigemChart, { type ResumoOrigem } from "@/components/OrigemChart";
 import TaxasMaquininhaCard from "@/components/TaxasMaquininhaCard";
@@ -167,6 +168,7 @@ export default async function FinanceiroPage() {
       </Card>
 
       <TaxasMaquininhaCard taxasAtuais={taxasDeConfig(config)} />
+      <HorarioFuncionamentoCard horariosAtuais={config?.horarios ?? null} />
       <EnderecoLojaCard enderecoAtual={config?.enderecoLoja ?? null} />
       <ZonasEntregaManager zonas={zonas} />
     </div>

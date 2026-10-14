@@ -2,7 +2,9 @@
 
 import { Package, Search, ShoppingBag, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import AvisoFuncionamento from "@/components/AvisoFuncionamento";
 import BannersCarousel from "@/components/BannersCarousel";
+import type { Horarios } from "@/lib/horario";
 import CartDrawer from "@/components/CartDrawer";
 import type { TaxaCartaoOnline, TaxasMaquininha } from "@/lib/taxaMaquininha";
 import ItemDetalheDialog from "@/components/ItemDetalheDialog";
@@ -274,6 +276,7 @@ export default function CardapioClient({
   souDona = false,
   pagamentoOnline = false,
   taxaCartaoOnline = null,
+  horarios = null,
 }: {
   restauranteId: string;
   slug: string;
@@ -288,6 +291,7 @@ export default function CardapioClient({
   souDona?: boolean;
   pagamentoOnline?: boolean;
   taxaCartaoOnline?: TaxaCartaoOnline | null;
+  horarios?: Horarios | null;
 }) {
   const categorias = Object.keys(itensPorCategoria);
   const [categoriaAtiva, setCategoriaAtiva] = useState(categorias[0] ?? "");
@@ -346,6 +350,7 @@ export default function CardapioClient({
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <CustomerHeader nomeRestaurante={nomeRestaurante} slug={slug} souDona={souDona} />
+      <AvisoFuncionamento horarios={horarios} />
 
       {bannersDona.length > 0 && <BannersCarousel banners={bannersDona} />}
 
@@ -464,6 +469,7 @@ export default function CardapioClient({
         open={sacolaAberta}
         onOpenChange={setSacolaAberta}
         pagamentoOnline={pagamentoOnline}
+        horarios={horarios}
         taxaCartaoOnline={taxaCartaoOnline}
       />
     </div>

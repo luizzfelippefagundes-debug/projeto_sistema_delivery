@@ -33,6 +33,7 @@ import {
   pagamentoQuitado,
   pagarComCartao,
 } from "../lib/asaas";
+import { statusFuncionamento, textoStatus } from "../lib/horario";
 import { confirmarPagamentoOnline } from "../lib/pagamentoOnline";
 import {
   type FormaRecebimento,
@@ -340,6 +341,11 @@ export async function criarPedidoCliente(dados: {
   cpfPagador?: string | null;
 }): Promise<{ pedidoId: string } | { error: string }> {
   if (dados.itens.length === 0) throw new Error("Sua sacola está vazia.");
+  const horarios = (await getConfiguracoes(dados.restauranteId))?.horarios;
+  if (horarios) {
+    const funcionamento = statusFuncionamento(horarios);
+    if (!funcionamento.aberto) return { error: `${textoStatus(funcionamento)}. Volte nesse horário pra pedir.` };
+  }
   // Dinheiro é sempre pago na entrega, mesmo com o pagamento online ligado.
   const online = pagamentoOnlineAtivo() && dados.forma !== "dinheiro";
   if (online && dados.forma !== "pix" && dados.forma !== "credito_vista") throw new Error("Forma de pagamento inválida.");

@@ -2,6 +2,7 @@ import {
   boolean,
   date,
   integer,
+  jsonb,
   numeric,
   pgEnum,
   pgTable,
@@ -10,6 +11,7 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
+import type { Horarios } from "../lib/horario";
 
 export const papelFuncionarioEnum = pgEnum("papel_funcionario", [
   "dono",
@@ -358,6 +360,9 @@ export const configuracoes = pgTable("configuracoes", {
   /** Quantas mesas o salão tem — define o grid da Comanda e quantos QR
    * codes são gerados pra pedido direto do cliente na mesa. */
   numeroMesas: integer("numero_mesas").notNull().default(8),
+  /** Horário do delivery por dia da semana (ver `lib/horario.ts`). Nulo =
+   * sem horário cadastrado, o site aceita pedido a qualquer hora. */
+  horarios: jsonb("horarios").$type<Horarios>(),
   /** Percentual que a maquininha cobra por forma de recebimento — usado só
    * pra somar no total cobrado do cliente na hora de fechar a mesa (ver
    * `totalComTaxa`), pra dona não perder margem quando ele paga no cartão.

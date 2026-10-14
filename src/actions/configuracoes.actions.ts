@@ -5,6 +5,7 @@ import { getDb } from "../db";
 import { configuracoes } from "../db/schema";
 import { assertFuncionario } from "../lib/funcionarioAuth";
 import { registrarAtividade } from "../db/queries/atividades";
+import { type Horarios, NOMES_DIAS, horaValida, resumoHorarios } from "../lib/horario";
 
 /** Endereço de onde as entregas saem — usado como origem pra traçar a rota
  * real no mapa do motoboy. Sem `onConflictDoUpdate` teria que verificar se
@@ -100,4 +101,34 @@ export async function atualizarTaxasMaquininha(taxas: TaxasMaquininhaInput) {
   });
   revalidatePath("/dono/financeiro");
   revalidatePath("/atendente");
+}
+
+/** Horário do delivery por dia da semana — fora dele o site não aceita
+ * pedido (ver `criarPedidoCliente`). */
+export async function atualizarHorarios(horarios: Horarios) {
+  const dono = await assertFuncionario("dono");
+  if (!Array.isArray(horarios) || horarios.length !== 7) throw new Error("Horários inválidos.");
+  const limpos: Horarios = horarios.map((h, dia) => {
+    if (h == null) return null;
+    if (!horaValida(h.abre) || !horaValida(h.fecha)) {
+      throw new Error(`Confira o horário de ${NOMES_DIAS[dia]} (use HH:MM).`);
+    }
+    if (h.fecha <= h.abre) throw new Error(`Em ${NOMES_DIAS[dia]}, o horário de fechar precisa ser depois do de abrir.`);
+    return { abre: h.abre, fecha: h.fecha };
+  });
+
+  await getDb()
+    .insert(configuracoes)
+    .values({ restauranteId: dono.restauranteId, horarios: limpos })
+    .onConflictDoUpdate({ target: configuracoes.restauranteId, set: { horarios: limpos } });
+
+  await registrarAtividade({
+    restauranteId: dono.restauranteId,
+    funcionarioId: dono.id,
+    nomeFuncionario: dono.nome,
+    acao: "Atualizou horário de funcionamento",
+    detalhe: resumoHorarios(limpos),
+  });
+  revalidatePath("/dono/financeiro");
+  revalidatePath("/loja", "layout");
 }
