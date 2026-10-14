@@ -340,7 +340,8 @@ export async function criarPedidoCliente(dados: {
   cpfPagador?: string | null;
 }): Promise<{ pedidoId: string } | { error: string }> {
   if (dados.itens.length === 0) throw new Error("Sua sacola está vazia.");
-  const online = pagamentoOnlineAtivo();
+  // Dinheiro é sempre pago na entrega, mesmo com o pagamento online ligado.
+  const online = pagamentoOnlineAtivo() && dados.forma !== "dinheiro";
   if (online && dados.forma !== "pix" && dados.forma !== "credito_vista") throw new Error("Forma de pagamento inválida.");
   if (online && !(dados.cpfPagador && validarCPF(dados.cpfPagador))) return { error: "Informe um CPF válido pra pagar." };
 

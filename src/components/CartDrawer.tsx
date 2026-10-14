@@ -109,6 +109,8 @@ export default function CartDrawer({
   const [entrega, setEntrega] = useState<DadosEntrega>(ENTREGA_VAZIA);
   const [pagamento, setPagamento] = useState<Pagamento>("pix");
   const [formaRecebimento, setFormaRecebimento] = useState<FormaRecebimento>("pix");
+  /** Dinheiro é pago na entrega mesmo com o pagamento online ligado. */
+  const pagaOnline = pagamentoOnline && formaRecebimento !== "dinheiro";
   const [pedidoId, setPedidoId] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -235,7 +237,7 @@ export default function CartDrawer({
 
   function confirmarPagamento() {
     setErro(null);
-    if (pagamentoOnline && !validarCPF(cpfPagador)) {
+    if (pagaOnline && !validarCPF(cpfPagador)) {
       setErro("Informe um CPF válido pra pagar.");
       return;
     }
@@ -255,8 +257,8 @@ export default function CartDrawer({
           telefone: entrega.telefone,
           forma: formaRecebimento,
           clienteNome: cliente,
-          cpfNota: (pagamentoOnline ? cpfPagador : cpfNota).trim() || null,
-          cpfPagador: pagamentoOnline ? cpfPagador : null,
+          cpfNota: (pagaOnline ? cpfPagador : cpfNota).trim() || null,
+          cpfPagador: pagaOnline ? cpfPagador : null,
         });
         if ("error" in resultado) {
           setErro(resultado.error);
@@ -266,7 +268,7 @@ export default function CartDrawer({
         salvarPedidoConvidado(pedidoId);
         clear();
         setCpfNota("");
-        if (pagamentoOnline) {
+        if (pagaOnline) {
           // O Pix e o cartão são pagos na página do pedido. O carrinho fica
           // aberto com o carregando até ela abrir (o componente some junto).
           setIndoPagar(true);
@@ -546,6 +548,10 @@ export default function CartDrawer({
                     [
                       { forma: "pix" as FormaRecebimento, label: "Pix" },
                       { forma: "credito_vista" as FormaRecebimento, label: "Cartão de crédito" },
+                      {
+                        forma: "dinheiro" as FormaRecebimento,
+                        label: tipo === "retirada" ? "Dinheiro na retirada" : "Dinheiro na entrega",
+                      },
                     ] as { forma: FormaRecebimento; label: string }[]
                   ).map(({ forma, label }) => {
                     const totalForma = totalDaForma(forma);
@@ -571,7 +577,7 @@ export default function CartDrawer({
                 </div>
               </div>
 
-              {pagamentoOnline && (
+              {pagaOnline && (
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="cpf-pagador">CPF</Label>
                   <Input
@@ -588,11 +594,11 @@ export default function CartDrawer({
               )}
 
               <p className="rounded-xl border border-border p-3 text-center text-sm text-muted-foreground">
-                {pagamentoOnline
+                {pagaOnline
                   ? formaRecebimento === "pix"
                     ? "Na próxima tela aparece o QR Code e o código copia e cola. Seu pedido vai pra cozinha assim que o Pix cair. Você tem 15 minutos pra pagar."
                     : "Na próxima tela você digita os dados do cartão. Seu pedido vai pra cozinha assim que o pagamento for aprovado."
-                  : `Pague na hora da ${tipo === "retirada" ? "retirada" : "entrega"}, direto com ${tipo === "retirada" ? "quem atender" : "o motoboy"}.`}
+                  : `Pague${formaRecebimento === "dinheiro" ? " em dinheiro" : ""} na hora da ${tipo === "retirada" ? "retirada" : "entrega"}, direto com ${tipo === "retirada" ? "quem atender" : "o motoboy"}.`}
               </p>
 
               {erro && <p className="text-sm text-destructive">{erro}</p>}
@@ -647,7 +653,7 @@ export default function CartDrawer({
               <span className="num">{fmtBRL(totalFinal)}</span>
             </div>
             <Button disabled={pending} onClick={confirmarPagamento}>
-              {pagamentoOnline
+              {pagaOnline
                 ? pending
                   ? "Gerando pagamento…"
                   : formaRecebimento === "pix"
