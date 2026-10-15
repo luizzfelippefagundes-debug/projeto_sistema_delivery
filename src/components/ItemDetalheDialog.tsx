@@ -89,7 +89,10 @@ export default function ItemDetalheDialog({
   }
 
   const podeAdicionar =
-    !ehCombo || (ehMonteSeuJeito ? !grupoPendente && livresMarcadas >= 1 : qtdEscolhida === item?.qtdPecasEscolha);
+    !ehCombo ||
+    (ehMonteSeuJeito
+      ? !grupoPendente && (opcoesLivres.length === 0 || livresMarcadas >= 1)
+      : qtdEscolhida === item?.qtdPecasEscolha);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -152,7 +155,7 @@ export default function ItemDetalheDialog({
                   </div>
                 ))}
 
-              {ehMonteSeuJeito && (
+              {ehMonteSeuJeito && opcoesLivres.length > 0 && (
                 <div className="flex flex-col gap-2 border-t border-border pt-3">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-semibold">{grupos.length > 0 ? "Ingredientes" : "Monte do seu jeito"}</p>
@@ -191,7 +194,38 @@ export default function ItemDetalheDialog({
                 </div>
               )}
 
-              {ehCombo && !ehMonteSeuJeito && (
+              {ehEscolhaTipo && (
+                <div className="flex flex-col gap-2 border-t border-border pt-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold">Escolha o tipo</p>
+                    <span className="text-xs text-muted-foreground">escolha 1</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {opcoesDisponiveis.map((op) => {
+                      const marcado = (escolhas[op.nome] ?? 0) > 0;
+                      return (
+                        <button
+                          key={op.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={marcado}
+                          onClick={() => setEscolhas({ [op.nome]: 1 })}
+                          className={`flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${marcado ? "border-primary bg-primary/5 font-medium" : "border-border hover:border-primary/50"}`}
+                        >
+                          <span
+                            className={`flex size-4 shrink-0 items-center justify-center rounded-full border ${marcado ? "border-primary" : "border-muted-foreground/50"}`}
+                          >
+                            {marcado && <span className="size-2 rounded-full bg-primary" />}
+                          </span>
+                          {op.nome}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {ehCombo && !ehMonteSeuJeito && !ehEscolhaTipo && (
                 <div className="flex flex-col gap-2 border-t border-border pt-3">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-semibold">{ehEscolhaTipo ? "Escolha o tipo" : "Escolha as peças"}</p>
