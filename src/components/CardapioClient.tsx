@@ -162,13 +162,14 @@ function BannerDona({
     <div className="overflow-hidden bg-zinc-900">
       <div className="relative">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={banner.imagemUrl} alt={banner.titulo ?? ""} className="h-56 w-full object-cover object-top" />
+        <img src={banner.imagemUrl} alt={banner.titulo ?? ""} className="h-56 w-full object-cover" />
         {banner.titulo && (
           <>
             <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/95 via-zinc-900/20 to-transparent" />
-            <h2 className="absolute bottom-3 left-4 font-heading text-2xl font-black leading-none text-white">
-              {banner.titulo}
-            </h2>
+            <div className="absolute bottom-3 left-4">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-red-400">Promoção especial</p>
+              <h2 className="font-heading text-2xl font-black leading-none text-white">{banner.titulo}</h2>
+            </div>
           </>
         )}
       </div>
