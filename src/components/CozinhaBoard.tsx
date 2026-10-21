@@ -2,7 +2,7 @@
 
 import { AlertTriangle, ChefHat, MapPin, Printer } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { avancarStatusCozinha, avancarStatusEntrega } from "@/actions/pedidos.actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -74,6 +74,7 @@ export default function CozinhaBoard({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [aba, setAba] = useState<OrderStatus>("novo");
 
   useEffect(() => {
     const id = setInterval(() => router.refresh(), 15000);
@@ -83,13 +84,31 @@ export default function CozinhaBoard({
   return (
     <div className="flex flex-col gap-5">
       <ListaProducao pedidos={pedidos} />
+      {/* No celular as 3 colunas viram abas — uma pilha só ficava comprida demais. */}
+      <div className="grid grid-cols-3 gap-1 rounded-lg bg-muted p-1 sm:hidden" role="tablist">
+        {COLS.map((col) => (
+          <button
+            key={col.key}
+            type="button"
+            role="tab"
+            aria-selected={aba === col.key}
+            onClick={() => setAba(col.key)}
+            className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-2 text-sm font-medium transition-colors ${
+              aba === col.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+            }`}
+          >
+            {col.label}
+            <Badge variant="outline">{pedidos.filter((o) => o.status === col.key).length}</Badge>
+          </button>
+        ))}
+      </div>
       <div className="grid gap-5 sm:grid-cols-3">
         {COLS.map((col) => {
           const doGrupo = pedidos.filter((o) => o.status === col.key).sort((a, b) => a.criadoEm - b.criadoEm);
 
           return (
-            <div key={col.key}>
-              <div className="mb-3 flex items-center justify-between">
+            <div key={col.key} className={aba === col.key ? "" : "hidden sm:block"}>
+              <div className="mb-3 hidden items-center justify-between sm:flex">
                 <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{col.label}</h3>
                 <Badge variant="outline">{doGrupo.length}</Badge>
               </div>
