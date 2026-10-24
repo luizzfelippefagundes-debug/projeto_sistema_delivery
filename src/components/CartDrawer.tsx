@@ -85,6 +85,7 @@ export default function CartDrawer({
   onOpenChange,
   mesa,
   pagamentoOnline = false,
+  soPixOnline = false,
   taxaCartaoOnline = null,
   horarios = null,
 }: {
@@ -99,6 +100,8 @@ export default function CartDrawer({
    * entrega e pagamento, manda direto pra cozinha via criarPedidoMesa. */
   mesa?: number;
   pagamentoOnline?: boolean;
+  /** Pix direto pelo Inter: só o Pix é pago online, cartão fica pra entrega. */
+  soPixOnline?: boolean;
   /** Tarifa do Asaas no crédito: no pagamento online ela substitui o
    * percentual da maquininha, pra a dona receber o valor cheio. */
   taxaCartaoOnline?: TaxaCartaoOnline | null;
@@ -116,7 +119,7 @@ export default function CartDrawer({
   // Comanda da mesa não depende do horário do delivery.
   const lojaFechada = useLojaAberta(mesa == null ? horarios : null) === false;
   /** Dinheiro é pago na entrega mesmo com o pagamento online ligado. */
-  const pagaOnline = pagamentoOnline && formaRecebimento !== "dinheiro";
+  const pagaOnline = pagamentoOnline && formaRecebimento !== "dinheiro" && (!soPixOnline || formaRecebimento === "pix");
   const [pedidoId, setPedidoId] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -169,6 +172,7 @@ export default function CartDrawer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enderecoDestino, enderecoLoja, restauranteId]);
 
+  // Carrega o endereço salvo quando o carrinho abre.
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -177,6 +181,17 @@ export default function CartDrawer({
       // sem dado salvo, começa em branco
     }
   }, []);
+
+  // Salva automaticamente conforme o usuário digita — sem precisar clicar em continuar.
+  useEffect(() => {
+    const temConteudo = entrega.rua || entrega.nome || entrega.telefone || entrega.bairro;
+    if (!temConteudo) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entrega));
+    } catch {
+      // sem permissão de storage, segue sem salvar
+    }
+  }, [entrega]);
 
   // Pré-preenche com o nome da conta pra quem estiver logado — só um
   // atalho, continua editável (e é o único jeito de saber o nome de quem
@@ -233,11 +248,6 @@ export default function CartDrawer({
       return;
     }
     setErro(null);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(entrega));
-    } catch {
-      // localStorage indisponível, segue sem salvar
-    }
     setPasso("resumo");
   }
 
@@ -531,7 +541,7 @@ export default function CartDrawer({
               </div>
 
               {/* No pagamento online o CPF é pedido uma vez só, no passo de pagamento. */}
-              {mesa == null && !pagamentoOnline && (
+              {mesa == null && !pagaOnline && (
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="cpf-nota">CPF na nota (opcional)</Label>
                   <Input
