@@ -103,7 +103,7 @@ export default function MotoboyBoard({
                 <StatusBadge status={o.status} />
               </div>
 
-              <div className="flex flex-col gap-2 border-t border-border px-4 py-3">
+              <div className="flex flex-grow flex-col gap-2 border-t border-border px-4 py-3">
                 <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   <ReceiptText className="size-3.5" /> Pedido
                 </p>
@@ -135,8 +135,8 @@ export default function MotoboyBoard({
                   <Store className="size-4" /> Retirada no balcão
                 </div>
               ) : (
-                <div className="border-t border-border">
-                  <div className="flex items-start gap-1.5 px-4 pt-3 pb-1">
+                <div className="flex flex-col border-t border-border">
+                  <div className="flex flex-grow items-start gap-1.5 px-4 pt-3 pb-1">
                     <MapPinned className="mt-0.5 size-4 shrink-0 text-primary" />
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Entregar em</p>
