@@ -81,8 +81,8 @@ export default function MotoboyBoard({
         const urls = o.endereco && !retirada ? navUrls(o.endereco, enderecoLoja) : null;
 
         return (
-          <Card key={o.id} className="gap-0 overflow-hidden border-border/80 py-0 shadow-sm">
-            <CardContent className="flex flex-col gap-0 p-0">
+          <Card key={o.id} className="flex h-full flex-col gap-0 overflow-hidden border-border/80 py-0 shadow-sm">
+            <CardContent className="flex flex-grow flex-col gap-0 p-0">
               <div className="flex items-center justify-between gap-3 bg-muted/30 p-4">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-bold text-primary">
@@ -160,7 +160,7 @@ export default function MotoboyBoard({
                 </div>
               )}
 
-              <div className="border-t border-border p-4">
+              <div className="mt-auto border-t border-border p-4">
                 {acao ? (
                   <Button
                     className="w-full font-semibold shadow-sm"
