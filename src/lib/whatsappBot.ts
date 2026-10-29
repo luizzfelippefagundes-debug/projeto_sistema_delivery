@@ -137,11 +137,26 @@ function carrinhVazio(carrinho: unknown): boolean {
 }
 
 const SAUDACOES = /^(oi|olá|ola|oii+|oiiii*|e aí|eai|hello|hey|bom dia|boa tarde|boa noite|boas|tudo bem|tudo bom|boa|salve|opa)\b/i;
-const PEDIR_CARDAPIO = /^(cardap|cardáp|menu|o que tem|quero ver|ver opç|opções|o que vocês|o que voces|o que vende)/i;
-const PEDIR_HORARIO = /(aberto|fechado|horario|horário|funcionando|funciona|abre|fecha|abriu|fechou|ta open)/i;
+const PEDIR_CARDAPIO = /^(1|cardap|cardáp|menu|o que tem|quero ver|ver opç|opções|o que vocês|o que voces|o que vende)/i;
+const PEDIR_HORARIO = /(^2$|aberto|fechado|horario|horário|funcionando|funciona|abre|fecha|abriu|fechou|ta open)/i;
+const PEDIR_STATUS = /^(3|status|meu pedido|onde (está|ta|tá) meu|acompanhar)/i;
+const PEDIR_AJUDA = /^(4|duvida|dúvida|ajuda|help|pergunta|não entendi|nao entendi)/i;
 
-function buildBoasVindas(nomeRestaurante: string, categoriasLista: string, statusTexto = ""): string {
-  return `Olá! Bem-vindo ao *${nomeRestaurante}* 🍣${statusTexto}\n\nAqui estão nossas categorias:\n${categoriasLista}\n\nDigite o número ou o nome da categoria pra ver os itens 😊`;
+const MENU_SAUDACAO = `📋 *O que você precisa?*
+
+1️⃣ Ver cardápio
+2️⃣ Horário de funcionamento
+3️⃣ Status do meu pedido
+4️⃣ Falar com atendente / dúvidas
+
+Digite o número ou escreva o que precisa 😊`;
+
+function buildBoasVindas(nomeRestaurante: string, statusTexto = ""): string {
+  return `Olá! Bem-vindo ao *${nomeRestaurante}* 🍣${statusTexto}\n\n${MENU_SAUDACAO}`;
+}
+
+function buildMenuCardapio(categoriasLista: string): string {
+  return `Aqui estão nossas categorias:\n\n${categoriasLista}\n\nDigite o número ou o nome da categoria pra ver os itens 😊`;
 }
 
 export async function processarMensagemWhatsapp(
@@ -164,6 +179,27 @@ export async function processarMensagemWhatsapp(
   const texto = textoRecebido.trim();
   const eNovo = !conversa.historicoResumido && carrinhVazio(conversa.carrinho);
 
+  // Saudação → menu inicial
+  if (eNovo && SAUDACOES.test(texto)) {
+    const config = await getConfiguracoes(restauranteId);
+    const statusTexto = config?.horarios ? `\n${textoStatus(statusFuncionamento(config.horarios))} 🕐` : "";
+    const resposta = buildBoasVindas(nomeRestaurante, statusTexto);
+    const novoHistorico = adicionarAoHistorico("", texto, resposta);
+    await atualizarConversa(conversa.id, { historicoResumido: novoHistorico });
+    return resposta;
+  }
+
+  // Opção 1 / "cardapio" → lista de categorias
+  if (PEDIR_CARDAPIO.test(texto)) {
+    const itensAtivos = await getItensCardapioAtivos(restauranteId);
+    const categoriasLista = buildCategoriasLista(itensAtivos);
+    const resposta = buildMenuCardapio(categoriasLista);
+    const novoHistorico = adicionarAoHistorico(conversa.historicoResumido, texto, resposta);
+    await atualizarConversa(conversa.id, { historicoResumido: novoHistorico });
+    return resposta;
+  }
+
+  // Opção 2 / "horario" → status instantâneo
   if (PEDIR_HORARIO.test(texto)) {
     const config = await getConfiguracoes(restauranteId);
     let resposta: string;
@@ -172,24 +208,24 @@ export async function processarMensagemWhatsapp(
       const resumo = resumoHorarios(config.horarios);
       resposta = `${textoStatus(status)}\n\nHorários: ${resumo}`;
     } else {
-      resposta = "Estamos abertos agora! Pode fazer seu pedido 😊";
+      resposta = "Estamos abertos! Pode fazer seu pedido 😊";
     }
     const novoHistorico = adicionarAoHistorico(conversa.historicoResumido, texto, resposta);
     await atualizarConversa(conversa.id, { historicoResumido: novoHistorico });
     return resposta;
   }
 
-  if (eNovo && (SAUDACOES.test(texto) || PEDIR_CARDAPIO.test(texto))) {
-    const [itensAtivos, config] = await Promise.all([
-      getItensCardapioAtivos(restauranteId),
-      getConfiguracoes(restauranteId),
-    ]);
-    const categoriasLista = buildCategoriasLista(itensAtivos);
-    const statusTexto = config?.horarios ? `\n${textoStatus(statusFuncionamento(config.horarios))} 🕐` : "";
-    const resposta = buildBoasVindas(nomeRestaurante, categoriasLista, statusTexto);
-    const novoHistorico = adicionarAoHistorico("", texto, resposta);
+  // Opção 4 / "duvida" → avisa que a IA vai atender
+  if (eNovo && PEDIR_AJUDA.test(texto)) {
+    const resposta = "Claro! Me conta o que você precisa saber 😊";
+    const novoHistorico = adicionarAoHistorico(conversa.historicoResumido, texto, resposta);
     await atualizarConversa(conversa.id, { historicoResumido: novoHistorico });
     return resposta;
+  }
+
+  // Opção 3 / "status" → passa pra IA com tool consultarStatus
+  if (eNovo && PEDIR_STATUS.test(texto)) {
+    return processarComAgente(conversa, restauranteId, telefone, "quero saber o status do meu pedido", nomeRestaurante);
   }
 
   return processarComAgente(conversa, restauranteId, telefone, textoRecebido, nomeRestaurante);
