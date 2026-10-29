@@ -1,153 +1,348 @@
+import { generateText, stepCountIs, tool } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { z } from "zod";
 import { criarPedidoWhatsapp } from "../actions/pedidos.actions";
-import { getItensCardapioAtivos } from "../db/queries/cardapio";
+import { getItensCardapioAtivos, getOpcoesComboPorItens } from "../db/queries/cardapio";
+import { getPedidosPorTelefone } from "../db/queries/pedidos";
 import {
   atualizarConversa,
   getOuCriarConversa,
   parseCarrinho,
   resetarConversa,
+  travarConfirmacao,
+  liberarConfirmacao,
 } from "../db/queries/conversasWhatsapp";
 import { fmtBRL } from "./data";
 import type { ItemCarrinhoWhatsapp, Pagamento } from "./types";
 
-function saudacao(nomeRestaurante: string) {
-  return `Oi! Bem-vindo(a) ao ${nomeRestaurante} 🎉\n\nDigite *menu* a qualquer momento pra ver o cardápio, ou *cancelar* pra recomeçar.`;
-}
+const EXPIRACAO_SESSAO_MS = 3 * 60 * 60 * 1000; // 3 horas
+const MAX_HISTORICO_CHARS = 3000;
 
-function normalizar(texto: string): string {
-  return texto.trim().toLowerCase();
-}
-
-function listarCategorias(categorias: string[]): string {
-  const linhas = categorias.map((c, i) => `${i + 1}. ${c}`);
-  return `Escolha uma categoria digitando o número:\n\n${linhas.join("\n")}`;
-}
-
-function listarItens(itens: { nome: string; preco: number }[]): string {
-  const linhas = itens.map((it, i) => `${i + 1}. ${it.nome} — ${fmtBRL(it.preco)}`);
-  return `${linhas.join("\n")}\n\n0. Voltar pras categorias`;
-}
+const STATUS_PT: Record<string, string> = {
+  aguardando_pagamento: "aguardando pagamento",
+  novo: "recebido pela cozinha",
+  preparo: "em preparo",
+  pronto: "pronto",
+  rota: "saiu pra entrega",
+  entregue: "entregue",
+  cancelado: "cancelado",
+};
 
 function resumoCarrinho(carrinho: ItemCarrinhoWhatsapp[]): string {
-  const linhas = carrinho.map((i) => `${i.qtd}x ${i.nome} — ${fmtBRL(i.preco * i.qtd)}`);
+  if (carrinho.length === 0) return "Sacola vazia.";
+  const linhas = carrinho.map((i) => {
+    const obs = i.observacao ? ` (${i.observacao})` : "";
+    return `• ${i.qtd}x ${i.nome}${obs} — ${fmtBRL(i.preco * i.qtd)}`;
+  });
   const total = carrinho.reduce((s, i) => s + i.preco * i.qtd, 0);
-  return `${linhas.join("\n")}\n\nTotal: ${fmtBRL(total)}`;
+  return `${linhas.join("\n")}\nTotal: ${fmtBRL(total)}`;
 }
 
-const PAGAMENTO_POR_OPCAO: Record<string, Pagamento> = { "1": "pix", "2": "cartao", "3": "dinheiro" };
+function buildMenuTexto(
+  itens: Awaited<ReturnType<typeof getItensCardapioAtivos>>,
+  opcoesMapa: Map<string, { nome: string; disponivel: boolean; limiteQuantidade: number | null }[]>,
+): string {
+  const porCategoria = new Map<string, typeof itens>();
+  for (const item of itens) {
+    const lista = porCategoria.get(item.categoria) ?? [];
+    lista.push(item);
+    porCategoria.set(item.categoria, lista);
+  }
+
+  const blocos: string[] = [];
+  for (const [cat, lista] of porCategoria) {
+    const linhas: string[] = [`## ${cat}`];
+    for (const item of lista) {
+      let linha = `- ${item.nome} (id: ${item.id}) — ${fmtBRL(item.preco)}`;
+      if (item.qtdPecasEscolha) {
+        const opcoes = (opcoesMapa.get(item.id) ?? []).filter((o) => o.disponivel);
+        const esc = item.escolhaLivre ? "livre" : `exatamente ${item.qtdPecasEscolha} peças`;
+        linha += `\n  Combo: o cliente escolhe ${esc}. Sabores disponíveis: ${opcoes.map((o) => o.nome).join(", ") || "a definir"}`;
+      }
+      linhas.push(linha);
+    }
+    blocos.push(linhas.join("\n"));
+  }
+  return blocos.join("\n\n");
+}
+
+function buildSystemPrompt(
+  nomeRestaurante: string,
+  menuTexto: string,
+  carrinho: ItemCarrinhoWhatsapp[],
+  nomeTemp: string | null,
+  enderecoTemp: string | null,
+  pagamentoTemp: string | null,
+  historico: string,
+): string {
+  const estado = [
+    nomeTemp ? `Nome do cliente: ${nomeTemp}` : "Nome do cliente: não coletado ainda",
+    enderecoTemp ? `Endereço: ${enderecoTemp}` : "Endereço: não coletado ainda",
+    pagamentoTemp ? `Pagamento: ${pagamentoTemp}` : "Pagamento: não coletado ainda",
+    `Carrinho atual:\n${resumoCarrinho(carrinho)}`,
+  ].join("\n");
+
+  return `Você é o atendente virtual do ${nomeRestaurante}, restaurante de sushi. Atende pedidos pelo WhatsApp.
+
+REGRAS OBRIGATÓRIAS:
+1. Uma pergunta por vez — nunca junte duas perguntas na mesma mensagem.
+2. Para itens combo (com escolha de sabores): primeiro confirme o tamanho/item, depois em outra mensagem pergunte os sabores.
+3. Para entrega: pergunte ponto de referência se o endereço não tiver um.
+4. Coleta de dados em ordem: nome → endereço → pagamento. Uma por vez.
+5. Tom natural, mensagens curtas como WhatsApp de gente real. Varie as respostas, não repita "Perfeito!" ou "Ótima escolha!".
+6. Nunca diga "temos várias opções" — sempre liste as opções reais do cardápio.
+7. Fora de escopo (piadas, outros assuntos): recuse com educação e volte ao pedido.
+8. Só confirme o pedido quando tiver: nome + endereço (ou retirada) + pagamento + pelo menos 1 item no carrinho — E o cliente já tiver confirmado de verdade que quer fechar (ex: "sim", "pode confirmar", "fechar pedido"). Nunca chame confirmar_pedido só por ter os dados completos, sem o cliente ter pedido pra fechar.
+9. Pagamentos aceitos: pix, cartao (na entrega), dinheiro (na entrega).
+10. Chame no máximo UMA ferramenta por resposta. Depois que confirmar_pedido retornar sucesso (PEDIDO_CONFIRMADO), pare — nunca repita nome/endereço/pagamento/item de novo no mesmo turno, o pedido já foi criado.
+
+ESTADO ATUAL DA CONVERSA:
+${estado}
+
+CARDÁPIO COMPLETO — ${nomeRestaurante.toUpperCase()}:
+${menuTexto}
+
+${historico ? `HISTÓRICO DA CONVERSA:\n${historico}` : ""}`.trim();
+}
+
+function adicionarAoHistorico(historico: string, usuario: string, assistente: string): string {
+  const novo = `Cliente: ${usuario}\nAtendente: ${assistente}`;
+  const completo = historico ? `${historico}\n\n${novo}` : novo;
+  // Mantém os últimos MAX_HISTORICO_CHARS caracteres
+  return completo.length > MAX_HISTORICO_CHARS ? completo.slice(-MAX_HISTORICO_CHARS) : completo;
+}
 
 export async function processarMensagemWhatsapp(
   restauranteId: string,
   telefone: string,
   textoRecebido: string,
-  nomeRestaurante = "seu restaurante",
+  nomeRestaurante = "Restaurante",
 ): Promise<string> {
-  const texto = normalizar(textoRecebido);
   const conversa = await getOuCriarConversa(restauranteId, telefone);
 
-  if (texto === "cancelar") {
+  // Expira sessão se última mensagem foi há mais de 3h
+  const idadeMs = Date.now() - conversa.atualizadoEm.getTime();
+  if (idadeMs > EXPIRACAO_SESSAO_MS && conversa.historicoResumido) {
     await resetarConversa(conversa.id);
-    return "Pedido cancelado. Digite *menu* quando quiser começar de novo.";
+    // Relê a conversa resetada
+    const conversaFresca = await getOuCriarConversa(restauranteId, telefone);
+    return processarComAgente(conversaFresca, restauranteId, telefone, textoRecebido, nomeRestaurante);
   }
 
+  return processarComAgente(conversa, restauranteId, telefone, textoRecebido, nomeRestaurante);
+}
+
+async function processarComAgente(
+  conversa: Awaited<ReturnType<typeof getOuCriarConversa>>,
+  restauranteId: string,
+  telefone: string,
+  textoRecebido: string,
+  nomeRestaurante: string,
+): Promise<string> {
+  // Carrega cardápio e opções
   const itensAtivos = await getItensCardapioAtivos(restauranteId);
-  const categorias = [...new Set(itensAtivos.map((i) => i.categoria))];
+  const opcoesMapa = await getOpcoesComboPorItens(itensAtivos.map((i) => i.id));
+  const itensPorId = new Map(itensAtivos.map((i) => [i.id, i]));
 
-  if (texto === "menu" || texto === "cardapio" || texto === "cardápio" || conversa.etapa === "inicio") {
-    await atualizarConversa(conversa.id, { etapa: "escolhendo_categoria" });
-    return `${conversa.etapa === "inicio" ? saudacao(nomeRestaurante) + "\n\n" : ""}${listarCategorias(categorias)}`;
-  }
+  let carrinho = parseCarrinho(conversa.carrinho);
+  // Trava em memória contra o próprio turno: sem isso, se o modelo chamar
+  // confirmar_pedido com sucesso e, nos passos seguintes do mesmo turno
+  // (stepCountIs permite até 6), não reconhecer que já confirmou e refizer
+  // nome/endereço/pagamento/item de novo, a trava do banco (que já foi
+  // liberada pelo resetarConversa de sucesso) deixa passar e cria um
+  // SEGUNDO pedido de verdade, com dados igualmente válidos.
+  let pedidoConfirmadoNesteTurno: { pedidoId: string; total: number } | null = null;
 
-  if (conversa.etapa === "escolhendo_categoria") {
-    const indice = Number(texto) - 1;
-    const categoria = categorias[indice];
-    if (!categoria) return `Não entendi. ${listarCategorias(categorias)}`;
+  // --- Tools ---
 
-    const itensDaCategoria = itensAtivos.filter((i) => i.categoria === categoria);
-    await atualizarConversa(conversa.id, { etapa: "escolhendo_item", categoriaAtual: categoria });
-    return `*${categoria}*\n\n${listarItens(itensDaCategoria)}`;
-  }
+  const adicionarItem = tool({
+    description: "Adiciona um item ao carrinho do cliente. Use o id exato do cardápio.",
+    inputSchema: z.object({
+      itemCardapioId: z.string().describe("ID do item no cardápio"),
+      quantidade: z.number().int().min(1).describe("Quantidade de unidades"),
+      observacao: z.string().optional().describe("Sabores/complementos escolhidos, ex: '5x Filadélfia, 5x Hot Filadélfia'"),
+    }),
+    execute: async ({ itemCardapioId, quantidade, observacao }) => {
+      const item = itensPorId.get(itemCardapioId);
+      if (!item) return "Item não encontrado no cardápio.";
+      // Dedupe só pelo item (não pela observação): se o cliente está
+      // detalhando/corrigindo o mesmo item numa mensagem seguinte (ex: disse
+      // o sabor do combo depois de já ter pedido o item), isso é 1 chamada
+      // extra sobre a MESMA unidade, não uma segunda — só soma quantidade
+      // de verdade quando vier >1, senão só atualiza a observação por cima.
+      const existente = carrinho.find((i) => i.itemCardapioId === itemCardapioId);
+      carrinho = existente
+        ? carrinho.map((i) =>
+            i === existente ? { ...i, qtd: quantidade > 1 ? quantidade : i.qtd, observacao: observacao ?? i.observacao } : i,
+          )
+        : [...carrinho, { itemCardapioId, nome: item.nome, preco: item.preco, qtd: quantidade, observacao: observacao ?? null }];
+      await atualizarConversa(conversa.id, { carrinho });
+      return `Adicionado: ${quantidade}x ${item.nome}${observacao ? ` (${observacao})` : ""}. Carrinho: ${resumoCarrinho(carrinho)}`;
+    },
+  });
 
-  if (conversa.etapa === "escolhendo_item") {
-    if (texto === "0") {
-      await atualizarConversa(conversa.id, { etapa: "escolhendo_categoria", categoriaAtual: null });
-      return listarCategorias(categorias);
-    }
-    const itensDaCategoria = itensAtivos.filter((i) => i.categoria === conversa.categoriaAtual);
-    const indice = Number(texto) - 1;
-    const item = itensDaCategoria[indice];
-    if (!item) return `Não entendi. ${listarItens(itensDaCategoria)}`;
+  const removerItem = tool({
+    description: "Remove um item do carrinho pelo id ou nome",
+    inputSchema: z.object({
+      itemCardapioId: z.string().describe("ID do item a remover"),
+    }),
+    execute: async ({ itemCardapioId }) => {
+      const antes = carrinho.length;
+      carrinho = carrinho.filter((i) => i.itemCardapioId !== itemCardapioId);
+      await atualizarConversa(conversa.id, { carrinho });
+      return antes === carrinho.length ? "Item não encontrado no carrinho." : `Removido. Carrinho: ${resumoCarrinho(carrinho)}`;
+    },
+  });
 
-    await atualizarConversa(conversa.id, { etapa: "escolhendo_quantidade", itemCardapioIdAtual: item.id });
-    return `Quantas unidades de *${item.nome}* você quer?`;
-  }
+  const verCarrinho = tool({
+    description: "Mostra o carrinho atual com itens e total",
+    inputSchema: z.object({}),
+    execute: async () => resumoCarrinho(carrinho),
+  });
 
-  if (conversa.etapa === "escolhendo_quantidade") {
-    const qtd = Number(texto);
-    if (!Number.isInteger(qtd) || qtd <= 0) return "Digite só o número de unidades (ex: 2).";
+  const definirNome = tool({
+    description: "Salva o nome do cliente para usar no pedido",
+    inputSchema: z.object({ nome: z.string().min(2) }),
+    execute: async ({ nome }) => {
+      await atualizarConversa(conversa.id, { nomeTemp: nome });
+      return `Nome registrado: ${nome}`;
+    },
+  });
 
-    const item = itensAtivos.find((i) => i.id === conversa.itemCardapioIdAtual);
-    if (!item) return "Esse item não está mais disponível. Digite *menu* pra ver o cardápio de novo.";
+  const definirEndereco = tool({
+    description: "Salva o endereço de entrega. Use 'Retirada no balcão' se o cliente quiser retirar.",
+    inputSchema: z.object({ endereco: z.string().min(3) }),
+    execute: async ({ endereco }) => {
+      await atualizarConversa(conversa.id, { enderecoTemp: endereco });
+      return `Endereço registrado: ${endereco}`;
+    },
+  });
 
-    const carrinho = parseCarrinho(conversa.carrinho);
-    const existente = carrinho.find((i) => i.itemCardapioId === item.id);
-    const novoCarrinho = existente
-      ? carrinho.map((i) => (i.itemCardapioId === item.id ? { ...i, qtd: i.qtd + qtd } : i))
-      : [...carrinho, { itemCardapioId: item.id, nome: item.nome, preco: item.preco, qtd }];
+  const definirPagamento = tool({
+    description: "Salva a forma de pagamento escolhida",
+    inputSchema: z.object({
+      forma: z.enum(["pix", "cartao", "dinheiro"]).describe("pix = online, cartao/dinheiro = na entrega"),
+    }),
+    execute: async ({ forma }) => {
+      await atualizarConversa(conversa.id, { pagamentoTemp: forma });
+      return `Pagamento registrado: ${forma}`;
+    },
+  });
 
-    await atualizarConversa(conversa.id, {
-      etapa: "sacola",
-      itemCardapioIdAtual: null,
-      categoriaAtual: null,
-      carrinho: novoCarrinho,
+  const confirmarPedido = tool({
+    description: "Cria o pedido no sistema. Só chamar quando tiver nome, endereço, pagamento e pelo menos 1 item.",
+    inputSchema: z.object({}),
+    execute: async () => {
+      // Já confirmou nesse mesmo turno — não deixa o modelo repetir o fluxo
+      // e abrir um segundo pedido (ver comentário na declaração da trava).
+      if (pedidoConfirmadoNesteTurno) {
+        return `PEDIDO_CONFIRMADO:${pedidoConfirmadoNesteTurno.pedidoId}:${pedidoConfirmadoNesteTurno.total}`;
+      }
+
+      // Relê estado atual do banco (pode ter sido atualizado pelas tools anteriores)
+      const conversaAtual = await getOuCriarConversa(restauranteId, telefone);
+      const carrinhoAtual = parseCarrinho(conversaAtual.carrinho);
+
+      if (carrinhoAtual.length === 0) return "ERRO: carrinho vazio.";
+      if (!conversaAtual.nomeTemp) return "ERRO: nome do cliente não coletado.";
+      if (!conversaAtual.enderecoTemp) return "ERRO: endereço não coletado.";
+      if (!conversaAtual.pagamentoTemp) return "ERRO: forma de pagamento não coletada.";
+
+      // Trava atômica — evita pedido duplicado se a tool for chamada 2x
+      const travou = await travarConfirmacao(conversa.id);
+      if (!travou) return "Pedido já está sendo confirmado.";
+
+      try {
+        const { pedidoId, total } = await criarPedidoWhatsapp({
+          restauranteId,
+          telefoneCliente: telefone,
+          nomeCliente: conversaAtual.nomeTemp,
+          itens: carrinhoAtual.map((i) => ({
+            itemCardapioId: i.itemCardapioId,
+            quantidade: i.qtd,
+            observacao: i.observacao ?? undefined,
+          })),
+          endereco: conversaAtual.enderecoTemp,
+          pagamento: conversaAtual.pagamentoTemp as Pagamento,
+        });
+        pedidoConfirmadoNesteTurno = { pedidoId, total };
+        await resetarConversa(conversa.id);
+        return `PEDIDO_CONFIRMADO:${pedidoId}:${total}`;
+      } catch (e) {
+        await liberarConfirmacao(conversa.id);
+        const msg = e instanceof Error ? e.message : "Erro desconhecido";
+        return `ERRO: ${msg}`;
+      }
+    },
+  });
+
+  const consultarStatus = tool({
+    description: "Consulta o status dos pedidos recentes do cliente pelo telefone",
+    inputSchema: z.object({}),
+    execute: async () => {
+      const ultimos = await getPedidosPorTelefone(restauranteId, telefone, 3);
+      if (ultimos.length === 0) return "Nenhum pedido encontrado pra esse número.";
+      return ultimos
+        .map((p) => {
+          const id = p.id.slice(0, 8);
+          const status = STATUS_PT[p.status as string] ?? p.status;
+          const total = fmtBRL(p.total);
+          const quando = new Intl.DateTimeFormat("pt-BR", {
+            timeZone: "America/Sao_Paulo",
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          }).format(p.criadoEm);
+          return `#${id} — ${status} — ${total} — ${quando}`;
+        })
+        .join("\n");
+    },
+  });
+
+  const menuTexto = buildMenuTexto(itensAtivos, opcoesMapa);
+  const systemPrompt = buildSystemPrompt(
+    nomeRestaurante,
+    menuTexto,
+    carrinho,
+    conversa.nomeTemp,
+    conversa.enderecoTemp,
+    conversa.pagamentoTemp,
+    conversa.historicoResumido,
+  );
+
+  let respostaFinal: string;
+  try {
+    const resultado = await generateText({
+      model: openai("gpt-4o-mini"),
+      system: systemPrompt,
+      messages: [{ role: "user", content: textoRecebido }],
+      tools: { adicionarItem, removerItem, verCarrinho, definirNome, definirEndereco, definirPagamento, confirmarPedido, consultarStatus },
+      stopWhen: stepCountIs(6),
+      onStepFinish: (step) => {
+        for (const c of step.content) {
+          if (c.type === "tool-error") console.error("[whatsapp bot DEBUG] tool-error:", c.toolName, JSON.stringify(c.error));
+        }
+      },
     });
-    return `Adicionado! ✅\n\n${resumoCarrinho(novoCarrinho)}\n\nDigite *1* pra continuar comprando ou *2* pra fechar o pedido.`;
-  }
 
-  if (conversa.etapa === "sacola") {
-    const carrinho = parseCarrinho(conversa.carrinho);
-    if (texto === "1") {
-      await atualizarConversa(conversa.id, { etapa: "escolhendo_categoria" });
-      return listarCategorias(categorias);
+    respostaFinal = resultado.text?.trim() || "Desculpa, não consegui processar. Pode repetir?";
+
+    // Substitui o token interno de confirmação por uma mensagem amigável
+    if (respostaFinal.includes("PEDIDO_CONFIRMADO:")) {
+      const match = respostaFinal.match(/PEDIDO_CONFIRMADO:([^:]+):(\d+\.?\d*)/);
+      const id = match?.[1]?.slice(0, 8) ?? "?";
+      const total = match ? fmtBRL(Number(match[2])) : "";
+      respostaFinal = `Pedido confirmado! ✅\n\nNúmero: #${id}\nTotal: ${total}\n\nJá mandei pra cozinha. Te aviso quando sair pra entrega! 🛵`;
     }
-    if (texto === "2") {
-      await atualizarConversa(conversa.id, { etapa: "aguardando_endereco" });
-      return `${resumoCarrinho(carrinho)}\n\nQual o endereço de entrega? (ou digite *retirada* pra retirar no balcão)`;
-    }
-    return "Digite *1* pra continuar comprando ou *2* pra fechar o pedido.";
+  } catch (e) {
+    console.error("[whatsapp bot] erro no generateText:", e);
+    respostaFinal = "Tive um problema aqui. Pode mandar de novo em instantes?";
   }
 
-  if (conversa.etapa === "aguardando_endereco") {
-    const endereco = ["retirada", "retirar"].includes(texto) ? "Retirada no balcão" : textoRecebido.trim();
-    if (!endereco) return "Me manda o endereço de entrega, ou digite *retirada*.";
+  // Persiste o histórico resumido
+  const novoHistorico = adicionarAoHistorico(conversa.historicoResumido, textoRecebido, respostaFinal);
+  await atualizarConversa(conversa.id, { historicoResumido: novoHistorico });
 
-    await atualizarConversa(conversa.id, { etapa: "aguardando_pagamento", enderecoTemp: endereco });
-    return "Como você vai pagar?\n\n1. Pix\n2. Cartão (na entrega)\n3. Dinheiro (na entrega)";
-  }
-
-  if (conversa.etapa === "aguardando_pagamento") {
-    const pagamento = PAGAMENTO_POR_OPCAO[texto];
-    if (!pagamento) return "Digite *1* pra Pix, *2* pra Cartão ou *3* pra Dinheiro.";
-
-    const carrinho = parseCarrinho(conversa.carrinho);
-    try {
-      const { pedidoId, total } = await criarPedidoWhatsapp({
-        restauranteId,
-        telefoneCliente: telefone,
-        itens: carrinho.map((i) => ({ itemCardapioId: i.itemCardapioId, quantidade: i.qtd })),
-        endereco: conversa.enderecoTemp ?? "Endereço não informado",
-        pagamento,
-      });
-      await resetarConversa(conversa.id);
-      return (
-        `Pedido confirmado! ✅\n\nNúmero: #${pedidoId.slice(0, 8)}\nTotal: ${fmtBRL(total)}\n\n` +
-        "Já mandamos pra cozinha. Te aviso assim que sair pra entrega! 🛵"
-      );
-    } catch {
-      await resetarConversa(conversa.id);
-      return "Algum item da sua sacola não está mais disponível. Digite *menu* pra montar o pedido de novo.";
-    }
-  }
-
-  await resetarConversa(conversa.id);
-  return saudacao(nomeRestaurante);
+  return respostaFinal;
 }

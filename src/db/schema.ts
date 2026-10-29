@@ -60,6 +60,8 @@ export const restaurantes = pgTable("restaurantes", {
    * desse restaurante — um servidor Evolution atende várias instâncias,
    * uma por restaurante/número. Nulo enquanto o bot não estiver conectado. */
   instanciaWhatsapp: text("instancia_whatsapp").unique(),
+  logoUrl: text("logo_url"),
+  corPrimaria: text("cor_primaria"),
   criadoEm: timestamp("criado_em").notNull().defaultNow(),
 });
 
@@ -288,9 +290,19 @@ export const conversasWhatsapp = pgTable(
     /** Categoria e item sendo escolhidos no momento (não confirmados ainda). */
     categoriaAtual: text("categoria_atual"),
     itemCardapioIdAtual: uuid("item_cardapio_id_atual"),
-    /** Carrinho confirmado: [{ itemCardapioId, nome, preco, qtd }] */
+    /** Carrinho confirmado: [{ itemCardapioId, nome, preco, qtd, observacao? }] */
     carrinho: text("carrinho").notNull().default("[]"),
     enderecoTemp: text("endereco_temp"),
+    nomeTemp: text("nome_temp"),
+    pagamentoTemp: text("pagamento_temp"),
+    /** Resumo das últimas trocas, compactado para caber no contexto do agente. */
+    historicoResumido: text("historico_resumido").notNull().default(""),
+    /** Trava atômica: true enquanto uma mensagem está sendo processada — impede
+     * que duas mensagens simultâneas leiam o mesmo estado e se sobreponham. */
+    processando: boolean("processando").notNull().default(false),
+    /** Trava específica pro momento da confirmação do pedido — evita que duas
+     * chamadas da IA (ou dois "confirma" rápidos) criem pedidos duplicados. */
+    confirmandoPedido: boolean("confirmando_pedido").notNull().default(false),
     atualizadoEm: timestamp("atualizado_em").notNull().defaultNow(),
   },
   (table) => [unique("conversa_telefone_restaurante_unico").on(table.restauranteId, table.telefone)],

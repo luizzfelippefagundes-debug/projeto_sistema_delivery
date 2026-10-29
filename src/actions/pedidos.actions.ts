@@ -34,7 +34,8 @@ import {
   pagarComCartao,
 } from "../lib/asaas";
 import { statusFuncionamento, textoStatus } from "../lib/horario";
-import { confirmarPagamentoOnline } from "../lib/pagamentoOnline";
+import { criarPixInter, formaPagaOnline, pixInterAtivo } from "../lib/inter";
+import { confirmarPagamentoOnline, MINUTOS_PARA_PAGAR } from "../lib/pagamentoOnline";
 import {
   type FormaRecebimento,
   pagamentoDaForma,
@@ -217,6 +218,7 @@ export interface ItemDoPedidoCliente {
 export async function criarPedidoWhatsapp(dados: {
   restauranteId: string;
   telefoneCliente: string;
+  nomeCliente?: string;
   itens: ItemDoPedidoCliente[];
   endereco: string;
   pagamento: Pagamento;
@@ -233,7 +235,7 @@ export async function criarPedidoWhatsapp(dados: {
     if (!item || item.restauranteId !== dados.restauranteId || !item.ativo) {
       throw new Error("Um dos itens não está mais disponível.");
     }
-    return { itemCardapioId: item.id, nome: item.nome, preco: item.preco, quantidade: i.quantidade };
+    return { itemCardapioId: item.id, nome: item.nome, preco: item.preco, quantidade: i.quantidade, observacao: i.observacao ?? null };
   });
 
   const total = itensParaSalvar.reduce((s, i) => s + i.preco * i.quantidade, 0);
@@ -242,7 +244,7 @@ export async function criarPedidoWhatsapp(dados: {
     {
       restauranteId: dados.restauranteId,
       origem: "delivery",
-      clienteNome: `WhatsApp ${dados.telefoneCliente}`,
+      clienteNome: dados.nomeCliente?.trim() || `WhatsApp ${dados.telefoneCliente}`,
       telefoneCliente: dados.telefoneCliente,
       endereco: dados.endereco,
       status: "novo",
@@ -256,11 +258,19 @@ export async function criarPedidoWhatsapp(dados: {
     (e) => console.error("[estoque] falha ao baixar estoque:", e),
   );
 
-  revalidatePath("/cozinha");
-  revalidatePath("/motoboy");
-  revalidatePath("/dono");
-  revalidatePath("/dono/cardapio");
-  revalidatePath("/dono/estoque");
+  // O pedido já foi criado de verdade acima — se revalidatePath falhar
+  // (ex: fora de uma requisição real do Next.js), não pode parecer que o
+  // pedido inteiro falhou: isso faria o bot do WhatsApp achar que precisa
+  // tentar de novo e criar um SEGUNDO pedido real por cima do primeiro.
+  try {
+    revalidatePath("/cozinha");
+    revalidatePath("/motoboy");
+    revalidatePath("/dono");
+    revalidatePath("/dono/cardapio");
+    revalidatePath("/dono/estoque");
+  } catch (e) {
+    console.error("[whatsapp] falha ao revalidar cache (pedido já foi criado normalmente):", e);
+  }
 
   return { pedidoId: pedido.id, total };
 }
@@ -347,7 +357,7 @@ export async function criarPedidoCliente(dados: {
     if (!funcionamento.aberto) return { error: `${textoStatus(funcionamento)}. Volte nesse horário pra pedir.` };
   }
   // Dinheiro é sempre pago na entrega, mesmo com o pagamento online ligado.
-  const online = pagamentoOnlineAtivo() && dados.forma !== "dinheiro";
+  const online = pagamentoOnlineAtivo() && formaPagaOnline(dados.forma);
   if (online && dados.forma !== "pix" && dados.forma !== "credito_vista") throw new Error("Forma de pagamento inválida.");
   if (online && !(dados.cpfPagador && validarCPF(dados.cpfPagador))) return { error: "Informe um CPF válido pra pagar." };
 
@@ -456,11 +466,25 @@ export async function criarPedidoCliente(dados: {
       erro = `O pagamento online é a partir de ${fmtBRL(VALOR_MINIMO_ONLINE)}.`;
       throw new Error(erro);
     }
+    const descricao = itensParaSalvar.map((i) => `${i.quantidade}x ${i.nome}`).join(", ");
+    if (pixInterAtivo()) {
+      // Pix direto pelo Inter: o txid da cobrança fica na mesma coluna do id do Asaas.
+      const pix = await criarPixInter({
+        pedidoId: pedido.id,
+        valor: valorCobrado,
+        expiracaoSegundos: MINUTOS_PARA_PAGAR * 60,
+        descricao,
+        pagador: { nome: nomeLimpo, cpf: dados.cpfPagador! },
+      });
+      await db.update(pedidos).set({ asaasPagamentoId: pix.txid }).where(eq(pedidos.id, pedido.id));
+      revalidatePath("/dono/estoque");
+      return { pedidoId: pedido.id };
+    }
     const cobranca = await criarCobrancaAsaas({
       pedidoId: pedido.id,
       cobranca: dados.forma === "pix" ? "PIX" : "CREDIT_CARD",
       valor: valorCobrado,
-      descricao: itensParaSalvar.map((i) => `${i.quantidade}x ${i.nome}`).join(", "),
+      descricao,
       cliente: { nome: nomeLimpo, telefone: telefoneLimpo, cpf: dados.cpfPagador! },
     });
     await db.update(pedidos).set({ asaasPagamentoId: cobranca.id }).where(eq(pedidos.id, pedido.id));
@@ -477,7 +501,7 @@ export async function criarPedidoCliente(dados: {
   } catch (e) {
     await db.update(pedidos).set({ status: "cancelado" }).where(eq(pedidos.id, pedido.id));
     await devolverEstoque(itensEstoque).catch((err) => console.error("[estoque] falha ao devolver estoque:", err));
-    console.error("[asaas] falha ao gerar cobrança do pedido", pedido.id, e);
+    console.error("[pagamento] falha ao gerar cobrança do pedido", pedido.id, e);
     return { error: erro ?? mensagemErroAsaas(e) ?? "Não deu pra gerar o pagamento. Tente de novo em instantes." };
   }
 }

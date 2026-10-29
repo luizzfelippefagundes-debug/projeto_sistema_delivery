@@ -169,3 +169,19 @@ export async function getItensAgrupadosPorPedido(pedidoIds: string[]) {
   }
   return mapa;
 }
+
+/** Últimos pedidos feitos pelo telefone informado — alimenta a tool
+ * `consultar_status_pedido` do agente de WhatsApp. */
+export async function getPedidosPorTelefone(restauranteId: string, telefone: string, limite = 3) {
+  return getDb()
+    .select({
+      id: pedidos.id,
+      status: pedidos.status,
+      total: pedidos.total,
+      criadoEm: pedidos.criadoEm,
+    })
+    .from(pedidos)
+    .where(and(eq(pedidos.restauranteId, restauranteId), eq(pedidos.telefoneCliente, telefone)))
+    .orderBy(desc(pedidos.criadoEm))
+    .limit(limite);
+}

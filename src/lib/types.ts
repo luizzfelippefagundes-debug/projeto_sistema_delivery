@@ -33,6 +33,7 @@ export interface ItemCarrinhoWhatsapp {
   nome: string;
   preco: number;
   qtd: number;
+  observacao?: string | null;
 }
 
 export interface Funcionario {

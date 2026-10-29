@@ -13,6 +13,7 @@
     "db:seed": "dotenv -e .env.local -- tsx src/db/seed.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.134",
     "@base-ui/react": "^1.8.0",
     "@clerk/localizations": "^4.17.1",
     "@clerk/nextjs": "^7.9.4",
@@ -20,6 +21,7 @@
     "@neondatabase/serverless": "^1.1.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/blob": "^2.8.0",
+    "ai": "^6.0.317",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.3.0",
     "drizzle-orm": "^0.45.2",

@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { restaurantes } from "@/db/schema";
 import { enviarMensagemWhatsapp } from "@/lib/evolutionApi";
+import { getOuCriarConversa, liberarProcessamento, travarProcessamento } from "@/db/queries/conversasWhatsapp";
 import { processarMensagemWhatsapp } from "@/lib/whatsappBot";
 
 interface ChavesMensagem {
@@ -55,11 +56,22 @@ export async function POST(request: Request) {
 
   const telefone = remoteJid.split("@")[0];
 
+  // Trava atômica: se já existe um processamento em curso pra esse número,
+  // descarta silenciosamente — o cliente vai receber a resposta do processamento anterior.
+  const conversa = await getOuCriarConversa(restaurante.id, telefone);
+  const travou = await travarProcessamento(conversa.id);
+  if (!travou) {
+    console.warn("[whatsapp webhook] mensagem descartada — processamento em curso:", telefone);
+    return NextResponse.json({ ok: true });
+  }
+
   try {
     const resposta = await processarMensagemWhatsapp(restaurante.id, telefone, texto, restaurante.nome);
     await enviarMensagemWhatsapp(instancia, telefone, resposta);
   } catch (e) {
     console.error("[whatsapp webhook] erro processando mensagem:", e);
+  } finally {
+    await liberarProcessamento(conversa.id).catch(() => {});
   }
 
   return NextResponse.json({ ok: true });
