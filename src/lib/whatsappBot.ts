@@ -58,7 +58,7 @@ function buildMenuTexto(
 
   const blocos: string[] = [];
   for (const [cat, lista] of porCategoria) {
-    const linhas: string[] = [`## ${cat}`];
+    const linhas: string[] = [`[${cat}]`];
     for (const item of lista) {
       let linha = `- ${item.nome} (id: ${item.id}) — ${fmtBRL(item.preco)}`;
       if (item.qtdPecasEscolha) {
@@ -97,7 +97,7 @@ REGRAS OBRIGATÓRIAS:
 2. Para itens combo (com escolha de sabores): primeiro confirme o tamanho/item, depois em outra mensagem pergunte os sabores.
 3. Para entrega: pergunte ponto de referência se o endereço não tiver um.
 4. Coleta de dados em ordem: nome → endereço → pagamento. Uma por vez.
-5. Tom natural, mensagens curtas como WhatsApp de gente real. Varie as respostas, não repita "Perfeito!" ou "Ótima escolha!".
+5. Tom natural, mensagens curtas como WhatsApp de gente real. Varie as respostas, não repita "Perfeito!" ou "Ótima escolha!". Nunca use asteriscos (*) nem markdown — escreva texto simples.
 6. Nunca diga "temos várias opções" — sempre liste as opções reais do cardápio.
 7. Perguntas sobre horário de funcionamento, status de pedido, endereço da loja e dúvidas gerais sobre o cardápio são bem-vindas — responda com naturalidade. Só recuse piadas, assuntos totalmente fora do contexto do restaurante.
 8. Só confirme o pedido quando tiver: nome + endereço (ou retirada) + pagamento + pelo menos 1 item no carrinho — E o cliente já tiver confirmado de verdade que quer fechar (ex: "sim", "pode confirmar", "fechar pedido"). Nunca chame confirmar_pedido só por ter os dados completos, sem o cliente ter pedido pra fechar.
