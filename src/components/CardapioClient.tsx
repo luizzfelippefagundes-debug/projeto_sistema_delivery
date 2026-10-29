@@ -1,6 +1,6 @@
 "use client";
 
-import { Package, Search, ShoppingBag, X } from "lucide-react";
+import { Package, Plus, Search, ShoppingBag, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import AvisoFuncionamento from "@/components/AvisoFuncionamento";
 import type { Horarios } from "@/lib/horario";
@@ -337,6 +337,86 @@ function BannerCarousel({
   );
 }
 
+function MaisPedidosCarousel({
+  itens,
+  onAbrirItem,
+}: {
+  itens: ItemDoCardapio[];
+  onAbrirItem: (item: ItemDoCardapio) => void;
+}) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const scrollLeft = useRef(0);
+  const draggedEnough = useRef(false);
+
+  function onMouseDown(e: React.MouseEvent) {
+    isDragging.current = true;
+    draggedEnough.current = false;
+    startX.current = e.pageX - (trackRef.current?.offsetLeft ?? 0);
+    scrollLeft.current = trackRef.current?.scrollLeft ?? 0;
+    if (trackRef.current) trackRef.current.style.cursor = "grabbing";
+  }
+
+  function onMouseMove(e: React.MouseEvent) {
+    if (!isDragging.current || !trackRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - trackRef.current.offsetLeft;
+    const dx = x - startX.current;
+    if (Math.abs(dx) > 4) draggedEnough.current = true;
+    trackRef.current.scrollLeft = scrollLeft.current - dx;
+  }
+
+  function onMouseUp() {
+    isDragging.current = false;
+    if (trackRef.current) trackRef.current.style.cursor = "grab";
+  }
+
+  if (itens.length === 0) return null;
+  return (
+    <div className="pt-4 pb-2">
+      <div className="mx-auto max-w-2xl">
+        <h2 className="px-4 pb-2 font-heading text-base font-extrabold md:px-6">🔥 Mais pedidos</h2>
+        <div
+          ref={trackRef}
+          className="flex select-none gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:px-6"
+          style={{ cursor: "grab" }}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
+          onMouseLeave={onMouseUp}
+        >
+          {itens.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => { if (!draggedEnough.current) onAbrirItem(item); }}
+              draggable={false}
+              className="group flex w-28 shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-transform hover:-translate-y-0.5 active:scale-95"
+            >
+              <div className="relative h-24 w-full bg-muted">
+                {item.imagemUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={item.imagemUrl} alt={item.nome} draggable={false} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-2xl">🍣</div>
+                )}
+                <span className="absolute bottom-1.5 right-1.5 flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow">
+                  <Plus className="size-3.5 stroke-[3]" />
+                </span>
+              </div>
+              <div className="flex flex-1 flex-col gap-0.5 p-2">
+                <p className="line-clamp-2 text-left text-[11px] font-semibold leading-tight">{item.nome}</p>
+                <p className="num mt-auto text-left text-[11px] font-bold text-primary">{fmtBRL(item.preco)}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CardapioClient({
   restauranteId,
   slug,
@@ -348,8 +428,10 @@ export default function CardapioClient({
   bannersDona = [],
   souDona = false,
   pagamentoOnline = false,
+  soPixOnline = false,
   taxaCartaoOnline = null,
   horarios = null,
+  maisPedidos = [],
 }: {
   restauranteId: string;
   slug: string;
@@ -363,14 +445,28 @@ export default function CardapioClient({
    * de trocar de painel no cabeçalho. */
   souDona?: boolean;
   pagamentoOnline?: boolean;
+  /** Pix direto pelo Inter: só o Pix é online, cartão fica pra entrega. */
+  soPixOnline?: boolean;
   taxaCartaoOnline?: TaxaCartaoOnline | null;
   horarios?: Horarios | null;
+  maisPedidos?: ItemDoCardapio[];
 }) {
   const categorias = Object.keys(itensPorCategoria);
   const [categoriaAtiva, setCategoriaAtiva] = useState(categorias[0] ?? "");
   const [sacolaAberta, setSacolaAberta] = useState(false);
   const [busca, setBusca] = useState("");
+  const [itemMaisPedidosAberto, setItemMaisPedidosAberto] = useState<ItemDoCardapio | null>(null);
   const { total, count } = useCart();
+
+  const infoEntrega = (() => {
+    if (zonasEntrega.length === 0) return null;
+    const tempos = zonasEntrega.map((z) => z.tempoEstimadoMin);
+    const taxaMin = Math.min(...zonasEntrega.map((z) => z.taxaEntrega));
+    const tMin = Math.min(...tempos);
+    const tMax = Math.max(...tempos);
+    const tempo = tMin === tMax ? `${tMin} min` : `${tMin}–${tMax} min`;
+    return `Entrega ${tempo} · taxa a partir de ${taxaMin === 0 ? "grátis" : fmtBRL(taxaMin)}`;
+  })();
 
   const termoBusca = busca.trim().toLowerCase();
   const todosItens = Object.values(itensPorCategoria).flat();
@@ -425,7 +521,15 @@ export default function CardapioClient({
       <CustomerHeader nomeRestaurante={nomeRestaurante} slug={slug} souDona={souDona} />
       <AvisoFuncionamento horarios={horarios} />
 
+      {infoEntrega && (
+        <p className="border-b border-border bg-card px-4 py-2 text-center text-xs font-medium text-muted-foreground">
+          {infoEntrega}
+        </p>
+      )}
+
       <BannerCarousel itensPorCategoria={itensPorCategoria} bannersDona={bannersDona} />
+
+      <MaisPedidosCarousel itens={maisPedidos} onAbrirItem={setItemMaisPedidosAberto} />
 
       {categorias.length === 0 ? (
         <div className="flex flex-1 items-center justify-center p-6">
@@ -458,22 +562,26 @@ export default function CardapioClient({
             </div>
 
             {!termoBusca && (
-              <div className="mx-auto flex max-w-2xl gap-5 overflow-x-auto px-4 md:px-6">
-                {categorias.map((cat) => (
-                  <button
-                    key={cat}
-                    ref={(el) => { pillRefs.current[cat] = el; }}
-                    type="button"
-                    onClick={() => irParaCategoria(cat)}
-                    className={`shrink-0 whitespace-nowrap border-b-2 py-3 text-sm transition-colors ${
-                      categoriaAtiva === cat
-                        ? "border-primary font-semibold text-primary"
-                        : "border-transparent font-medium text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
+              <div className="relative mx-auto max-w-2xl">
+                <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-background to-transparent" />
+                <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-background to-transparent" />
+                <div className="flex gap-2 overflow-x-auto px-4 py-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:px-6">
+                  {categorias.map((cat) => (
+                    <button
+                      key={cat}
+                      ref={(el) => { pillRefs.current[cat] = el; }}
+                      type="button"
+                      onClick={() => irParaCategoria(cat)}
+                      className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
+                        categoriaAtiva === cat
+                          ? "border-foreground bg-foreground text-background"
+                          : "border-border bg-card text-foreground hover:bg-muted"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -481,14 +589,16 @@ export default function CardapioClient({
           {termoBusca ? (
             <div className={`mx-auto w-full max-w-2xl flex-1 px-4 md:px-6 ${count ? "pb-40" : "pb-24"}`}>
               {resultadosBusca.length === 0 ? (
-                <p className="pt-10 text-center text-sm text-muted-foreground">Nenhum item encontrado para "{busca}".</p>
+                <p className="pt-10 text-center text-sm text-muted-foreground">Nenhum item encontrado para &quot;{busca}&quot;.</p>
               ) : (
                 <div className="flex flex-col">
-                  <p className="pt-4 text-xs text-muted-foreground">{resultadosBusca.length} resultado{resultadosBusca.length !== 1 ? "s" : ""}</p>
-                  {resultadosBusca.map((item) => {
-                    const cat = Object.entries(itensPorCategoria).find(([, lista]) => lista.some((i) => i.id === item.id))?.[0] ?? categorias[0];
-                    return <ItemCard key={item.id} item={item} categoria={cat} tint={tintDaCategoria(cat, categorias)} />;
-                  })}
+                  <p className="pt-4 pb-3 text-xs text-muted-foreground">{resultadosBusca.length} resultado{resultadosBusca.length !== 1 ? "s" : ""}</p>
+                  <div className="flex flex-col gap-3">
+                    {resultadosBusca.map((item) => {
+                      const cat = Object.entries(itensPorCategoria).find(([, lista]) => lista.some((i) => i.id === item.id))?.[0] ?? categorias[0];
+                      return <ItemCard key={item.id} item={item} categoria={cat} tint={tintDaCategoria(cat, categorias)} />;
+                    })}
+                  </div>
                 </div>
               )}
             </div>
@@ -500,8 +610,8 @@ export default function CardapioClient({
                   ref={(el) => { sectionRefs.current[cat] = el; }}
                   data-categoria={cat}
                 >
-                  <h2 className="pt-5 font-heading text-lg font-semibold">{cat}</h2>
-                  <div className="flex flex-col">
+                  <h2 className="pt-5 pb-3 font-heading text-lg font-extrabold">{cat}</h2>
+                  <div className="flex flex-col gap-3">
                     {itensPorCategoria[cat]?.map((item) => (
                       <ItemCard key={item.id} item={item} categoria={cat} tint={tintDaCategoria(cat, categorias)} />
                     ))}
@@ -515,16 +625,17 @@ export default function CardapioClient({
 
       <div className="fixed inset-x-0 bottom-0 z-40 flex flex-col">
         {count > 0 && (
-          <div className="border-t border-border bg-background p-3">
+          <div className="px-4 pb-3">
             <button
               type="button"
               onClick={() => setSacolaAberta(true)}
-              className="mx-auto flex w-full max-w-lg items-center justify-between rounded-xl bg-primary px-4 py-3 text-primary-foreground shadow-lg transition-opacity hover:opacity-90"
+              className="mx-auto flex w-full max-w-sm items-center justify-between rounded-full bg-foreground py-2 pr-2 pl-5 text-background shadow-xl transition-transform hover:-translate-y-0.5"
             >
-              <span className="flex items-center gap-2 text-sm font-semibold">
-                <ShoppingBag className="size-4" /> Ver sacola · {count} {count === 1 ? "item" : "itens"}
+              <span className="flex items-center gap-2 text-sm font-bold">
+                <ShoppingBag className="size-4" />
+                {count} {count === 1 ? "item" : "itens"} · <span className="num">{fmtBRL(total)}</span>
               </span>
-              <span className="num text-sm font-bold">{fmtBRL(total)}</span>
+              <span className="rounded-full bg-primary px-4 py-2.5 text-sm font-extrabold text-primary-foreground">Ver sacola</span>
             </button>
           </div>
         )}
@@ -540,8 +651,17 @@ export default function CardapioClient({
         open={sacolaAberta}
         onOpenChange={setSacolaAberta}
         pagamentoOnline={pagamentoOnline}
+        soPixOnline={soPixOnline}
         horarios={horarios}
         taxaCartaoOnline={taxaCartaoOnline}
+      />
+
+      <ItemDetalheDialog
+        item={itemMaisPedidosAberto}
+        tint="bg-status-danger-bg text-status-danger-fg"
+        icon={Package}
+        open={itemMaisPedidosAberto !== null}
+        onOpenChange={(v) => { if (!v) setItemMaisPedidosAberto(null); }}
       />
     </div>
   );

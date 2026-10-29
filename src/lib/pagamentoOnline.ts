@@ -5,6 +5,7 @@ import { itensPedido, pedidos } from "../db/schema";
 import { devolverEstoque } from "../db/queries/cardapio";
 import { apagarPagamentoAsaas, buscarPagamentoAsaas, pagamentoQuitado } from "./asaas";
 import { fmtBRL } from "./data";
+import { buscarPixInter, cancelarPixInter, ehPagamentoInter } from "./inter";
 import { notificarNovoPedido } from "./webPush";
 
 /** Tempo que o cliente tem pra pagar antes do pedido ser cancelado. */
@@ -62,6 +63,18 @@ export async function sincronizarPagamento(pedido: {
   if (pedido.status !== "aguardando_pagamento" || !pedido.asaasPagamentoId) return;
 
   const id = pedido.asaasPagamentoId;
+  if (ehPagamentoInter(id)) {
+    const pix = await buscarPixInter(id);
+    if (pix.quitado) {
+      await confirmarPagamentoOnline(id);
+      return;
+    }
+    const passouDoPrazo = Date.now() - pedido.criadoEm.getTime() >= MINUTOS_PARA_PAGAR * 60_000;
+    if (!pix.encerrado && !passouDoPrazo) return;
+    if (!pix.encerrado) await cancelarPixInter(id);
+    await cancelarPagamentoOnline(id);
+    return;
+  }
   const pagamento = await buscarPagamentoAsaas(id);
   if (pagamentoQuitado(pagamento.status)) {
     await confirmarPagamentoOnline(id);

@@ -8,10 +8,9 @@ export type CobrancaOnline = "PIX" | "CREDIT_CARD";
 /** Menor cobrança que o Asaas aceita. */
 export const VALOR_MINIMO_ONLINE = 5;
 
-/** Ligado só depois que a conta do Asaas for aprovada; até lá o cliente paga na entrega.
- * Temporariamente desligado enquanto a integração com o Inter é configurada. */
+/** Ligado só depois que a conta do Asaas for aprovada; até lá o cliente paga na entrega. */
 export function pagamentoOnlineAtivo(): boolean {
-  return false;
+  return true;
 }
 
 export class AsaasError extends Error {

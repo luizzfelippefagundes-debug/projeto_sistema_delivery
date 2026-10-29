@@ -41,7 +41,14 @@ export default async function CozinhaPage() {
     .map((p) => ({ id: p.id, clienteNome: p.clienteNome, endereco: p.endereco, total: p.total, criadoEm: p.criadoEm.getTime() }));
 
   if (!tambemAtende) {
-    return <CozinhaBoard pedidos={pedidosCozinha} podeDespachar={podeDespachar} />;
+    return (
+      <CozinhaBoard
+        pedidos={pedidosCozinha}
+        emRota={deliveryEmRota}
+        podeDespachar={podeDespachar}
+        podeConfirmarEntrega={podeDespachar}
+      />
+    );
   }
 
   const [itensCardapioTodos, pedidosHoje, config, mesasQuerFechar] = await Promise.all([

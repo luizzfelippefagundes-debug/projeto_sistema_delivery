@@ -52,15 +52,20 @@ export function ItemCard({ item, categoria, tint }: { item: ItemDoCardapio; cate
   return (
     <>
       <div
-        className="flex cursor-pointer items-start gap-3 border-b border-border py-4 last:border-0"
+        className="flex cursor-pointer items-start gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm transition-shadow hover:shadow-md"
         onClick={() => setDetalheAberto(true)}
       >
-        <div className="min-w-0 flex-1">
-          <h3 className="font-medium leading-snug">{item.nome}</h3>
-          {item.descricao && (
-            <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">{item.descricao}</p>
-          )}
-          <p className="num mt-2 text-sm font-semibold">{fmtBRL(item.preco)}</p>
+        <div className="flex min-h-24 min-w-0 flex-1 flex-col justify-between gap-2 sm:min-h-28">
+          <div>
+            <h3 className="font-bold leading-snug">{item.nome}</h3>
+            {item.descricao && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{item.descricao}</p>}
+          </div>
+          <div className="flex items-center gap-2">
+            <p className="num text-base font-extrabold text-primary">{fmtBRL(item.preco)}</p>
+            {ehCombo && (
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">Monte o seu</span>
+            )}
+          </div>
         </div>
 
         <div className="relative size-24 shrink-0 sm:size-28">
@@ -107,7 +112,7 @@ export function ItemCard({ item, categoria, tint }: { item: ItemDoCardapio; cate
                 else add(item.id, item.nome, item.preco);
               }}
               aria-label="Adicionar"
-              className="absolute -bottom-2 -right-1 flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-opacity hover:opacity-90"
+              className="absolute -bottom-2 -right-1 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-opacity hover:opacity-90"
             >
               <Plus className="size-4" />
             </button>

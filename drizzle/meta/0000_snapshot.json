@@ -1,0 +1,1383 @@
+{
+  "id": "f2f9139c-035c-43b7-a983-6d8500529011",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.clientes": {
+      "name": "clientes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "restaurante_id": {
+          "name": "restaurante_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "clerk_user_id": {
+          "name": "clerk_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "telefone": {
+          "name": "telefone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "clientes_restaurante_id_restaurantes_id_fk": {
+          "name": "clientes_restaurante_id_restaurantes_id_fk",
+          "tableFrom": "clientes",
+          "tableTo": "restaurantes",
+          "columnsFrom": [
+            "restaurante_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "clientes_clerk_user_id_unique": {
+          "name": "clientes_clerk_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "clerk_user_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.configuracoes": {
+      "name": "configuracoes",
+      "schema": "",
+      "columns": {
+        "restaurante_id": {
+          "name": "restaurante_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "meta_faturamento_mensal": {
+          "name": "meta_faturamento_mensal",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "endereco_loja": {
+          "name": "endereco_loja",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "numero_mesas": {
+          "name": "numero_mesas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 8
+        },
+        "taxa_pix": {
+          "name": "taxa_pix",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "taxa_debito": {
+          "name": "taxa_debito",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1.39
+        },
+        "taxa_credito_vista": {
+          "name": "taxa_credito_vista",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 3.34
+        },
+        "taxa_credito_2x": {
+          "name": "taxa_credito_2x",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 7.29
+        },
+        "taxa_credito_3x": {
+          "name": "taxa_credito_3x",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 8.35
+        },
+        "taxa_credito_4x": {
+          "name": "taxa_credito_4x",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 9.23
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "configuracoes_restaurante_id_restaurantes_id_fk": {
+          "name": "configuracoes_restaurante_id_restaurantes_id_fk",
+          "tableFrom": "configuracoes",
+          "tableTo": "restaurantes",
+          "columnsFrom": [
+            "restaurante_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.conversas_whatsapp": {
+      "name": "conversas_whatsapp",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "restaurante_id": {
+          "name": "restaurante_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "telefone": {
+          "name": "telefone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "etapa": {
+          "name": "etapa",
+          "type": "etapa_conversa",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'inicio'"
+        },
+        "categoria_atual": {
+          "name": "categoria_atual",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "item_cardapio_id_atual": {
+          "name": "item_cardapio_id_atual",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "carrinho": {
+          "name": "carrinho",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'"
+        },
+        "endereco_temp": {
+          "name": "endereco_temp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "atualizado_em": {
+          "name": "atualizado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "conversas_whatsapp_restaurante_id_restaurantes_id_fk": {
+          "name": "conversas_whatsapp_restaurante_id_restaurantes_id_fk",
+          "tableFrom": "conversas_whatsapp",
+          "tableTo": "restaurantes",
+          "columnsFrom": [
+            "restaurante_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "conversa_telefone_restaurante_unico": {
+          "name": "conversa_telefone_restaurante_unico",
+          "nullsNotDistinct": false,
+          "columns": [
+            "restaurante_id",
+            "telefone"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.fechamentos_caixa": {
+      "name": "fechamentos_caixa",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "restaurante_id": {
+          "name": "restaurante_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data": {
+          "name": "data",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dinheiro": {
+          "name": "dinheiro",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cartao": {
+          "name": "cartao",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pix": {
+          "name": "pix",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "total": {
+          "name": "total",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fechado_em": {
+          "name": "fechado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "fechado_por_funcionario_id": {
+          "name": "fechado_por_funcionario_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "fechamentos_caixa_restaurante_id_restaurantes_id_fk": {
+          "name": "fechamentos_caixa_restaurante_id_restaurantes_id_fk",
+          "tableFrom": "fechamentos_caixa",
+          "tableTo": "restaurantes",
+          "columnsFrom": [
+            "restaurante_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "fechamentos_caixa_fechado_por_funcionario_id_funcionarios_id_fk": {
+          "name": "fechamentos_caixa_fechado_por_funcionario_id_funcionarios_id_fk",
+          "tableFrom": "fechamentos_caixa",
+          "tableTo": "funcionarios",
+          "columnsFrom": [
+            "fechado_por_funcionario_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "fechamento_dia_restaurante_unico": {
+          "name": "fechamento_dia_restaurante_unico",
+          "nullsNotDistinct": false,
+          "columns": [
+            "data",
+            "restaurante_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.funcionarios": {
+      "name": "funcionarios",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "restaurante_id": {
+          "name": "restaurante_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "clerk_user_id": {
+          "name": "clerk_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email_convite": {
+          "name": "email_convite",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "telefone": {
+          "name": "telefone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avatar_url": {
+          "name": "avatar_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "papel": {
+          "name": "papel",
+          "type": "papel_funcionario",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'atendente'"
+        },
+        "acessos_extras": {
+          "name": "acessos_extras",
+          "type": "papel_funcionario[]",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "ativo": {
+          "name": "ativo",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "funcionarios_restaurante_id_restaurantes_id_fk": {
+          "name": "funcionarios_restaurante_id_restaurantes_id_fk",
+          "tableFrom": "funcionarios",
+          "tableTo": "restaurantes",
+          "columnsFrom": [
+            "restaurante_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "funcionarios_clerk_user_id_unique": {
+          "name": "funcionarios_clerk_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "clerk_user_id"
+          ]
+        },
+        "funcionarios_email_convite_unique": {
+          "name": "funcionarios_email_convite_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email_convite"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.itens_cardapio": {
+      "name": "itens_cardapio",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "restaurante_id": {
+          "name": "restaurante_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "categoria": {
+          "name": "categoria",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "descricao": {
+          "name": "descricao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preco": {
+          "name": "preco",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "imagem_url": {
+          "name": "imagem_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "estoque_atual": {
+          "name": "estoque_atual",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "estoque_minimo": {
+          "name": "estoque_minimo",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "qtd_pecas_escolha": {
+          "name": "qtd_pecas_escolha",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ativo": {
+          "name": "ativo",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "itens_cardapio_restaurante_id_restaurantes_id_fk": {
+          "name": "itens_cardapio_restaurante_id_restaurantes_id_fk",
+          "tableFrom": "itens_cardapio",
+          "tableTo": "restaurantes",
+          "columnsFrom": [
+            "restaurante_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.itens_pedido": {
+      "name": "itens_pedido",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "pedido_id": {
+          "name": "pedido_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "item_cardapio_id": {
+          "name": "item_cardapio_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "preco": {
+          "name": "preco",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantidade": {
+          "name": "quantidade",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "observacao": {
+          "name": "observacao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "itens_pedido_pedido_id_pedidos_id_fk": {
+          "name": "itens_pedido_pedido_id_pedidos_id_fk",
+          "tableFrom": "itens_pedido",
+          "tableTo": "pedidos",
+          "columnsFrom": [
+            "pedido_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "itens_pedido_item_cardapio_id_itens_cardapio_id_fk": {
+          "name": "itens_pedido_item_cardapio_id_itens_cardapio_id_fk",
+          "tableFrom": "itens_pedido",
+          "tableTo": "itens_cardapio",
+          "columnsFrom": [
+            "item_cardapio_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.log_atividades": {
+      "name": "log_atividades",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "restaurante_id": {
+          "name": "restaurante_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "funcionario_id": {
+          "name": "funcionario_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nome_funcionario": {
+          "name": "nome_funcionario",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "acao": {
+          "name": "acao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "detalhe": {
+          "name": "detalhe",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "log_atividades_restaurante_id_restaurantes_id_fk": {
+          "name": "log_atividades_restaurante_id_restaurantes_id_fk",
+          "tableFrom": "log_atividades",
+          "tableTo": "restaurantes",
+          "columnsFrom": [
+            "restaurante_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "log_atividades_funcionario_id_funcionarios_id_fk": {
+          "name": "log_atividades_funcionario_id_funcionarios_id_fk",
+          "tableFrom": "log_atividades",
+          "tableTo": "funcionarios",
+          "columnsFrom": [
+            "funcionario_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.opcoes_combo": {
+      "name": "opcoes_combo",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "item_cardapio_id": {
+          "name": "item_cardapio_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "limite_quantidade": {
+          "name": "limite_quantidade",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ordem": {
+          "name": "ordem",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "disponivel": {
+          "name": "disponivel",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "opcoes_combo_item_cardapio_id_itens_cardapio_id_fk": {
+          "name": "opcoes_combo_item_cardapio_id_itens_cardapio_id_fk",
+          "tableFrom": "opcoes_combo",
+          "tableTo": "itens_cardapio",
+          "columnsFrom": [
+            "item_cardapio_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.pedidos": {
+      "name": "pedidos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "restaurante_id": {
+          "name": "restaurante_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "origem": {
+          "name": "origem",
+          "type": "origem_pedido",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mesa": {
+          "name": "mesa",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cliente_id": {
+          "name": "cliente_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cliente_nome": {
+          "name": "cliente_nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "telefone_cliente": {
+          "name": "telefone_cliente",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "endereco": {
+          "name": "endereco",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "entregador_id": {
+          "name": "entregador_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "status_pedido",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'novo'"
+        },
+        "forma_pagamento": {
+          "name": "forma_pagamento",
+          "type": "forma_pagamento",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "taxa_entrega": {
+          "name": "taxa_entrega",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cpf_nota": {
+          "name": "cpf_nota",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "total": {
+          "name": "total",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "pedidos_restaurante_id_restaurantes_id_fk": {
+          "name": "pedidos_restaurante_id_restaurantes_id_fk",
+          "tableFrom": "pedidos",
+          "tableTo": "restaurantes",
+          "columnsFrom": [
+            "restaurante_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "pedidos_cliente_id_clientes_id_fk": {
+          "name": "pedidos_cliente_id_clientes_id_fk",
+          "tableFrom": "pedidos",
+          "tableTo": "clientes",
+          "columnsFrom": [
+            "cliente_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "pedidos_entregador_id_funcionarios_id_fk": {
+          "name": "pedidos_entregador_id_funcionarios_id_fk",
+          "tableFrom": "pedidos",
+          "tableTo": "funcionarios",
+          "columnsFrom": [
+            "entregador_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.push_subscriptions": {
+      "name": "push_subscriptions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "funcionario_id": {
+          "name": "funcionario_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "endpoint": {
+          "name": "endpoint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "p256dh": {
+          "name": "p256dh",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "auth": {
+          "name": "auth",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "push_subscriptions_funcionario_id_funcionarios_id_fk": {
+          "name": "push_subscriptions_funcionario_id_funcionarios_id_fk",
+          "tableFrom": "push_subscriptions",
+          "tableTo": "funcionarios",
+          "columnsFrom": [
+            "funcionario_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "push_subscriptions_endpoint_unique": {
+          "name": "push_subscriptions_endpoint_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "endpoint"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.restaurantes": {
+      "name": "restaurantes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "instancia_whatsapp": {
+          "name": "instancia_whatsapp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "restaurantes_slug_unique": {
+          "name": "restaurantes_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "slug"
+          ]
+        },
+        "restaurantes_instancia_whatsapp_unique": {
+          "name": "restaurantes_instancia_whatsapp_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "instancia_whatsapp"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.solicitacoes_fechamento": {
+      "name": "solicitacoes_fechamento",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "restaurante_id": {
+          "name": "restaurante_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mesa": {
+          "name": "mesa",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "solicitacoes_fechamento_restaurante_id_restaurantes_id_fk": {
+          "name": "solicitacoes_fechamento_restaurante_id_restaurantes_id_fk",
+          "tableFrom": "solicitacoes_fechamento",
+          "tableTo": "restaurantes",
+          "columnsFrom": [
+            "restaurante_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "solicitacao_fechamento_mesa_unica": {
+          "name": "solicitacao_fechamento_mesa_unica",
+          "nullsNotDistinct": false,
+          "columns": [
+            "restaurante_id",
+            "mesa"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.turnos": {
+      "name": "turnos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "restaurante_id": {
+          "name": "restaurante_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "funcionario_id": {
+          "name": "funcionario_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dia_semana": {
+          "name": "dia_semana",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hora_inicio": {
+          "name": "hora_inicio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hora_fim": {
+          "name": "hora_fim",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "turnos_restaurante_id_restaurantes_id_fk": {
+          "name": "turnos_restaurante_id_restaurantes_id_fk",
+          "tableFrom": "turnos",
+          "tableTo": "restaurantes",
+          "columnsFrom": [
+            "restaurante_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "turnos_funcionario_id_funcionarios_id_fk": {
+          "name": "turnos_funcionario_id_funcionarios_id_fk",
+          "tableFrom": "turnos",
+          "tableTo": "funcionarios",
+          "columnsFrom": [
+            "funcionario_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.zonas_entrega": {
+      "name": "zonas_entrega",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "restaurante_id": {
+          "name": "restaurante_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bairro": {
+          "name": "bairro",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "taxa_entrega": {
+          "name": "taxa_entrega",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tempo_estimado_min": {
+          "name": "tempo_estimado_min",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ordem": {
+          "name": "ordem",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "zonas_entrega_restaurante_id_restaurantes_id_fk": {
+          "name": "zonas_entrega_restaurante_id_restaurantes_id_fk",
+          "tableFrom": "zonas_entrega",
+          "tableTo": "restaurantes",
+          "columnsFrom": [
+            "restaurante_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.etapa_conversa": {
+      "name": "etapa_conversa",
+      "schema": "public",
+      "values": [
+        "inicio",
+        "escolhendo_categoria",
+        "escolhendo_item",
+        "escolhendo_quantidade",
+        "sacola",
+        "aguardando_endereco",
+        "aguardando_pagamento"
+      ]
+    },
+    "public.forma_pagamento": {
+      "name": "forma_pagamento",
+      "schema": "public",
+      "values": [
+        "dinheiro",
+        "cartao",
+        "pix"
+      ]
+    },
+    "public.origem_pedido": {
+      "name": "origem_pedido",
+      "schema": "public",
+      "values": [
+        "salao",
+        "delivery"
+      ]
+    },
+    "public.papel_funcionario": {
+      "name": "papel_funcionario",
+      "schema": "public",
+      "values": [
+        "dono",
+        "atendente",
+        "cozinha",
+        "motoboy"
+      ]
+    },
+    "public.status_pedido": {
+      "name": "status_pedido",
+      "schema": "public",
+      "values": [
+        "novo",
+        "preparo",
+        "pronto",
+        "rota",
+        "entregue",
+        "finalizado",
+        "cancelado"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -1,7 +1,7 @@
-import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { getDb } from "../index";
 import { ordenarPorNome } from "../../lib/ordenacao";
-import { itensCardapio, opcoesCombo } from "../schema";
+import { itensCardapio, itensPedido, opcoesCombo, pedidos } from "../schema";
 
 export async function getItensCardapio(restauranteId: string) {
   const itens = await getDb().select().from(itensCardapio).where(eq(itensCardapio.restauranteId, restauranteId));
@@ -169,6 +169,36 @@ export async function ajustarEstoque(itemId: string, delta: number) {
     .where(eq(itensCardapio.id, itemId))
     .returning();
   return atualizado;
+}
+
+/** Top N itens que apareceram no maior número de pedidos distintos.
+ * Conta pedidos, não quantidade de peças — evita que complementos avulsos
+ * muito baratos (ex: peça de R$4 pedida 30x num combo) subam sem mérito.
+ * Só retorna itens ativos. Usado no carrossel "Mais Pedidos" do cardápio. */
+export async function getMaisVendidos(restauranteId: string, limite = 8) {
+  const tops = await getDb()
+    .select({
+      id: itensPedido.itemCardapioId,
+      total: sql<number>`count(distinct ${itensPedido.pedidoId})`,
+    })
+    .from(itensPedido)
+    .innerJoin(pedidos, eq(pedidos.id, itensPedido.pedidoId))
+    .where(and(eq(pedidos.restauranteId, restauranteId), isNotNull(itensPedido.itemCardapioId)))
+    .groupBy(itensPedido.itemCardapioId)
+    .orderBy(desc(sql<number>`count(distinct ${itensPedido.pedidoId})`))
+    .limit(limite);
+
+  const ids = tops.map((t) => t.id).filter((id): id is string => id != null);
+  if (ids.length === 0) return [];
+
+  const itens = await getDb()
+    .select()
+    .from(itensCardapio)
+    .where(and(inArray(itensCardapio.id, ids), eq(itensCardapio.ativo, true)));
+
+  return ids
+    .map((id) => itens.find((i) => i.id === id))
+    .filter((i): i is typeof itensCardapio.$inferSelect => i != null);
 }
 
 /** Todos os sabores (opções de combo) de um restaurante, sem duplicatas por

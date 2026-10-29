@@ -2,6 +2,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { Banknote, MapPinned, Store } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import QRCode from "qrcode";
 import CustomerHeader from "@/components/CustomerHeader";
 import CustomerTabBar from "@/components/CustomerTabBar";
 import { CartaoPagamento, PixPagamento } from "@/components/PagamentoOnline";
@@ -14,6 +15,7 @@ import { getPedidoComItens } from "@/db/queries/pedidos";
 import { getRestaurantePorId } from "@/db/queries/restaurantes";
 import { buscarPagamentoAsaas, buscarPixQrCode } from "@/lib/asaas";
 import { fmtBRL, minAgo } from "@/lib/data";
+import { buscarPixInter, ehPagamentoInter } from "@/lib/inter";
 import { MINUTOS_PARA_PAGAR, sincronizarPagamento } from "@/lib/pagamentoOnline";
 import type { OrderStatus, Pagamento } from "@/lib/types";
 
@@ -35,6 +37,12 @@ function statusPagamento(forma: Pagamento | null, status: OrderStatus, online: b
 async function dadosPagamento(pedido: { asaasPagamentoId: string | null; formaPagamento: Pagamento | null }) {
   if (!pedido.asaasPagamentoId) return null;
   try {
+    if (ehPagamentoInter(pedido.asaasPagamentoId)) {
+      const pix = await buscarPixInter(pedido.asaasPagamentoId);
+      const imagem = await QRCode.toDataURL(pix.copiaECola, { margin: 1, width: 320 });
+      const qr = { encodedImage: imagem.replace(/^data:image\/png;base64,/, ""), payload: pix.copiaECola };
+      return { tipo: "pix" as const, valor: pix.valor, qr };
+    }
     const cobranca = await buscarPagamentoAsaas(pedido.asaasPagamentoId);
     if (pedido.formaPagamento !== "pix") return { tipo: "cartao" as const, valor: cobranca.value };
     const qr = await buscarPixQrCode(pedido.asaasPagamentoId);

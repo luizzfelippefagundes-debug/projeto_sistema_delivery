@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import CardapioClient, { type ItemDoCardapio } from "@/components/CardapioClient";
 import { getBannersAtivos } from "@/db/queries/banners";
 import { buscarTaxaCartaoAsaas, pagamentoOnlineAtivo } from "@/lib/asaas";
-import { getItensCardapioAtivos, getOpcoesComboPorItens } from "@/db/queries/cardapio";
+import { pixInterAtivo } from "@/lib/inter";
+import { getItensCardapioAtivos, getMaisVendidos, getOpcoesComboPorItens } from "@/db/queries/cardapio";
 import { getConfiguracoes } from "@/db/queries/configuracoes";
 import { getZonasEntrega } from "@/db/queries/entrega";
 import { getFuncionarioByClerkId } from "@/db/queries/funcionarios";
@@ -40,16 +41,29 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
   if (!restaurante) notFound();
 
   const { userId } = await auth();
-  const [itens, zonas, config, funcionario, banners] = await Promise.all([
+  const [itens, zonas, config, funcionario, banners, maisVendidosDB] = await Promise.all([
     getItensCardapioAtivos(restaurante.id),
     getZonasEntrega(restaurante.id),
     getConfiguracoes(restaurante.id),
     userId ? getFuncionarioByClerkId(userId) : null,
     getBannersAtivos(restaurante.id),
+    getMaisVendidos(restaurante.id, 10),
   ]);
   const opcoesMapa = await getOpcoesComboPorItens(itens.map((i) => i.id));
+  const maisPedidos = maisVendidosDB.map((item) => ({
+    id: item.id,
+    nome: item.nome,
+    descricao: item.descricao,
+    preco: item.preco,
+    imagemUrl: item.imagemUrl,
+    qtdPecasEscolha: item.qtdPecasEscolha,
+    escolhaLivre: item.escolhaLivre,
+    opcoes: opcoesMapa.get(item.id) ?? [],
+  }));
   const online = pagamentoOnlineAtivo();
-  const taxaCartaoOnline = online ? await buscarTaxaCartaoAsaas() : null;
+  // Cartão sempre na maquininha (entrega); só Pix vai online pelo Asaas.
+  const soPixOnline = online || pixInterAtivo();
+  const taxaCartaoOnline = null;
   const itensPorCategoria: Record<string, ItemDoCardapio[]> = {};
   for (const item of itens) {
     (itensPorCategoria[item.categoria] ??= []).push({
@@ -84,7 +98,9 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
       souDona={funcionario?.papel === "dono" && funcionario.restauranteId === restaurante.id}
       horarios={config?.horarios ?? null}
       pagamentoOnline={online}
+      soPixOnline={soPixOnline}
       taxaCartaoOnline={taxaCartaoOnline}
+      maisPedidos={maisPedidos}
     />
   );
 }

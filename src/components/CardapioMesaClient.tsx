@@ -131,7 +131,7 @@ export default function CardapioMesaClient({
         ) : (
           <>
             <div ref={pillBarRef} className="sticky z-30 border-b border-border bg-background" style={{ top: topoFixo }}>
-              <div className="mx-auto flex max-w-2xl gap-5 overflow-x-auto px-4 md:px-6">
+              <div className="mx-auto flex max-w-2xl gap-2 overflow-x-auto px-4 py-2.5 md:px-6">
                 {categorias.map((cat) => (
                   <button
                     key={cat}
@@ -140,10 +140,10 @@ export default function CardapioMesaClient({
                     }}
                     type="button"
                     onClick={() => irParaCategoria(cat)}
-                    className={`shrink-0 whitespace-nowrap border-b-2 py-3 text-sm transition-colors ${
+                    className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
                       categoriaAtiva === cat
-                        ? "border-primary font-semibold text-primary"
-                        : "border-transparent font-medium text-muted-foreground hover:text-foreground"
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border bg-card text-foreground hover:bg-muted"
                     }`}
                   >
                     {cat}
@@ -161,8 +161,8 @@ export default function CardapioMesaClient({
                   }}
                   data-categoria={cat}
                 >
-                  <h2 className="pt-5 font-heading text-lg font-semibold">{cat}</h2>
-                  <div className="flex flex-col">
+                  <h2 className="pt-5 pb-3 font-heading text-lg font-extrabold">{cat}</h2>
+                  <div className="flex flex-col gap-3">
                     {itensPorCategoria[cat]?.map((item) => (
                       <ItemCard key={item.id} item={item} categoria={cat} tint={tintDaCategoria(cat, categorias)} />
                     ))}
@@ -229,16 +229,17 @@ export default function CardapioMesaClient({
 
       <div className="fixed inset-x-0 bottom-0 z-40 flex flex-col">
         {aba === "cardapio" && count > 0 && (
-          <div className="border-t border-border bg-background p-3">
+          <div className="px-4 pb-3">
             <button
               type="button"
               onClick={() => setSacolaAberta(true)}
-              className="mx-auto flex w-full max-w-lg items-center justify-between rounded-xl bg-primary px-4 py-3 text-primary-foreground shadow-lg transition-opacity hover:opacity-90"
+              className="mx-auto flex w-full max-w-sm items-center justify-between rounded-full bg-foreground py-2 pr-2 pl-5 text-background shadow-xl transition-transform hover:-translate-y-0.5"
             >
-              <span className="flex items-center gap-2 text-sm font-semibold">
-                <ShoppingBag className="size-4" /> Ver sacola · {count} {count === 1 ? "item" : "itens"}
+              <span className="flex items-center gap-2 text-sm font-bold">
+                <ShoppingBag className="size-4" />
+                {count} {count === 1 ? "item" : "itens"} · <span className="num">{fmtBRL(total)}</span>
               </span>
-              <span className="num text-sm font-bold">{fmtBRL(total)}</span>
+              <span className="rounded-full bg-primary px-4 py-2.5 text-sm font-extrabold text-primary-foreground">Ver sacola</span>
             </button>
           </div>
         )}

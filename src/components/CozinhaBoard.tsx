@@ -1,13 +1,13 @@
 "use client";
 
-import { AlertTriangle, ChefHat, MapPin, Printer } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChefHat, Clock, MapPin, Printer, Truck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { avancarStatusCozinha, avancarStatusEntrega } from "@/actions/pedidos.actions";
+import { avancarStatusCozinha, avancarStatusEntrega, confirmarEntregaForca } from "@/actions/pedidos.actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { estaAtrasado, fmtBRL, fmtDiaHora, origemLabel } from "@/lib/data";
+import { estaAtrasado, fmtBRL, origemLabel } from "@/lib/data";
 import { montarListaProducao } from "@/lib/listaProducao";
 import type { OrderStatus } from "@/lib/types";
 
@@ -23,11 +23,56 @@ export interface PedidoCozinha {
   itens: { nome: string; quantidade: number; observacao: string | null }[];
 }
 
-const COLS: { key: OrderStatus; label: string }[] = [
-  { key: "novo", label: "Novo" },
-  { key: "preparo", label: "Em preparo" },
-  { key: "pronto", label: "Pronto" },
+export interface PedidoEmRota {
+  id: string;
+  clienteNome: string | null;
+  endereco: string | null;
+  total: number;
+  criadoEm: number;
+}
+
+type ColunaKey = "novo" | "preparo" | "pronto" | "rota";
+type Filtro = "todos" | "salao" | "delivery";
+
+const COLS: { key: ColunaKey; label: string; ponto: string }[] = [
+  { key: "novo", label: "Novo", ponto: "bg-violet-400" },
+  { key: "preparo", label: "Em preparo", ponto: "bg-amber-400" },
+  { key: "pronto", label: "Pronto", ponto: "bg-emerald-400" },
+  { key: "rota", label: "Em rota", ponto: "bg-sky-400" },
 ];
+
+const MIN_ATENCAO = 30;
+
+function useAgora() {
+  const [agora, setAgora] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setAgora(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  return agora;
+}
+
+function fmtDuracao(min: number) {
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, "0")}`;
+}
+
+function Cronometro({ desde, agora, atrasado }: { desde: number; agora: number; atrasado: boolean }) {
+  const min = Math.max(0, Math.floor((agora - desde) / 60_000));
+  const cor = atrasado
+    ? "bg-status-danger-bg text-status-danger-fg"
+    : min >= MIN_ATENCAO
+      ? "bg-status-warn-bg text-status-warn-fg"
+      : "bg-status-neutral-bg text-status-neutral-fg";
+  return (
+    <span className={`num inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${cor}`}>
+      {atrasado ? <AlertTriangle className="size-3" /> : <Clock className="size-3" />}
+      {fmtDuracao(min)}
+    </span>
+  );
+}
 
 function ListaProducao({ pedidos }: { pedidos: PedidoCozinha[] }) {
   const lista = montarListaProducao(pedidos);
@@ -66,54 +111,136 @@ function ListaProducao({ pedidos }: { pedidos: PedidoCozinha[] }) {
 
 export default function CozinhaBoard({
   pedidos,
+  emRota = [],
   podeDespachar = false,
+  podeConfirmarEntrega = false,
 }: {
   pedidos: PedidoCozinha[];
-  /** Dona/motoboy podem mandar o pedido pronto pra rota direto daqui. */
+  emRota?: PedidoEmRota[];
   podeDespachar?: boolean;
+  podeConfirmarEntrega?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [aba, setAba] = useState<OrderStatus>("novo");
+  const [aba, setAba] = useState<ColunaKey>("novo");
+  const [filtro, setFiltro] = useState<Filtro>("todos");
+  const agora = useAgora();
 
   useEffect(() => {
     const id = setInterval(() => router.refresh(), 15000);
     return () => clearInterval(id);
   }, [router]);
 
+  const visiveis = pedidos.filter((p) => filtro === "todos" || p.origem === filtro);
+  const rotaVisivel = filtro === "salao" ? [] : emRota;
+  const atrasados = pedidos.filter((p) => estaAtrasado(p.criadoEm, p.status)).length;
+
+  const FILTROS: { key: Filtro; label: string }[] = [
+    { key: "todos", label: "Todos" },
+    { key: "salao", label: "Mesa" },
+    { key: "delivery", label: "Delivery" },
+  ];
+
   return (
     <div className="flex flex-col gap-5">
       <ListaProducao pedidos={pedidos} />
-      {/* No celular as 3 colunas viram abas — uma pilha só ficava comprida demais. */}
-      <div className="grid grid-cols-3 gap-1 rounded-lg bg-muted p-1 sm:hidden" role="tablist">
-        {COLS.map((col) => (
+
+      {/* Filtro */}
+      <div className="flex flex-wrap items-center gap-2">
+        {FILTROS.map((f) => (
           <button
-            key={col.key}
+            key={f.key}
             type="button"
-            role="tab"
-            aria-selected={aba === col.key}
-            onClick={() => setAba(col.key)}
-            className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-2 text-sm font-medium transition-colors ${
-              aba === col.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+            onClick={() => setFiltro(f.key)}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+              filtro === f.key ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:text-foreground"
             }`}
           >
-            {col.label}
-            <Badge variant="outline">{pedidos.filter((o) => o.status === col.key).length}</Badge>
+            {f.label}
           </button>
         ))}
+        {atrasados > 0 && (
+          <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-status-danger-bg px-3 py-2 text-sm font-semibold text-status-danger-fg">
+            <AlertTriangle className="size-4" /> {atrasados} atrasado{atrasados > 1 ? "s" : ""}
+          </span>
+        )}
       </div>
-      <div className="grid gap-5 sm:grid-cols-3">
+
+      {/* No celular as 4 colunas viram abas. */}
+      <div className="grid grid-cols-4 gap-1 rounded-lg bg-muted p-1 sm:hidden" role="tablist">
         {COLS.map((col) => {
-          const doGrupo = pedidos.filter((o) => o.status === col.key).sort((a, b) => a.criadoEm - b.criadoEm);
+          const qtd = col.key === "rota"
+            ? rotaVisivel.length
+            : visiveis.filter((o) => o.status === col.key).length;
+          return (
+            <button
+              key={col.key}
+              type="button"
+              role="tab"
+              aria-selected={aba === col.key}
+              onClick={() => setAba(col.key)}
+              className={`flex items-center justify-center gap-1 rounded-md px-1 py-2 text-xs font-medium transition-colors ${
+                aba === col.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+              }`}
+            >
+              {col.label}
+              <Badge variant="outline">{qtd}</Badge>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        {COLS.map((col) => {
+          const doGrupo =
+            col.key === "rota" ? [] : visiveis.filter((o) => o.status === col.key).sort((a, b) => a.criadoEm - b.criadoEm);
+          const total = col.key === "rota" ? rotaVisivel.length : doGrupo.length;
 
           return (
             <div key={col.key} className={aba === col.key ? "" : "hidden sm:block"}>
               <div className="mb-3 hidden items-center justify-between sm:flex">
-                <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{col.label}</h3>
-                <Badge variant="outline">{doGrupo.length}</Badge>
+                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <span className={`size-2 rounded-full ${col.ponto}`} />
+                  {col.label}
+                </h3>
+                <Badge variant="outline">{total}</Badge>
               </div>
               <div className="flex flex-col gap-3">
-                {doGrupo.length === 0 && <p className="text-sm text-muted-foreground">Nada por aqui.</p>}
+                {total === 0 && <p className="text-sm text-muted-foreground">Nada por aqui.</p>}
+
+                {col.key === "rota" &&
+                  rotaVisivel.map((p) => (
+                    <Card key={p.id} className="gap-3 py-4">
+                      <CardContent className="flex flex-col gap-3 px-4">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="flex items-center gap-1.5 text-sm font-bold">
+                            <Truck className="size-4 text-sky-500" />
+                            {p.clienteNome ?? "Cliente"}
+                          </span>
+                          <Cronometro desde={p.criadoEm} agora={agora} atrasado={false} />
+                        </div>
+                        {p.endereco && (
+                          <p className="flex items-start gap-1.5 text-sm text-muted-foreground">
+                            <MapPin className="mt-0.5 size-4 shrink-0" />
+                            <span>{p.endereco}</span>
+                          </p>
+                        )}
+                        <span className="num text-sm font-bold">{fmtBRL(p.total)}</span>
+                        {podeConfirmarEntrega && (
+                          <Button
+                            size="lg"
+                            className="w-full font-semibold"
+                            disabled={pending}
+                            onClick={() => startTransition(() => confirmarEntregaForca(p.id))}
+                          >
+                            <CheckCircle2 className="size-4" />
+                            {pending ? "Confirmando…" : "Confirmar entrega"}
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+
                 {doGrupo.map((o) => {
                   const atrasado = estaAtrasado(o.criadoEm, o.status);
                   return (
@@ -123,16 +250,12 @@ export default function CozinhaBoard({
                     >
                       <CardContent className="flex flex-col gap-3 px-4">
                         <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold">{origemLabel(o)}</span>
-                            {atrasado && (
-                              <Badge className="bg-status-danger-bg text-status-danger-fg">
-                                <AlertTriangle className="size-3" /> Atrasado
-                              </Badge>
-                            )}
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold">{origemLabel(o)}</p>
+                            <p className="text-xs text-muted-foreground">{o.origem === "salao" ? "Salão" : "Delivery"}</p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">{fmtDiaHora(o.criadoEm)}</span>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            <Cronometro desde={o.criadoEm} agora={agora} atrasado={atrasado} />
                             <Button
                               size="icon-sm"
                               variant="outline"
