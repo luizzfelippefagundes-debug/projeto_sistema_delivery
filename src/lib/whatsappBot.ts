@@ -125,6 +125,22 @@ function adicionarAoHistorico(historico: string, usuario: string, assistente: st
   return completo.length > MAX_HISTORICO_CHARS ? completo.slice(-MAX_HISTORICO_CHARS) : completo;
 }
 
+function carrinhVazio(carrinho: unknown): boolean {
+  try {
+    const parsed = typeof carrinho === "string" ? JSON.parse(carrinho) : carrinho;
+    return !Array.isArray(parsed) || parsed.length === 0;
+  } catch {
+    return true;
+  }
+}
+
+const SAUDACOES = /^(oi|olá|ola|oii+|oiiii*|e aí|eai|hello|hey|bom dia|boa tarde|boa noite|boas|tudo bem|tudo bom|boa|salve|opa)\b/i;
+const PEDIR_CARDAPIO = /^(cardap|cardáp|menu|o que tem|quero ver|ver opç|opções|o que vocês|o que voces|o que vende)/i;
+
+function buildBoasVindas(nomeRestaurante: string, categoriasLista: string): string {
+  return `Olá! Bem-vindo ao *${nomeRestaurante}* 🍣\n\nAqui estão nossas categorias:\n${categoriasLista}\n\nDigite o número ou o nome da categoria pra ver os itens 😊`;
+}
+
 export async function processarMensagemWhatsapp(
   restauranteId: string,
   telefone: string,
@@ -137,9 +153,20 @@ export async function processarMensagemWhatsapp(
   const idadeMs = Date.now() - conversa.atualizadoEm.getTime();
   if (idadeMs > EXPIRACAO_SESSAO_MS && conversa.historicoResumido) {
     await resetarConversa(conversa.id);
-    // Relê a conversa resetada
     const conversaFresca = await getOuCriarConversa(restauranteId, telefone);
     return processarComAgente(conversaFresca, restauranteId, telefone, textoRecebido, nomeRestaurante);
+  }
+
+  // Fast-path: saudação ou pedido de cardápio sem histórico ativo → resposta instantânea
+  const texto = textoRecebido.trim();
+  const eNovo = !conversa.historicoResumido && carrinhVazio(conversa.carrinho);
+  if (eNovo && (SAUDACOES.test(texto) || PEDIR_CARDAPIO.test(texto))) {
+    const itensAtivos = await getItensCardapioAtivos(restauranteId);
+    const categoriasLista = buildCategoriasLista(itensAtivos);
+    const resposta = buildBoasVindas(nomeRestaurante, categoriasLista);
+    const novoHistorico = adicionarAoHistorico("", texto, resposta);
+    await atualizarConversa(conversa.id, { historicoResumido: novoHistorico });
+    return resposta;
   }
 
   return processarComAgente(conversa, restauranteId, telefone, textoRecebido, nomeRestaurante);
