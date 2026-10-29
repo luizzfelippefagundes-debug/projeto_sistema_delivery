@@ -179,13 +179,16 @@ export async function processarMensagemWhatsapp(
   const texto = textoRecebido.trim();
   const eNovo = !conversa.historicoResumido && carrinhVazio(conversa.carrinho);
 
-  // Saudação → menu inicial
-  if (eNovo && SAUDACOES.test(texto)) {
+  // Saudação → menu inicial (sempre, independente de histórico)
+  if (SAUDACOES.test(texto)) {
     const config = await getConfiguracoes(restauranteId);
     const statusTexto = config?.horarios ? `\n${textoStatus(statusFuncionamento(config.horarios))} 🕐` : "";
     const resposta = buildBoasVindas(nomeRestaurante, statusTexto);
+    // Reseta o histórico para começar uma nova sessão limpa
+    await resetarConversa(conversa.id);
+    const conversaReset = await getOuCriarConversa(restauranteId, telefone);
     const novoHistorico = adicionarAoHistorico("", texto, resposta);
-    await atualizarConversa(conversa.id, { historicoResumido: novoHistorico });
+    await atualizarConversa(conversaReset.id, { historicoResumido: novoHistorico });
     return resposta;
   }
 
