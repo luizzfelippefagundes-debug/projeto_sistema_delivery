@@ -38,6 +38,11 @@ function resumoCarrinho(carrinho: ItemCarrinhoWhatsapp[]): string {
   return `${linhas.join("\n")}\nTotal: ${fmtBRL(total)}`;
 }
 
+function buildCategoriasLista(itens: Awaited<ReturnType<typeof getItensCardapioAtivos>>): string {
+  const categorias = [...new Set(itens.map((i) => i.categoria))];
+  return categorias.map((c, idx) => `${idx + 1}. ${c}`).join("  ");
+}
+
 function buildMenuTexto(
   itens: Awaited<ReturnType<typeof getItensCardapioAtivos>>,
   opcoesMapa: Map<string, { nome: string; disponivel: boolean; limiteQuantidade: number | null }[]>,
@@ -69,6 +74,7 @@ function buildMenuTexto(
 function buildSystemPrompt(
   nomeRestaurante: string,
   menuTexto: string,
+  categoriasLista: string,
   carrinho: ItemCarrinhoWhatsapp[],
   nomeTemp: string | null,
   enderecoTemp: string | null,
@@ -95,11 +101,18 @@ REGRAS OBRIGATÓRIAS:
 8. Só confirme o pedido quando tiver: nome + endereço (ou retirada) + pagamento + pelo menos 1 item no carrinho — E o cliente já tiver confirmado de verdade que quer fechar (ex: "sim", "pode confirmar", "fechar pedido"). Nunca chame confirmar_pedido só por ter os dados completos, sem o cliente ter pedido pra fechar.
 9. Pagamentos aceitos: pix, cartao (na entrega), dinheiro (na entrega).
 10. Chame no máximo UMA ferramenta por resposta. Depois que confirmar_pedido retornar sucesso (PEDIDO_CONFIRMADO), pare — nunca repita nome/endereço/pagamento/item de novo no mesmo turno, o pedido já foi criado.
+11. MENU EM DUAS ETAPAS — OBRIGATÓRIO:
+    - Quando o cliente pedir o cardápio, ver opções ou perguntar o que tem: mostre APENAS as categorias numeradas (ex: "1. Combos  2. Bebidas  3. Big Hot ..."). NÃO liste nenhum item ainda.
+    - Espere o cliente escolher a categoria (pelo número ou pelo nome) e só então liste os itens daquela categoria com nome, preço e (se for combo) opções de sabor.
+    - Nunca despeje o cardápio inteiro de uma vez — sempre uma categoria por vez, quando solicitado.
 
 ESTADO ATUAL DA CONVERSA:
 ${estado}
 
-CARDÁPIO COMPLETO — ${nomeRestaurante.toUpperCase()}:
+CATEGORIAS DO CARDÁPIO (use esta lista quando o cliente pedir o cardápio):
+${categoriasLista}
+
+CARDÁPIO COMPLETO (use apenas para responder quando o cliente escolher uma categoria específica):
 ${menuTexto}
 
 ${historico ? `HISTÓRICO DA CONVERSA:\n${historico}` : ""}`.trim();
@@ -301,9 +314,11 @@ async function processarComAgente(
   });
 
   const menuTexto = buildMenuTexto(itensAtivos, opcoesMapa);
+  const categoriasLista = buildCategoriasLista(itensAtivos);
   const systemPrompt = buildSystemPrompt(
     nomeRestaurante,
     menuTexto,
+    categoriasLista,
     carrinho,
     conversa.nomeTemp,
     conversa.enderecoTemp,
