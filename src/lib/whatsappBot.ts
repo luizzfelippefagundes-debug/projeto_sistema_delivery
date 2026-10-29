@@ -13,6 +13,8 @@ import {
   liberarConfirmacao,
 } from "../db/queries/conversasWhatsapp";
 import { fmtBRL } from "./data";
+import { statusFuncionamento, textoStatus, resumoHorarios } from "./horario";
+import { getConfiguracoes } from "../db/queries/configuracoes";
 import type { ItemCarrinhoWhatsapp, Pagamento } from "./types";
 
 const EXPIRACAO_SESSAO_MS = 3 * 60 * 60 * 1000; // 3 horas
@@ -97,7 +99,7 @@ REGRAS OBRIGATÓRIAS:
 4. Coleta de dados em ordem: nome → endereço → pagamento. Uma por vez.
 5. Tom natural, mensagens curtas como WhatsApp de gente real. Varie as respostas, não repita "Perfeito!" ou "Ótima escolha!".
 6. Nunca diga "temos várias opções" — sempre liste as opções reais do cardápio.
-7. Fora de escopo (piadas, outros assuntos): recuse com educação e volte ao pedido.
+7. Perguntas sobre horário de funcionamento, status de pedido, endereço da loja e dúvidas gerais sobre o cardápio são bem-vindas — responda com naturalidade. Só recuse piadas, assuntos totalmente fora do contexto do restaurante.
 8. Só confirme o pedido quando tiver: nome + endereço (ou retirada) + pagamento + pelo menos 1 item no carrinho — E o cliente já tiver confirmado de verdade que quer fechar (ex: "sim", "pode confirmar", "fechar pedido"). Nunca chame confirmar_pedido só por ter os dados completos, sem o cliente ter pedido pra fechar.
 9. Pagamentos aceitos: pix, cartao (na entrega), dinheiro (na entrega).
 10. Chame no máximo UMA ferramenta por resposta. Depois que confirmar_pedido retornar sucesso (PEDIDO_CONFIRMADO), pare — nunca repita nome/endereço/pagamento/item de novo no mesmo turno, o pedido já foi criado.
@@ -136,9 +138,10 @@ function carrinhVazio(carrinho: unknown): boolean {
 
 const SAUDACOES = /^(oi|olá|ola|oii+|oiiii*|e aí|eai|hello|hey|bom dia|boa tarde|boa noite|boas|tudo bem|tudo bom|boa|salve|opa)\b/i;
 const PEDIR_CARDAPIO = /^(cardap|cardáp|menu|o que tem|quero ver|ver opç|opções|o que vocês|o que voces|o que vende)/i;
+const PEDIR_HORARIO = /(aberto|fechado|horario|horário|funcionando|funciona|abre|fecha|abriu|fechou|ta open)/i;
 
-function buildBoasVindas(nomeRestaurante: string, categoriasLista: string): string {
-  return `Olá! Bem-vindo ao *${nomeRestaurante}* 🍣\n\nAqui estão nossas categorias:\n${categoriasLista}\n\nDigite o número ou o nome da categoria pra ver os itens 😊`;
+function buildBoasVindas(nomeRestaurante: string, categoriasLista: string, statusTexto = ""): string {
+  return `Olá! Bem-vindo ao *${nomeRestaurante}* 🍣${statusTexto}\n\nAqui estão nossas categorias:\n${categoriasLista}\n\nDigite o número ou o nome da categoria pra ver os itens 😊`;
 }
 
 export async function processarMensagemWhatsapp(
@@ -157,13 +160,33 @@ export async function processarMensagemWhatsapp(
     return processarComAgente(conversaFresca, restauranteId, telefone, textoRecebido, nomeRestaurante);
   }
 
-  // Fast-path: saudação ou pedido de cardápio sem histórico ativo → resposta instantânea
+  // Fast-path: saudação, cardápio ou horário — resposta instantânea sem chamar IA
   const texto = textoRecebido.trim();
   const eNovo = !conversa.historicoResumido && carrinhVazio(conversa.carrinho);
+
+  if (PEDIR_HORARIO.test(texto)) {
+    const config = await getConfiguracoes(restauranteId);
+    let resposta: string;
+    if (config?.horarios) {
+      const status = statusFuncionamento(config.horarios);
+      const resumo = resumoHorarios(config.horarios);
+      resposta = `${textoStatus(status)}\n\nHorários: ${resumo}`;
+    } else {
+      resposta = "Estamos abertos agora! Pode fazer seu pedido 😊";
+    }
+    const novoHistorico = adicionarAoHistorico(conversa.historicoResumido, texto, resposta);
+    await atualizarConversa(conversa.id, { historicoResumido: novoHistorico });
+    return resposta;
+  }
+
   if (eNovo && (SAUDACOES.test(texto) || PEDIR_CARDAPIO.test(texto))) {
-    const itensAtivos = await getItensCardapioAtivos(restauranteId);
+    const [itensAtivos, config] = await Promise.all([
+      getItensCardapioAtivos(restauranteId),
+      getConfiguracoes(restauranteId),
+    ]);
     const categoriasLista = buildCategoriasLista(itensAtivos);
-    const resposta = buildBoasVindas(nomeRestaurante, categoriasLista);
+    const statusTexto = config?.horarios ? `\n${textoStatus(statusFuncionamento(config.horarios))} 🕐` : "";
+    const resposta = buildBoasVindas(nomeRestaurante, categoriasLista, statusTexto);
     const novoHistorico = adicionarAoHistorico("", texto, resposta);
     await atualizarConversa(conversa.id, { historicoResumido: novoHistorico });
     return resposta;
@@ -316,6 +339,17 @@ async function processarComAgente(
     },
   });
 
+  const verificarHorario = tool({
+    description: "Verifica se a loja está aberta agora e informa o horário de funcionamento",
+    inputSchema: z.object({}),
+    execute: async () => {
+      const config = await getConfiguracoes(restauranteId);
+      if (!config?.horarios) return "Estamos abertos! Pode fazer seu pedido.";
+      const status = statusFuncionamento(config.horarios);
+      return `${textoStatus(status)}\nHorários: ${resumoHorarios(config.horarios)}`;
+    },
+  });
+
   const consultarStatus = tool({
     description: "Consulta o status dos pedidos recentes do cliente pelo telefone",
     inputSchema: z.object({}),
@@ -359,7 +393,7 @@ async function processarComAgente(
       model: openai("gpt-4o-mini"),
       system: systemPrompt,
       messages: [{ role: "user", content: textoRecebido }],
-      tools: { adicionarItem, removerItem, verCarrinho, definirNome, definirEndereco, definirPagamento, confirmarPedido, consultarStatus },
+      tools: { adicionarItem, removerItem, verCarrinho, definirNome, definirEndereco, definirPagamento, confirmarPedido, consultarStatus, verificarHorario },
       stopWhen: stepCountIs(6),
       onStepFinish: (step) => {
         for (const c of step.content) {
