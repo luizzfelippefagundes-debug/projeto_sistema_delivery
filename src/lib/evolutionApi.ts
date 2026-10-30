@@ -1,3 +1,29 @@
+/** Baixa a mídia de uma mensagem do Evolution API em base64.
+ * Retorna null se não conseguir (env não configurada, erro, etc.). */
+export async function buscarMidiaBase64(
+  instancia: string,
+  mensagem: Record<string, unknown>,
+): Promise<{ base64: string; mimetype: string } | null> {
+  const baseUrl = process.env.EVOLUTION_API_URL;
+  const apiKey = process.env.EVOLUTION_API_KEY;
+  if (!baseUrl || !apiKey) return null;
+
+  const url = `${baseUrl.replace(/\/$/, "")}/chat/getBase64FromMediaMessage/${instancia}`;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: apiKey },
+      body: JSON.stringify({ message: mensagem }),
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { base64?: string; mimetype?: string };
+    if (!json.base64 || !json.mimetype) return null;
+    return { base64: json.base64, mimetype: json.mimetype };
+  } catch {
+    return null;
+  }
+}
+
 /** Cliente do Evolution API (self-hosted) — mesmo servidor usado nos
  * outros projetos, cada restaurante com sua própria "instância" (um
  * número de WhatsApp conectado). Sem as env vars configuradas, o envio

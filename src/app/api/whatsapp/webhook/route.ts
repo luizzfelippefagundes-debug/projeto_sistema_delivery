@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { restaurantes } from "@/db/schema";
-import { enviarMensagemWhatsapp } from "@/lib/evolutionApi";
+import { enviarMensagemWhatsapp, buscarMidiaBase64 } from "@/lib/evolutionApi";
 import { getOuCriarConversa, liberarProcessamento, travarProcessamento } from "@/db/queries/conversasWhatsapp";
 import { processarMensagemWhatsapp } from "@/lib/whatsappBot";
 
@@ -32,12 +32,42 @@ function extrairMensagem(payload: Record<string, unknown>) {
 
   const eAudio = !!(mensagemObj?.audioMessage ?? mensagemObj?.pttMessage);
 
+  // Objeto completo para buscar mídia no Evolution API
+  const mensagemRaw = chave ? { key: chave, message: mensagemObj } : null;
+
   return {
     remoteJid,
     fromMe: chave?.fromMe ?? false,
     texto: typeof texto === "string" ? texto : null,
     eAudio,
+    mensagemRaw,
   };
+}
+
+async function transcreverAudio(instancia: string, mensagemRaw: Record<string, unknown>): Promise<string | null> {
+  const midia = await buscarMidiaBase64(instancia, mensagemRaw);
+  if (!midia) return null;
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+
+  const buffer = Buffer.from(midia.base64, "base64");
+  const ext = midia.mimetype.split("/")[1]?.split(";")[0] ?? "ogg";
+
+  const form = new FormData();
+  form.append("file", new Blob([buffer], { type: midia.mimetype }), `audio.${ext}`);
+  form.append("model", "whisper-1");
+  form.append("language", "pt");
+
+  const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}` },
+    body: form,
+  });
+
+  if (!res.ok) return null;
+  const json = (await res.json()) as { text?: string };
+  return json.text?.trim() || null;
 }
 
 export async function POST(request: Request) {
@@ -54,21 +84,27 @@ export async function POST(request: Request) {
   const instancia = payload.instance as string | undefined;
   if (!instancia) return NextResponse.json({ ok: true });
 
-  const { remoteJid, fromMe, texto, eAudio } = extrairMensagem(payload);
+  const { remoteJid, fromMe, texto, eAudio, mensagemRaw } = extrairMensagem(payload);
   if (fromMe || !remoteJid) return NextResponse.json({ ok: true });
   if (remoteJid.endsWith("@g.us") || remoteJid === "status@broadcast") return NextResponse.json({ ok: true });
 
-  // Áudio: responde pedindo para digitar, sem chamar o bot
-  if (eAudio && !texto) {
-    const telefone = remoteJid.split("@")[0];
-    const [restaurante] = await getDb().select().from(restaurantes).where(eq(restaurantes.instanciaWhatsapp, instancia));
-    if (restaurante) {
-      await enviarMensagemWhatsapp(instancia, telefone, "Por enquanto so consigo atender por texto. Pode digitar o que precisa? 😊");
+  // Áudio: tenta transcrever com Whisper antes de processar
+  let textoFinal = texto;
+  if (eAudio && !texto && mensagemRaw) {
+    try {
+      textoFinal = await transcreverAudio(instancia, mensagemRaw);
+    } catch (e) {
+      console.error("[whatsapp webhook] erro ao transcrever áudio:", e);
     }
-    return NextResponse.json({ ok: true });
+    if (!textoFinal) {
+      const telefone = remoteJid.split("@")[0];
+      const [restaurante] = await getDb().select().from(restaurantes).where(eq(restaurantes.instanciaWhatsapp, instancia));
+      if (restaurante) await enviarMensagemWhatsapp(instancia, telefone, "Não consegui entender o áudio. Pode digitar o que precisa? 😊");
+      return NextResponse.json({ ok: true });
+    }
   }
 
-  if (!texto) return NextResponse.json({ ok: true });
+  if (!textoFinal) return NextResponse.json({ ok: true });
 
   const [restaurante] = await getDb().select().from(restaurantes).where(eq(restaurantes.instanciaWhatsapp, instancia));
   if (!restaurante) return NextResponse.json({ ok: true });
@@ -85,7 +121,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const resposta = await processarMensagemWhatsapp(restaurante.id, telefone, texto, restaurante.nome);
+    const resposta = await processarMensagemWhatsapp(restaurante.id, telefone, textoFinal, restaurante.nome);
     await enviarMensagemWhatsapp(instancia, telefone, resposta);
   } catch (e) {
     console.error("[whatsapp webhook] erro processando mensagem:", e);
