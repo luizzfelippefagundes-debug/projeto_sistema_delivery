@@ -102,6 +102,10 @@ export async function POST(request: Request) {
       if (restaurante) await enviarMensagemWhatsapp(instancia, telefone, "Não consegui entender o áudio. Pode digitar o que precisa? 😊");
       return NextResponse.json({ ok: true });
     }
+    // Áudio transcrito como saudação → trata igual a texto "oi" (mostra menu)
+    if (/^(oi|olá|ola|oii+|e aí|eai|bom dia|boa tarde|boa noite|tudo bem|tudo bom|salve|opa|hey)\b/i.test(textoFinal.trim())) {
+      textoFinal = "oi";
+    }
   }
 
   if (!textoFinal) return NextResponse.json({ ok: true });
