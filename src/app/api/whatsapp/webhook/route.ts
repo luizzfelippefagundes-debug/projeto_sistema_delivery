@@ -30,7 +30,14 @@ function extrairMensagem(payload: Record<string, unknown>) {
     (mensagemObj?.conversation as string | undefined) ??
     (mensagemObj?.extendedTextMessage as Record<string, unknown> | undefined)?.text;
 
-  return { remoteJid, fromMe: chave?.fromMe ?? false, texto: typeof texto === "string" ? texto : null };
+  const eAudio = !!(mensagemObj?.audioMessage ?? mensagemObj?.pttMessage);
+
+  return {
+    remoteJid,
+    fromMe: chave?.fromMe ?? false,
+    texto: typeof texto === "string" ? texto : null,
+    eAudio,
+  };
 }
 
 export async function POST(request: Request) {
@@ -47,9 +54,21 @@ export async function POST(request: Request) {
   const instancia = payload.instance as string | undefined;
   if (!instancia) return NextResponse.json({ ok: true });
 
-  const { remoteJid, fromMe, texto } = extrairMensagem(payload);
-  if (fromMe || !texto || !remoteJid) return NextResponse.json({ ok: true });
+  const { remoteJid, fromMe, texto, eAudio } = extrairMensagem(payload);
+  if (fromMe || !remoteJid) return NextResponse.json({ ok: true });
   if (remoteJid.endsWith("@g.us") || remoteJid === "status@broadcast") return NextResponse.json({ ok: true });
+
+  // Áudio: responde pedindo para digitar, sem chamar o bot
+  if (eAudio && !texto) {
+    const telefone = remoteJid.split("@")[0];
+    const [restaurante] = await getDb().select().from(restaurantes).where(eq(restaurantes.instanciaWhatsapp, instancia));
+    if (restaurante) {
+      await enviarMensagemWhatsapp(instancia, telefone, "Por enquanto so consigo atender por texto. Pode digitar o que precisa? 😊");
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  if (!texto) return NextResponse.json({ ok: true });
 
   const [restaurante] = await getDb().select().from(restaurantes).where(eq(restaurantes.instanciaWhatsapp, instancia));
   if (!restaurante) return NextResponse.json({ ok: true });
