@@ -34,6 +34,8 @@ function extrairMensagem(payload: Record<string, unknown>) {
     (mensagemObj?.extendedTextMessage as Record<string, unknown> | undefined)?.text;
 
   const eAudio = !!(mensagemObj?.audioMessage ?? mensagemObj?.pttMessage);
+  const eImagem = !!(mensagemObj?.imageMessage);
+  const legendaImagem = (mensagemObj?.imageMessage as Record<string, unknown> | undefined)?.caption as string | undefined;
 
   // Objeto completo para buscar mídia no Evolution API
   const mensagemRaw = chave ? { key: chave, message: mensagemObj } : null;
@@ -43,6 +45,8 @@ function extrairMensagem(payload: Record<string, unknown>) {
     fromMe: chave?.fromMe ?? false,
     texto: typeof texto === "string" ? texto : null,
     eAudio,
+    eImagem,
+    legendaImagem: typeof legendaImagem === "string" ? legendaImagem : null,
     mensagemRaw,
   };
 }
@@ -73,6 +77,46 @@ async function transcreverAudio(instancia: string, mensagemRaw: Record<string, u
   return json.text?.trim() || null;
 }
 
+async function descreverImagem(instancia: string, mensagemRaw: Record<string, unknown>, legenda: string | null): Promise<string | null> {
+  const midia = await buscarMidiaBase64(instancia, mensagemRaw);
+  if (!midia) return null;
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+
+  const dataUrl = `data:${midia.mimetype};base64,${midia.base64}`;
+
+  const userContent: unknown[] = [
+    { type: "image_url", image_url: { url: dataUrl, detail: "low" } },
+  ];
+  if (legenda) {
+    userContent.push({ type: "text", text: `Legenda enviada junto: "${legenda}"` });
+  }
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      max_tokens: 300,
+      messages: [
+        {
+          role: "system",
+          content: "Você é um assistente de um restaurante delivery. Descreva brevemente o que está na imagem em 1-2 frases. Se for um comprovante de PIX/pagamento, extraia: valor, nome do pagador, data/hora. Se for outra coisa (foto de endereço, cardápio, etc), descreva o relevante. Seja direto e objetivo.",
+        },
+        { role: "user", content: userContent },
+      ],
+    }),
+  });
+
+  if (!res.ok) return null;
+  const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+  return json.choices?.[0]?.message?.content?.trim() || null;
+}
+
 export async function POST(request: Request) {
   let payload: Record<string, unknown>;
   try {
@@ -91,7 +135,7 @@ export async function POST(request: Request) {
       : (instanciaRaw as Record<string, unknown> | undefined)?.instanceName as string | undefined;
   if (!instancia) return NextResponse.json({ ok: true });
 
-  const { remoteJid, fromMe, texto, eAudio, mensagemRaw } = extrairMensagem(payload);
+  const { remoteJid, fromMe, texto, eAudio, eImagem, legendaImagem, mensagemRaw } = extrairMensagem(payload);
   if (fromMe || !remoteJid) return NextResponse.json({ ok: true });
   if (remoteJid.endsWith("@g.us") || remoteJid === "status@broadcast") return NextResponse.json({ ok: true });
 
@@ -109,9 +153,25 @@ export async function POST(request: Request) {
       if (restaurante) await enviarMensagemWhatsapp(instancia, telefone, "Não consegui entender o áudio. Pode digitar o que precisa? 😊");
       return NextResponse.json({ ok: true });
     }
-    // Áudio transcrito como saudação → trata igual a texto "oi" (mostra menu)
     if (/^(oi|olá|ola|oii+|e aí|eai|bom dia|boa tarde|boa noite|tudo bem|tudo bom|salve|opa|hey)\b/i.test(textoFinal.trim())) {
       textoFinal = "oi";
+    }
+  }
+
+  // Imagem: descreve com GPT-4o-mini vision e passa pro bot como texto
+  if (eImagem && !textoFinal && mensagemRaw) {
+    try {
+      const descricao = await descreverImagem(instancia, mensagemRaw, legendaImagem);
+      if (descricao) {
+        textoFinal = legendaImagem
+          ? `${legendaImagem}\n\n[Imagem enviada: ${descricao}]`
+          : `[Imagem enviada: ${descricao}]`;
+      }
+    } catch (e) {
+      console.error("[whatsapp webhook] erro ao descrever imagem:", e);
+    }
+    if (!textoFinal) {
+      textoFinal = legendaImagem ?? null;
     }
   }
 
