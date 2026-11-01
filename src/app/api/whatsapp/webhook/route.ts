@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { configuracoes, restaurantes } from "@/db/schema";
+import { restaurantes } from "@/db/schema";
 import { enviarMensagemWhatsapp, buscarMidiaBase64 } from "@/lib/evolutionApi";
 import { getOuCriarConversa, liberarProcessamento, travarProcessamento } from "@/db/queries/conversasWhatsapp";
 import { processarMensagemWhatsapp } from "@/lib/whatsappBot";
-import { statusFuncionamento } from "@/lib/horario";
 
 interface ChavesMensagem {
   remoteJid?: string;
@@ -120,13 +119,6 @@ export async function POST(request: Request) {
 
   const [restaurante] = await getDb().select().from(restaurantes).where(eq(restaurantes.instanciaWhatsapp, instancia));
   if (!restaurante) return NextResponse.json({ ok: true });
-
-  // Fora do horário de funcionamento → bot não responde (número pessoal da dona)
-  const [config] = await getDb().select().from(configuracoes).where(eq(configuracoes.restauranteId, restaurante.id));
-  if (config?.horarios) {
-    const status = statusFuncionamento(config.horarios);
-    if (!status.aberto) return NextResponse.json({ ok: true });
-  }
 
   const telefone = remoteJid.split("@")[0];
 
