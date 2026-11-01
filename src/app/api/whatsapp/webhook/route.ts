@@ -78,10 +78,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  const evento = String(payload.event ?? "").toLowerCase();
+  const evento = String(payload.event ?? "").toLowerCase().replace(/_/g, ".");
   if (evento !== "messages.upsert") return NextResponse.json({ ok: true });
 
-  const instancia = payload.instance as string | undefined;
+  const instanciaRaw = payload.instance;
+  const instancia =
+    typeof instanciaRaw === "string"
+      ? instanciaRaw
+      : (instanciaRaw as Record<string, unknown> | undefined)?.instanceName as string | undefined;
   if (!instancia) return NextResponse.json({ ok: true });
 
   const { remoteJid, fromMe, texto, eAudio, mensagemRaw } = extrairMensagem(payload);
