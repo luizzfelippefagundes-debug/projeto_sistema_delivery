@@ -335,16 +335,24 @@ async function processarComAgente(
   });
 
   const confirmarPedido = tool({
-    description: "Cria o pedido no sistema. Só chamar quando tiver nome, endereço, pagamento e pelo menos 1 item.",
-    inputSchema: z.object({}),
-    execute: async () => {
-      // Já confirmou nesse mesmo turno — não deixa o modelo repetir o fluxo
-      // e abrir um segundo pedido (ver comentário na declaração da trava).
+    description: "Cria o pedido no sistema. Passe nome, endereco e pagamento aqui mesmo — isso garante que ficam salvos.",
+    inputSchema: z.object({
+      nome: z.string().min(2).optional().describe("Nome do cliente, se já souber"),
+      endereco: z.string().min(3).optional().describe("Endereço de entrega ou 'Retirada no balcão'"),
+      pagamento: z.enum(["pix", "cartao", "dinheiro"]).optional().describe("Forma de pagamento"),
+    }),
+    execute: async ({ nome, endereco, pagamento }) => {
       if (pedidoConfirmadoNesteTurno) {
         return `PEDIDO_CONFIRMADO:${pedidoConfirmadoNesteTurno.pedidoId}:${pedidoConfirmadoNesteTurno.total}`;
       }
 
-      // Relê estado atual do banco (pode ter sido atualizado pelas tools anteriores)
+      // Salva campos que chegaram mas ainda não estavam no banco
+      const extras: Record<string, string> = {};
+      if (nome) extras.nomeTemp = nome;
+      if (endereco) extras.enderecoTemp = endereco;
+      if (pagamento) extras.pagamentoTemp = pagamento;
+      if (Object.keys(extras).length > 0) await atualizarConversa(conversa.id, extras);
+
       const conversaAtual = await getOuCriarConversa(restauranteId, telefone);
       const carrinhoAtual = parseCarrinho(conversaAtual.carrinho);
 
