@@ -8,6 +8,7 @@ import { processarMensagemWhatsapp } from "@/lib/whatsappBot";
 
 interface ChavesMensagem {
   remoteJid?: string;
+  remoteJidAlt?: string;
   fromMe?: boolean;
 }
 
@@ -25,7 +26,9 @@ function extrairMensagem(payload: Record<string, unknown>) {
     mensagemObj = mensagemObj.message as Record<string, unknown> | undefined;
   }
 
-  const remoteJid = chave?.remoteJid ?? "";
+  // WhatsApp LID: remoteJid pode vir como "123@lid" — preferir remoteJidAlt que tem o número real
+  const jidBruto = chave?.remoteJid ?? "";
+  const remoteJid = (jidBruto.endsWith("@lid") && chave?.remoteJidAlt) ? chave.remoteJidAlt : jidBruto;
   const texto =
     (mensagemObj?.conversation as string | undefined) ??
     (mensagemObj?.extendedTextMessage as Record<string, unknown> | undefined)?.text;
