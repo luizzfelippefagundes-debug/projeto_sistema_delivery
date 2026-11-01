@@ -145,7 +145,7 @@ const PEDIR_HORARIO = /(^2$|aberto|fechado|horario|horário|funcionando|funciona
 const PEDIR_STATUS = /^(3|status|meu pedido|onde (está|ta|tá) meu|acompanhar)/i;
 const PEDIR_AJUDA = /^(4|duvida|dúvida|ajuda|help|pergunta|não entendi|nao entendi)/i;
 
-const MENU_SAUDACAO = `📋 *O que você precisa?*
+const MENU_SAUDACAO = `📋 O que você precisa?
 
 1️⃣ Ver cardápio
 2️⃣ Horário de funcionamento
@@ -155,7 +155,7 @@ const MENU_SAUDACAO = `📋 *O que você precisa?*
 Digite o número ou escreva o que precisa 😊`;
 
 function buildBoasVindas(nomeRestaurante: string, statusTexto = ""): string {
-  return `Olá! Bem-vindo ao *${nomeRestaurante}* 🍣${statusTexto}\n\n${MENU_SAUDACAO}`;
+  return `Olá! Bem-vindo ao ${nomeRestaurante} 🍣${statusTexto}\n\n${MENU_SAUDACAO}`;
 }
 
 function buildMenuCardapio(categoriasLista: string): string {
