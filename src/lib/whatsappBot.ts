@@ -81,7 +81,6 @@ function buildSystemPrompt(
   nomeTemp: string | null,
   enderecoTemp: string | null,
   pagamentoTemp: string | null,
-  historico: string,
 ): string {
   const estado = [
     nomeTemp ? `Nome do cliente: ${nomeTemp}` : "Nome do cliente: não coletado ainda",
@@ -120,14 +119,37 @@ ${categoriasLista}
 CARDÁPIO COMPLETO (use apenas para responder quando o cliente escolher uma categoria específica):
 ${menuTexto}
 
-${historico ? `HISTÓRICO DA CONVERSA:\n${historico}` : ""}`.trim();
+`.trim();
 }
 
+type MsgHistorico = { role: "user" | "assistant"; content: string };
+
 function adicionarAoHistorico(historico: string, usuario: string, assistente: string): string {
-  const novo = `Cliente: ${usuario}\nAtendente: ${assistente}`;
-  const completo = historico ? `${historico}\n\n${novo}` : novo;
-  // Mantém os últimos MAX_HISTORICO_CHARS caracteres
-  return completo.length > MAX_HISTORICO_CHARS ? completo.slice(-MAX_HISTORICO_CHARS) : completo;
+  const msgs = parseHistoricoMsgs(historico);
+  msgs.push({ role: "user", content: usuario }, { role: "assistant", content: assistente });
+  // Mantém no máximo 20 pares (40 mensagens) para não estourar contexto
+  const cortado = msgs.slice(-40);
+  return JSON.stringify(cortado);
+}
+
+function parseHistoricoMsgs(historico: string): MsgHistorico[] {
+  if (!historico) return [];
+  try {
+    const parsed = JSON.parse(historico);
+    if (Array.isArray(parsed)) return parsed;
+  } catch {
+    // Histórico antigo em formato texto — converte
+    const pares = historico.split("\n\n").filter(Boolean);
+    const msgs: MsgHistorico[] = [];
+    for (const par of pares) {
+      const clienteMatch = par.match(/^Cliente: ([\s\S]*?)(?:\nAtendente: |$)/);
+      const atendenteMatch = par.match(/\nAtendente: ([\s\S]*)$/);
+      if (clienteMatch?.[1]) msgs.push({ role: "user", content: clienteMatch[1] });
+      if (atendenteMatch?.[1]) msgs.push({ role: "assistant", content: atendenteMatch[1] });
+    }
+    return msgs;
+  }
+  return [];
 }
 
 function carrinhVazio(carrinho: unknown): boolean {
@@ -434,15 +456,17 @@ async function processarComAgente(
     conversa.nomeTemp,
     conversa.enderecoTemp,
     conversa.pagamentoTemp,
-    conversa.historicoResumido,
   );
+
+  const historicoMsgs = parseHistoricoMsgs(conversa.historicoResumido);
+  const messages: MsgHistorico[] = [...historicoMsgs, { role: "user", content: textoRecebido }];
 
   let respostaFinal: string;
   try {
     const resultado = await generateText({
       model: openai("gpt-4o-mini"),
       system: systemPrompt,
-      messages: [{ role: "user", content: textoRecebido }],
+      messages,
       tools: { adicionarItem, removerItem, verCarrinho, definirNome, definirEndereco, definirPagamento, confirmarPedido, consultarStatus, verificarHorario },
       stopWhen: stepCountIs(12),
       onStepFinish: (step) => {
