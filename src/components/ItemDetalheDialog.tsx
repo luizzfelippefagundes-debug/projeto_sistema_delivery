@@ -35,6 +35,8 @@ export default function ItemDetalheDialog({
   const [qtd, setQtd] = useState(1);
   const [escolhas, setEscolhas] = useState<Record<string, number>>({});
 
+  const ehComboHalloween = item?.nome.toLowerCase().includes("halloween") ?? false;
+  const imagemUrl = item?.imagemUrl ?? (ehComboHalloween ? "/banner-halloween.png" : null);
   const ehCombo = item?.qtdPecasEscolha != null && (item?.opcoes.length ?? 0) > 0;
   const ehMonteSeuJeito = ehCombo && !!item?.escolhaLivre;
   const ehEscolhaTipo = ehCombo && !ehMonteSeuJeito && (item?.qtdPecasEscolha ?? 0) === 1;
@@ -103,10 +105,14 @@ export default function ItemDetalheDialog({
 
         {item && (
           <div className="flex flex-1 flex-col overflow-y-auto">
-            <div className="aspect-video w-full shrink-0 overflow-hidden bg-muted">
-              {item.imagemUrl ? (
+            <div className={`${ehComboHalloween ? "w-full bg-zinc-950" : "aspect-video bg-muted"} shrink-0 overflow-hidden`}>
+              {imagemUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={item.imagemUrl} alt={item.nome} className="size-full object-cover" />
+                <img
+                  src={imagemUrl}
+                  alt={item.nome}
+                  className={ehComboHalloween ? "block h-auto w-full" : "size-full object-cover"}
+                />
               ) : (
                 <div className={`flex size-full items-center justify-center ${tint}`}>
                   <Icon className="size-10" />

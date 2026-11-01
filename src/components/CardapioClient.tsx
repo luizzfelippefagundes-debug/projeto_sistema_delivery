@@ -1,7 +1,7 @@
 "use client";
 
 import { Package, Plus, Search, ShoppingBag, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import AvisoFuncionamento from "@/components/AvisoFuncionamento";
 import type { Horarios } from "@/lib/horario";
 import CartDrawer from "@/components/CartDrawer";
@@ -29,6 +29,37 @@ const PRECO_ORIGINAL_KIDS: Record<string, number> = {
   "50": 225.50,
 };
 
+const TIPOS_COMBO_HALLOWEEN = [
+  { tipo: "hot", nome: "Surpresa Hot" },
+  { tipo: "cru", nome: "Surpresa Cru" },
+  { tipo: "mista", nome: "Surpresa Mista" },
+] as const;
+
+function getCombosHalloween(itensPorCategoria: Record<string, ItemDoCardapio[]>) {
+  const todosItens = Object.values(itensPorCategoria).flat();
+
+  return TIPOS_COMBO_HALLOWEEN.flatMap((combo) => {
+    const item = todosItens.find((produto) => {
+      const nome = produto.nome.toLowerCase();
+      if (!nome.includes("surpresa")) return false;
+      if (combo.tipo === "mista") return /mist[ao]|cru.*hot|hot.*cru/.test(nome);
+      if (/\bmist[ao]\b/.test(nome)) return false;
+      return nome.includes(combo.tipo);
+    });
+
+    return item ? [{ ...combo, item }] : [];
+  });
+}
+
+function getCombosSurpresa(itensPorCategoria: Record<string, ItemDoCardapio[]>) {
+  const todosItens = Object.values(itensPorCategoria).flat();
+  const idsHalloween = new Set(getCombosHalloween(itensPorCategoria).map(({ item }) => item.id));
+
+  return todosItens.filter(
+    (item) => !idsHalloween.has(item.id) && NOMES_SURPRESA.some((kw) => item.nome.toLowerCase().includes(kw)),
+  );
+}
+
 function BannerSurpresa({
   itensPorCategoria,
   onAbrirItem,
@@ -36,10 +67,7 @@ function BannerSurpresa({
   itensPorCategoria: Record<string, ItemDoCardapio[]>;
   onAbrirItem: (item: ItemDoCardapio) => void;
 }) {
-  const todosItens = Object.values(itensPorCategoria).flat();
-  const combos = todosItens.filter((item) =>
-    NOMES_SURPRESA.some((kw) => item.nome.toLowerCase().includes(kw)),
-  );
+  const combos = getCombosSurpresa(itensPorCategoria);
   if (combos.length === 0) return null;
   return (
     <div className="overflow-hidden bg-zinc-900">
@@ -198,6 +226,43 @@ function BannerDona({
   );
 }
 
+function BannerHalloween({
+  itensPorCategoria,
+  onAbrirItem,
+}: {
+  itensPorCategoria: Record<string, ItemDoCardapio[]>;
+  onAbrirItem: (item: ItemDoCardapio) => void;
+}) {
+  const combos = getCombosHalloween(itensPorCategoria);
+  if (combos.length === 0) return null;
+
+  return (
+    <div className="overflow-hidden bg-zinc-900">
+      <div className="mx-auto w-full max-w-[480px] overflow-hidden bg-zinc-950">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/banner-halloween.png" alt="Promoção de Halloween: combos surpresa hot, cru e misto" className="block h-auto w-full" />
+      </div>
+      <div className="grid gap-px bg-zinc-700 p-px" style={{ gridTemplateColumns: `repeat(${combos.length}, minmax(0, 1fr))` }}>
+        {combos.map(({ tipo, nome, item }) => (
+          <button
+            key={tipo}
+            type="button"
+            onClick={() => onAbrirItem(item)}
+            aria-label={`Pedir ${nome}, ${fmtBRL(item.preco)}`}
+            className="flex min-h-24 flex-col items-center justify-center gap-1 bg-zinc-900 px-1.5 py-2 text-center transition-colors hover:bg-zinc-800 active:bg-zinc-700"
+          >
+            <span className="line-clamp-2 text-[10px] font-bold leading-tight text-red-400">
+              {nome} ({item.descricao?.match(/\d+\s*peças?/i)?.[0] ?? item.nome.match(/\d+\s*peças?/i)?.[0] ?? "combo"})
+            </span>
+            <span className="num text-sm font-black text-white">{fmtBRL(item.preco)}</span>
+            <span className="mt-0.5 rounded bg-red-700 px-2 py-0.5 text-[10px] font-semibold text-white">Pedir</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function BannerCarousel({
   itensPorCategoria,
   bannersDona,
@@ -208,14 +273,16 @@ function BannerCarousel({
   const [itemAberto, setItemAberto] = useState<ItemDoCardapio | null>(null);
   const [slide, setSlide] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
+  const [slideHeight, setSlideHeight] = useState<number | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
   const isDraggingRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const temSurpresa = Object.values(itensPorCategoria).flat().some((i) => i.nome.toLowerCase().includes("surpresa"));
+  const temSurpresa = getCombosSurpresa(itensPorCategoria).length > 0;
   const temKids = (itensPorCategoria["Especial Kids"] ?? []).length > 0;
-  const total = bannersDona.length + [temSurpresa, temKids].filter(Boolean).length;
+  const temHalloween = getCombosHalloween(itensPorCategoria).length > 0;
+  const total = bannersDona.length + [temSurpresa, temKids, temHalloween].filter(Boolean).length;
 
   function goTo(idx: number) {
     const next = Math.max(0, Math.min(idx, total - 1));
@@ -267,6 +334,18 @@ function BannerCarousel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [total]);
 
+  useLayoutEffect(() => {
+    if (total <= 1) return;
+    const activeSlide = trackRef.current?.children.item(slide);
+    if (!activeSlide) return;
+
+    const updateHeight = () => setSlideHeight(activeSlide.getBoundingClientRect().height);
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(activeSlide);
+    updateHeight();
+    return () => observer.disconnect();
+  }, [slide, total]);
+
   if (total === 0) return null;
 
   const slides = [
@@ -275,6 +354,7 @@ function BannerCarousel({
     )),
     temSurpresa && <BannerSurpresa key="surpresa" itensPorCategoria={itensPorCategoria} onAbrirItem={setItemAberto} />,
     temKids && <BannerKids key="kids" itensPorCategoria={itensPorCategoria} onAbrirItem={setItemAberto} />,
+    temHalloween && <BannerHalloween key="halloween" itensPorCategoria={itensPorCategoria} onAbrirItem={setItemAberto} />,
   ].filter(Boolean);
 
   const isDragging = dragOffset !== 0;
@@ -289,10 +369,11 @@ function BannerCarousel({
             <>
               <div
                 ref={trackRef}
-                className="flex select-none"
+                className="flex select-none items-start"
                 style={{
+                  height: slideHeight ? `${slideHeight}px` : undefined,
                   transform: `translateX(calc(-${slide * 100}% + ${dragOffset}px))`,
-                  transition: isDragging ? "none" : "transform .4s cubic-bezier(.4,0,.2,1)",
+                  transition: isDragging ? "none" : "transform .4s cubic-bezier(.4,0,.2,1), height .25s ease",
                   cursor: isDragging ? "grabbing" : "grab",
                 }}
                 onTouchStart={(e) => onDragStart(e.touches[0].clientX)}
