@@ -42,7 +42,7 @@ function resumoCarrinho(carrinho: ItemCarrinhoWhatsapp[]): string {
 
 function buildCategoriasLista(itens: Awaited<ReturnType<typeof getItensCardapioAtivos>>): string {
   const categorias = [...new Set(itens.map((i) => i.categoria))];
-  return categorias.map((c, idx) => `${idx + 1}. ${c}`).join("  ");
+  return categorias.map((c, idx) => `${idx + 1}. ${c}`).join("\n");
 }
 
 function buildMenuTexto(
