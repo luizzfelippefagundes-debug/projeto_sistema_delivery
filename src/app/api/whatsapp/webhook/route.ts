@@ -135,6 +135,11 @@ export async function POST(request: Request) {
       : (instanciaRaw as Record<string, unknown> | undefined)?.instanceName as string | undefined;
   if (!instancia) return NextResponse.json({ ok: true });
 
+  // Bot só funciona das 18h às 22h (horário de Brasília) — número pessoal da dona
+  const agora = new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false });
+  const hora = Number(agora);
+  if (hora < 18 || hora >= 22) return NextResponse.json({ ok: true });
+
   const { remoteJid, fromMe, texto, eAudio, eImagem, legendaImagem, mensagemRaw } = extrairMensagem(payload);
   if (fromMe || !remoteJid) return NextResponse.json({ ok: true });
   if (remoteJid.endsWith("@g.us") || remoteJid === "status@broadcast") return NextResponse.json({ ok: true });
