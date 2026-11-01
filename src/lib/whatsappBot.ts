@@ -482,7 +482,7 @@ async function processarComAgente(
   let respostaFinal: string;
   try {
     const resultado = await generateText({
-      model: openai("gpt-4o"),
+      model: openai("gpt-4.1-mini"),
       system: systemPrompt,
       messages,
       tools: { adicionarItem, removerItem, verCarrinho, definirNome, definirEndereco, definirPagamento, confirmarPedido, consultarStatus, verificarHorario },
