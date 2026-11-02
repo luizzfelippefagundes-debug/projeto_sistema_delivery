@@ -238,10 +238,17 @@ function BannerHalloween({
 
   return (
     <div className="overflow-hidden bg-zinc-900">
-      <div className="mx-auto w-full max-w-[480px] overflow-hidden bg-zinc-950">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/banner-halloween.png" alt="Promoção de Halloween: combos surpresa hot, cru e misto" className="block h-auto w-full" />
-      </div>
+      <div
+        role="img"
+        aria-label="Promoção de Halloween"
+        className="mx-auto w-full max-w-[480px] overflow-hidden bg-zinc-950"
+        style={{
+          aspectRatio: "768 / 190",
+          backgroundImage: "url('/banner-halloween.png')",
+          backgroundPosition: "center top",
+          backgroundSize: "100% auto",
+        }}
+      />
       <div className="grid gap-px bg-zinc-700 p-px" style={{ gridTemplateColumns: `repeat(${combos.length}, minmax(0, 1fr))` }}>
         {combos.map(({ tipo, nome, item }) => (
           <button
