@@ -241,7 +241,7 @@ function BannerHalloween({
       <div
         role="img"
         aria-label="Promoção de Halloween"
-        className="mx-auto w-full max-w-[480px] overflow-hidden bg-zinc-950"
+        className="w-full overflow-hidden bg-zinc-950"
         style={{
           aspectRatio: "768 / 190",
           backgroundImage: "url('/banner-halloween.png')",
