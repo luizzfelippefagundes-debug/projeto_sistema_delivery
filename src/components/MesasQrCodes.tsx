@@ -1,6 +1,8 @@
 "use client";
 
-import { Printer } from "lucide-react";
+import { Download, Printer } from "lucide-react";
+import { useRef } from "react";
+import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
 
 export interface QrDeMesa {
@@ -32,11 +34,23 @@ export default function MesasQrCodes({ qrs }: { qrs: QrDeMesa[] }) {
 
 function CartaoQrMesa({ qr }: { qr: QrDeMesa }) {
   const mesaStr = String(qr.mesa).padStart(2, "0");
+  const ref = useRef<HTMLDivElement>(null);
+
+  async function baixarImagem() {
+    if (!ref.current) return;
+    const dataUrl = await toPng(ref.current, { pixelRatio: 3 });
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `mesa-${mesaStr}.png`;
+    a.click();
+  }
 
   return (
-    <div
-      className="break-inside-avoid"
-      style={{
+    <div className="flex flex-col items-center gap-2">
+      <div
+        ref={ref}
+        className="break-inside-avoid"
+        style={{
         width: "100%",
         maxWidth: 420,
         aspectRatio: "420 / 592",
@@ -200,6 +214,15 @@ function CartaoQrMesa({ qr }: { qr: QrDeMesa }) {
       >
         Wi-Fi: Dashi Sushi · Peça a senha no balcão
       </div>
+    </div>
+      <Button
+        size="sm"
+        variant="outline"
+        className="print:hidden w-full"
+        onClick={baixarImagem}
+      >
+        <Download /> Mesa {mesaStr}
+      </Button>
     </div>
   );
 }
