@@ -1,6 +1,6 @@
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
-import { Manrope } from "next/font/google";
+import { Manrope, Shippori_Mincho } from "next/font/google";
 import "./globals.css";
 import ClerkThemedProvider from "@/components/ClerkThemedProvider";
 import { CartProvider } from "@/lib/cart";
@@ -11,6 +11,12 @@ const body = Manrope({
   variable: "--font-body",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
+});
+
+const mincho = Shippori_Mincho({
+  variable: "--font-mincho",
+  subsets: ["latin"],
+  weight: ["600", "800"],
 });
 
 export const metadata: Metadata = {
@@ -34,7 +40,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={body.variable} suppressHydrationWarning>
+    <html lang="pt-BR" className={`${body.variable} ${mincho.variable}`} suppressHydrationWarning>
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <ClerkThemedProvider>
