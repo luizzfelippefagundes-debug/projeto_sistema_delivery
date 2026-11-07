@@ -233,7 +233,7 @@ const CardDesign = forwardRef<HTMLDivElement, { qrDataUrl: string; mesaStr: stri
 
         {/* rodapé */}
         <div style={{ marginTop: "auto", fontSize: 11, color: "#8F887D" }}>
-          Wi-Fi: Dashi Sushi · Peça a senha no balcão
+          Wi-Fi: Dashi · Senha: sushi123
         </div>
       </div>
     );
