@@ -1,7 +1,7 @@
 "use client";
 
 import { Download, Printer } from "lucide-react";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
 
@@ -10,6 +10,10 @@ export interface QrDeMesa {
   dataUrl: string;
   url: string;
 }
+
+/* Dimensões do design original — Display acrílico A6 (10,5×14,8 cm) */
+const W = 420;
+const H = 592;
 
 export default function MesasQrCodes({ qrs }: { qrs: QrDeMesa[] }) {
   return (
@@ -23,7 +27,7 @@ export default function MesasQrCodes({ qrs }: { qrs: QrDeMesa[] }) {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-3 print:grid-cols-2 print:gap-6">
+      <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 md:grid-cols-3 print:grid-cols-2 print:gap-6">
         {qrs.map((qr) => (
           <CartaoQrMesa key={qr.mesa} qr={qr} />
         ))}
@@ -34,195 +38,204 @@ export default function MesasQrCodes({ qrs }: { qrs: QrDeMesa[] }) {
 
 function CartaoQrMesa({ qr }: { qr: QrDeMesa }) {
   const mesaStr = String(qr.mesa).padStart(2, "0");
-  const ref = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const captureRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  /* ajusta a escala toda vez que a coluna muda de tamanho */
+  useEffect(() => {
+    if (!wrapperRef.current) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setScale(entry.contentRect.width / W);
+    });
+    ro.observe(wrapperRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   async function baixarImagem() {
-    if (!ref.current) return;
-    const dataUrl = await toPng(ref.current, { pixelRatio: 3 });
+    if (!captureRef.current) return;
+    const url = await toPng(captureRef.current, { pixelRatio: 3, cacheBust: true });
     const a = document.createElement("a");
-    a.href = dataUrl;
-    a.download = `mesa-${mesaStr}.png`;
+    a.href = url;
+    a.download = `dashi-mesa-${mesaStr}.png`;
     a.click();
   }
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-3 break-inside-avoid">
+      {/*
+        wrapper define o espaço real na página (proporcional a 420×592).
+        o card interno fica em 420×592 fixos e é reduzido via transform.
+      */}
       <div
-        ref={ref}
-        className="break-inside-avoid"
-        style={{
-        width: "100%",
-        maxWidth: 420,
-        aspectRatio: "420 / 592",
-        margin: "0 auto",
-        backgroundColor: "#111111",
-        color: "#F4EFE6",
-        fontFamily: "var(--font-body, sans-serif)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        padding: "40px 36px 36px",
-        gap: 14,
-        position: "relative",
-        overflow: "hidden",
-        borderRadius: 12,
-      }}
-    >
-      {/* círculo decorativo vermelho no canto superior direito */}
-      <div
-        style={{
-          position: "absolute",
-          top: -70,
-          right: -70,
-          width: 200,
-          height: 200,
-          borderRadius: "50%",
-          background: "#C8102E",
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* cabeçalho — logo textual */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 4,
-          position: "relative",
-        }}
+        ref={wrapperRef}
+        style={{ width: "100%", aspectRatio: `${W} / ${H}`, position: "relative", overflow: "hidden" }}
       >
-        <span
-          style={{
-            fontSize: 11,
-            letterSpacing: 6,
-            textTransform: "uppercase",
-            color: "#BDB5A8",
-          }}
-        >
-          Bem-vindo ao
-        </span>
-        <span
-          style={{
-            fontFamily: "var(--font-mincho, serif)",
-            fontWeight: 800,
-            fontSize: 52,
-            lineHeight: 1,
-            letterSpacing: 2,
-          }}
-        >
-          Dashi
-        </span>
-        <span
-          style={{
-            fontSize: 12,
-            letterSpacing: 8,
-            textTransform: "uppercase",
-            color: "#C8102E",
-            fontWeight: 700,
-          }}
-        >
-          Sushi
-        </span>
-      </div>
-
-      {/* subtítulo */}
-      <div
-        style={{
-          fontFamily: "var(--font-mincho, serif)",
-          fontWeight: 600,
-          fontSize: 22,
-          textAlign: "center",
-          lineHeight: 1.25,
-          marginTop: 6,
-        }}
-      >
-        Escaneie e faça<br />seu pedido
-      </div>
-
-      {/* container claro com QR + badge da mesa */}
-      <div
-        style={{
-          backgroundColor: "#F4EFE6",
-          borderRadius: 18,
-          padding: 16,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 10,
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={qr.dataUrl}
-          alt={`QR code da Mesa ${qr.mesa}`}
-          style={{ width: 190, height: 190, display: "block", borderRadius: 6 }}
-        />
         <div
           style={{
-            backgroundColor: "#111111",
-            color: "#F4EFE6",
-            borderRadius: 999,
-            padding: "6px 16px",
-            fontSize: 14,
-            fontWeight: 700,
-            letterSpacing: 1,
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: W,
+            height: H,
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
           }}
         >
-          MESA {mesaStr}
+          <CardDesign ref={captureRef} qrDataUrl={qr.dataUrl} mesaStr={mesaStr} />
         </div>
       </div>
 
-      {/* passos */}
-      <div
-        style={{
-          display: "flex",
-          gap: 18,
-          fontSize: 12,
-          color: "#BDB5A8",
-          marginTop: 4,
-        }}
-      >
-        {[
-          { n: "1", label: "Aponte a câmera" },
-          { n: "2", label: "Escolha os pratos" },
-          { n: "3", label: "Pedido vai à cozinha" },
-        ].map(({ n, label }) => (
-          <div
-            key={n}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 4,
-              textAlign: "center",
-            }}
-          >
-            <b style={{ color: "#F4EFE6", fontSize: 16 }}>{n}</b>
-            {label}
-          </div>
-        ))}
-      </div>
-
-      {/* rodapé Wi-Fi */}
-      <div
-        style={{
-          marginTop: "auto",
-          fontSize: 11,
-          color: "#8F887D",
-        }}
-      >
-        Wi-Fi: Dashi Sushi · Peça a senha no balcão
-      </div>
-    </div>
       <Button
         size="sm"
         variant="outline"
         className="print:hidden w-full"
         onClick={baixarImagem}
       >
-        <Download /> Mesa {mesaStr}
+        <Download /> Baixar Mesa {mesaStr}
       </Button>
     </div>
   );
 }
+
+import { forwardRef } from "react";
+
+const CardDesign = forwardRef<HTMLDivElement, { qrDataUrl: string; mesaStr: string }>(
+  function CardDesign({ qrDataUrl, mesaStr }, ref) {
+    return (
+      <div
+        ref={ref}
+        style={{
+          width: W,
+          height: H,
+          boxSizing: "border-box",
+          background: "#111111",
+          color: "#F4EFE6",
+          fontFamily: "'DM Sans', var(--font-body, sans-serif)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          padding: "40px 36px 36px",
+          gap: 14,
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        {/* círculo decorativo vermelho */}
+        <div
+          style={{
+            position: "absolute",
+            top: -70,
+            right: -70,
+            width: 200,
+            height: 200,
+            borderRadius: "50%",
+            background: "#C8102E",
+          }}
+        />
+
+        {/* logo */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 4,
+            position: "relative",
+          }}
+        >
+          <span style={{ fontSize: 11, letterSpacing: 6, textTransform: "uppercase", color: "#BDB5A8" }}>
+            Bem-vindo ao
+          </span>
+          <span
+            style={{
+              fontFamily: "'Shippori Mincho', var(--font-mincho, serif)",
+              fontWeight: 800,
+              fontSize: 52,
+              lineHeight: 1,
+              letterSpacing: 2,
+            }}
+          >
+            Dashi
+          </span>
+          <span style={{ fontSize: 12, letterSpacing: 8, textTransform: "uppercase", color: "#C8102E", fontWeight: 700 }}>
+            Sushi
+          </span>
+        </div>
+
+        {/* subtítulo */}
+        <div
+          style={{
+            fontFamily: "'Shippori Mincho', var(--font-mincho, serif)",
+            fontWeight: 600,
+            fontSize: 22,
+            textAlign: "center",
+            lineHeight: 1.25,
+            marginTop: 6,
+          }}
+        >
+          Escaneie e faça<br />seu pedido
+        </div>
+
+        {/* container QR */}
+        <div
+          style={{
+            backgroundColor: "#F4EFE6",
+            borderRadius: 18,
+            padding: 16,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={qrDataUrl}
+            alt={`QR code Mesa ${mesaStr}`}
+            width={190}
+            height={190}
+            style={{ display: "block", borderRadius: 6 }}
+          />
+          <div
+            style={{
+              backgroundColor: "#111111",
+              color: "#F4EFE6",
+              borderRadius: 999,
+              padding: "6px 16px",
+              fontSize: 14,
+              fontWeight: 700,
+              letterSpacing: 1,
+            }}
+          >
+            MESA {mesaStr}
+          </div>
+        </div>
+
+        {/* passos */}
+        <div style={{ display: "flex", gap: 18, fontSize: 12, color: "#BDB5A8", marginTop: 4 }}>
+          {(
+            [
+              ["1", "Aponte a câmera"],
+              ["2", "Escolha os pratos"],
+              ["3", "Pedido vai à cozinha"],
+            ] as const
+          ).map(([n, label]) => (
+            <div
+              key={n}
+              style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, textAlign: "center" }}
+            >
+              <b style={{ color: "#F4EFE6", fontSize: 16 }}>{n}</b>
+              {label}
+            </div>
+          ))}
+        </div>
+
+        {/* rodapé */}
+        <div style={{ marginTop: "auto", fontSize: 11, color: "#8F887D" }}>
+          Wi-Fi: Dashi Sushi · Peça a senha no balcão
+        </div>
+      </div>
+    );
+  }
+);
