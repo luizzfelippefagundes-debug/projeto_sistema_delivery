@@ -4,6 +4,7 @@ import { AlertTriangle, CheckCircle2, ChefHat, Clock, MapPin, Printer, Truck } f
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { avancarStatusCozinha, avancarStatusEntrega, confirmarEntregaForca } from "@/actions/pedidos.actions";
+import AutoPrintNovosPedidos from "@/components/AutoPrintNovosPedidos";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -134,6 +135,7 @@ export default function CozinhaBoard({
   const visiveis = pedidos.filter((p) => filtro === "todos" || p.origem === filtro);
   const rotaVisivel = filtro === "salao" ? [] : emRota;
   const atrasados = pedidos.filter((p) => estaAtrasado(p.criadoEm, p.status)).length;
+  const idsNovos = pedidos.filter((p) => p.status === "novo").map((p) => p.id);
 
   const FILTROS: { key: Filtro; label: string }[] = [
     { key: "todos", label: "Todos" },
@@ -143,6 +145,7 @@ export default function CozinhaBoard({
 
   return (
     <div className="flex flex-col gap-5">
+      <AutoPrintNovosPedidos idsNovos={idsNovos} />
       <ListaProducao pedidos={pedidos} />
 
       {/* Filtro */}
