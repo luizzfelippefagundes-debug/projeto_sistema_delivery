@@ -12,8 +12,15 @@ import { assertFuncionario } from "../lib/funcionarioAuth";
 
 const TAMANHO_MAX_IMAGEM_DATA_URL = 1_500_000;
 
-function ehUrlDeFotoValida(url: string) {
+function ehBlobUrl(url: string) {
   return url.startsWith("https://") && url.includes(".public.blob.vercel-storage.com/");
+}
+
+function ehUrlDeFotoValida(url: string) {
+  if (ehBlobUrl(url)) return true;
+  if (url.startsWith("/")) return true;
+  if (url.startsWith("https://") || url.startsWith("http://")) return true;
+  return false;
 }
 
 function validarImagem(imagemUrl?: string | null) {
@@ -45,7 +52,7 @@ async function removerFotoAntiga(itemId: string, novaUrl: string | null) {
     .select({ imagemUrl: itensCardapio.imagemUrl })
     .from(itensCardapio)
     .where(eq(itensCardapio.id, itemId));
-  if (atual?.imagemUrl && atual.imagemUrl !== novaUrl && ehUrlDeFotoValida(atual.imagemUrl)) {
+  if (atual?.imagemUrl && atual.imagemUrl !== novaUrl && ehBlobUrl(atual.imagemUrl)) {
     await del(atual.imagemUrl).catch(() => {});
   }
 }
