@@ -48,6 +48,7 @@ export function ItemCard({ item, categoria, tint }: { item: ItemDoCardapio; cate
   const ehCombo = item.qtdPecasEscolha != null && item.opcoes.length > 0;
   const noCarrinho = items.find((i) => i.itemCardapioId === item.id && !i.escolhas);
   const [detalheAberto, setDetalheAberto] = useState(false);
+  const isBebida = categoria.toLowerCase().includes("bebida");
 
   return (
     <>
@@ -69,10 +70,14 @@ export function ItemCard({ item, categoria, tint }: { item: ItemDoCardapio; cate
         </div>
 
         <div className="relative size-24 shrink-0 sm:size-28">
-          <div className="size-full overflow-hidden rounded-xl bg-muted">
+          <div className={`size-full overflow-hidden rounded-xl ${isBebida ? "bg-white dark:bg-card p-1 shadow-2xs" : "bg-muted"}`}>
             {item.imagemUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={item.imagemUrl} alt={item.nome} className="size-full object-cover" />
+              <img
+                src={item.imagemUrl}
+                alt={item.nome}
+                className={isBebida ? "size-full object-contain" : "size-full object-cover"}
+              />
             ) : (
               <div className={`flex size-full items-center justify-center ${tint}`}>
                 <Icon className="size-7" />

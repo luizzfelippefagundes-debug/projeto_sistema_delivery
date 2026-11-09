@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Minus, Plus } from "lucide-react";
+import { Check, CupSoda, Minus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   Dialog,
@@ -105,13 +105,13 @@ export default function ItemDetalheDialog({
 
         {item && (
           <div className="flex flex-1 flex-col overflow-y-auto">
-            <div className={`${ehComboHalloween ? "w-full bg-zinc-950" : "aspect-video bg-muted"} shrink-0 overflow-hidden`}>
+            <div className={`${ehComboHalloween ? "w-full bg-zinc-950" : Icon === CupSoda ? "aspect-video bg-white dark:bg-card p-4" : "aspect-video bg-muted"} shrink-0 overflow-hidden`}>
               {imagemUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={imagemUrl}
                   alt={item.nome}
-                  className={ehComboHalloween ? "block h-auto w-full" : "size-full object-cover"}
+                  className={ehComboHalloween ? "block h-auto w-full" : Icon === CupSoda ? "size-full object-contain" : "size-full object-cover"}
                 />
               ) : (
                 <div className={`flex size-full items-center justify-center ${tint}`}>
