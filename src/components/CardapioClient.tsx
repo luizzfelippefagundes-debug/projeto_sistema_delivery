@@ -10,6 +10,7 @@ import ItemDetalheDialog from "@/components/ItemDetalheDialog";
 import { ItemCard, tintDaCategoria, type ItemDoCardapio } from "@/components/CardapioItemCard";
 import CustomerHeader from "@/components/CustomerHeader";
 import CustomerTabBar from "@/components/CustomerTabBar";
+import RodapeMarca from "@/components/RodapeMarca";
 import { fmtBRL } from "@/lib/data";
 import { useCart } from "@/lib/cart";
 
@@ -675,7 +676,7 @@ export default function CardapioClient({
           </div>
 
           {termoBusca ? (
-            <div className={`mx-auto w-full max-w-2xl flex-1 px-4 md:px-6 ${count ? "pb-40" : "pb-24"}`}>
+            <div className="mx-auto w-full max-w-2xl flex-1 px-4 md:px-6 pb-2">
               {resultadosBusca.length === 0 ? (
                 <p className="pt-10 text-center text-sm text-muted-foreground">Nenhum item encontrado para &quot;{busca}&quot;.</p>
               ) : (
@@ -691,7 +692,7 @@ export default function CardapioClient({
               )}
             </div>
           ) : (
-            <div className={`mx-auto w-full max-w-2xl flex-1 px-4 md:px-6 ${count ? "pb-40" : "pb-24"}`}>
+            <div className="mx-auto w-full max-w-2xl flex-1 px-4 md:px-6 pb-2">
               {categorias.map((cat) => (
                 <div
                   key={cat}
@@ -711,9 +712,11 @@ export default function CardapioClient({
         </>
       )}
 
-      <div className="fixed inset-x-0 bottom-0 z-40 flex flex-col">
+      <RodapeMarca />
+
+      <div className="fixed inset-x-0 bottom-0 z-40 flex flex-col pointer-events-none">
         {count > 0 && (
-          <div className="px-4 pb-3">
+          <div className="px-4 pb-3 pointer-events-auto">
             <button
               type="button"
               onClick={() => setSacolaAberta(true)}
@@ -727,7 +730,9 @@ export default function CardapioClient({
             </button>
           </div>
         )}
-        <CustomerTabBar slug={slug} />
+        <div className="pointer-events-auto">
+          <CustomerTabBar slug={slug} />
+        </div>
       </div>
 
       <CartDrawer

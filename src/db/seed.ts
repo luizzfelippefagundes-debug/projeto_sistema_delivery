@@ -5,6 +5,9 @@ import { configuracoes, funcionarios, itensCardapio, itensPedido, pedidos, resta
  * cardápio é gerenciado inteiramente pelo painel da dona (/dono/cardapio). */
 const MENU: Record<string, { nome: string; preco: number }[]> = {
   Combos: [
+    { nome: "Combo Halloween - Surpresa Hot 20 peças", preco: 57.0 },
+    { nome: "Combo Halloween - Surpresa Cru 20 peças", preco: 57.0 },
+    { nome: "Combo Halloween - Surpresa Mista 20 peças", preco: 57.0 },
     { nome: "Combo 60 peças", preco: 260.0 },
     { nome: "Combo 50 peças", preco: 215.0 },
     { nome: "Combo 40 peças", preco: 163.0 },

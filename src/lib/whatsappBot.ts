@@ -73,6 +73,12 @@ function buildMenuTexto(
   return blocos.join("\n\n");
 }
 
+export function resolverEnderecoLocalPedido(texto: string): string | null {
+  const normalizado = texto.toLowerCase();
+  const local = /(comer\s+(?:aqui|aí|ai|ali|no\s+local|no\s+balc[ãa]o)|vou\s+comer|quero\s+comer|quero\s+no\s+local|quero\s+no\s+balc[ãa]o|pra\s+comer|pra\s+retirar|retirar\s+(?:aí|ai|no\s+balc[ãa]o)|retirada\s+no\s+balc[ãa]o|vou\s+retirar|quero\s+retirar|vou\s+buscar|quero\s+buscar|buscar\s+na\s+loja|pegar\s+na\s+loja|pegarei\s+na\s+loja|na\s+loja|no\s+balc[ãa]o|pra\s+buscar|to\s+com\s+fome|quero\s+um\s+pedido\s+pra\s+comer\s+aqui|quero\s+o\s+pedido\s+pra\s+retirar|venho\s+buscar|vou\s+vir\s+buscar)/i.test(normalizado);
+  return local ? "Retirada no balcão" : null;
+}
+
 function buildSystemPrompt(
   nomeRestaurante: string,
   menuTexto: string,
@@ -89,7 +95,7 @@ function buildSystemPrompt(
     `Carrinho atual:\n${resumoCarrinho(carrinho)}`,
   ].join("\n");
 
-  return `Você é o atendente virtual do ${nomeRestaurante}, restaurante de sushi delivery. Atende pedidos pelo WhatsApp de forma direta e eficiente.
+  return `Você é o assistente virtual do ${nomeRestaurante}, restaurante de sushi delivery. Atende pedidos pelo WhatsApp de forma natural, direta e eficiente. Você pode ajudar com o pedido, responder dúvidas rápidas e manter a conversa fluida.
 
 FORMATO: Texto simples APENAS. Sem asteriscos, sem markdown, sem negrito, sem underlines. Como um SMS normal.
 
@@ -98,12 +104,15 @@ REGRAS:
 2. Uma pergunta por vez. Nunca junte duas perguntas.
 3. Coleta de dados: nome → endereço → pagamento. Uma por vez.
 4. Pagamentos aceitos: pix, cartao (na entrega), dinheiro (na entrega).
-5. Foco TOTAL em pedidos. Não faça bate-papo. Perguntas fora do assunto → redirecione pro pedido.
+5. Não seja rígido só em delivery. Entenda também pedidos para retirada no balcão, consumir no local e conversas simples do cliente.
 6. "Demora quanto?" → "Entrega: 40 a 60 min. Retirada no balcão: 20 a 30 min."
+7. Se a pessoa estiver só conversando, respondendo de forma natural ou perguntando algo do cardápio, responda de maneira útil e leve a conversa ao pedido sem parecer robô.
 
 COMO INTERPRETAR O CLIENTE:
 - Cliente lista itens ("3 temaki, 10 bolinhas") → use adicionarItem PRA CADA item. NUNCA mostre categorias.
 - Cliente pede cardápio ("o que tem?", "quero ver") → mostre só as categorias numeradas, espere ele escolher.
+- Se o cliente disser "comer aí", "vou comer aqui", "comer no local", "retirar no balcão", "pegar na loja", "vou buscar", "pra retirar" ou frases parecidas → trate como retirada no balcão e use definirEndereco com "Retirada no balcão". Isso é ordem para consumir no local, não entrega.
+- Se for uma dúvida simples como "tem salmão?", "qual vale mais?", "tem sem glúten?", "quanto fica?" → responda de forma útil e, se fizer sentido, volte ao pedido.
 - "No nome de X" / "nome é X" / "nome X" → use definirNome. NUNCA confunda com item do cardápio.
 - "Da barbearia" / "do trabalho" após nome → é complemento do nome, NÃO é item.
 - "[Imagem enviada: ...]" → o cliente mandou uma foto. Se for comprovante de pagamento, confirme que recebeu. Se for outra coisa, interprete no contexto do pedido.
@@ -274,7 +283,23 @@ export async function processarMensagemWhatsapp(
     return processarComAgente(conversa, restauranteId, telefone, "quero saber o status do meu pedido", nomeRestaurante);
   }
 
-  return processarComAgente(conversa, restauranteId, telefone, textoRecebido, nomeRestaurante);
+  const enderecoLocalPedido = resolverEnderecoLocalPedido(texto);
+  if (enderecoLocalPedido && !conversa.enderecoTemp) {
+    await atualizarConversa(conversa.id, { enderecoTemp: enderecoLocalPedido });
+  }
+
+  return processarComAgente(
+    conversa,
+    restauranteId,
+    telefone,
+    enderecoLocalPedido
+      ? texto.replace(
+          /(comer\s+(?:aqui|aí|ai|ali|no\s+local|no\s+balc[ãa]o)|vou\s+comer|quero\s+comer|quero\s+no\s+local|quero\s+no\s+balc[ãa]o|pra\s+comer|pra\s+retirar|retirar\s+(?:aí|ai|no\s+balc[ãa]o)|retirada\s+no\s+balc[ãa]o|vou\s+retirar|quero\s+retirar|vou\s+buscar|quero\s+buscar|buscar\s+na\s+loja|pegar\s+na\s+loja|pegarei\s+na\s+loja|na\s+loja|no\s+balc[ãa]o|pra\s+buscar|to\s+com\s+fome|venho\s+buscar|vou\s+vir\s+buscar)/gi,
+          "retirada no balcão",
+        )
+      : textoRecebido,
+    nomeRestaurante,
+  );
 }
 
 async function processarComAgente(
