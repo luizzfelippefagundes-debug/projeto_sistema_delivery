@@ -3,10 +3,11 @@
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bike, Loader2, Minus, Pencil, Plus, UtensilsCrossed } from "lucide-react";
+import { Bike, Loader2, MapPin, Minus, Pencil, Plus, UtensilsCrossed } from "lucide-react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { criarPedidoCliente, criarPedidoMesa } from "@/actions/pedidos.actions";
 import { calcularEntregaReal } from "@/actions/entrega.actions";
+import { buscarEnderecoPorCoordenadas } from "@/actions/localizacao.actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -131,6 +132,76 @@ export default function CartDrawer({
   /** Pedido criado, indo pra página do pedido pagar. Cobre o carrinho com um
    * carregando até a navegação terminar, pra não parecer que travou. */
   const [indoPagar, setIndoPagar] = useState(false);
+  const [obtendoLocalizacao, setObtendoLocalizacao] = useState(false);
+
+  function obterLocalizacaoAtual() {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      setErro("Seu navegador não tem suporte a GPS/localização.");
+      return;
+    }
+    setObtendoLocalizacao(true);
+    setErro(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          const end = await buscarEnderecoPorCoordenadas(latitude, longitude);
+          if (end) {
+            setEntrega((prev) => {
+              let bairroSelecionado = prev.bairro;
+
+              if (end.bairro && zonasEntrega.length > 0) {
+                const bNorm = end.bairro
+                  .toLowerCase()
+                  .normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "")
+                  .trim();
+                const zona = zonasEntrega.find((z) => {
+                  const zNorm = z.bairro
+                    .toLowerCase()
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .trim();
+                  return zNorm === bNorm || zNorm.includes(bNorm) || bNorm.includes(zNorm);
+                });
+                if (zona) {
+                  bairroSelecionado = zona.bairro;
+                } else if (!prev.bairro) {
+                  bairroSelecionado = end.bairro;
+                }
+              } else if (end.bairro) {
+                bairroSelecionado = end.bairro;
+              }
+
+              return {
+                ...prev,
+                rua: end.rua || prev.rua,
+                numero: end.numero || prev.numero,
+                bairro: bairroSelecionado || prev.bairro,
+              };
+            });
+          } else {
+            setErro("Não conseguimos identificar o endereço exato pelo GPS. Digite manualmente abaixo.");
+          }
+        } catch (e) {
+          console.error("Erro ao converter coordenadas:", e);
+          setErro("Falha ao obter endereço via GPS. Digite manualmente abaixo.");
+        } finally {
+          setObtendoLocalizacao(false);
+        }
+      },
+      (err) => {
+        setObtendoLocalizacao(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          setErro("Permissão de localização negada pelo navegador. Digite seu endereço.");
+        } else {
+          setErro("Não foi possível capturar sua localização. Digite seu endereço.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+  }
 
   const zonaEncontrada = useMemo(
     () => (tipo === "delivery" ? encontrarZona(zonasEntrega, entrega.bairro) : null),
@@ -435,9 +506,29 @@ export default function CartDrawer({
 
               {tipo === "delivery" && (
                 <div className="flex flex-col gap-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Endereço de entrega
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Endereço de entrega
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={obtendoLocalizacao}
+                    onClick={obterLocalizacaoAtual}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/25 bg-primary/5 py-2.5 px-3 text-xs font-bold text-primary transition-colors hover:bg-primary/10 active:scale-[0.99] disabled:opacity-50"
+                  >
+                    {obtendoLocalizacao ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin text-primary" />
+                        Identificando sua rua e bairro…
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="size-4 text-primary" />
+                        Preencher com meu local atual (GPS)
+                      </>
+                    )}
+                  </button>
                   <div className="grid grid-cols-3 gap-2">
                     <div className="col-span-2 flex flex-col gap-1.5">
                       <Label htmlFor="rua">Rua / Avenida</Label>
