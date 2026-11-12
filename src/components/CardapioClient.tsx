@@ -139,8 +139,11 @@ function ArteDoBanner({
   );
 }
 
-/** Um slide do carrossel: arte em cima, e embaixo os itens da promoção com o
- * preço e o botão de pedir, no mesmo visual dos cards do cardápio. */
+/** Um slide do carrossel: a arte da promoção e os itens que ela vende.
+ *
+ * São dois arranjos de verdade, não um só espremido: empilhado (celular, e
+ * sempre que a arte é larga) e em duas colunas (desktop com arte em pé), onde
+ * a arte não preenche um card largo sozinha. */
 function BannerCard({
   promo,
   frameRatio,
@@ -154,18 +157,24 @@ function BannerCard({
 }) {
   const { opcoes, titulo } = promo;
   const unica = opcoes.length === 1 ? opcoes[0] : null;
-  /* Cartaz em pé num card largo deixava duas tarjas desfocadas enormes nas
-   * laterais. No desktop ele vira coluna e os itens vão pro lado. */
+  /* Cartaz em pé num card largo deixava um vazio enorme ao lado da arte. No
+   * desktop ele vira coluna, o card encolhe pro tamanho do conteúdo e os
+   * itens ocupam a coluna de dentro. */
   const retrato = frameRatio < 1.2;
 
   function abrir(opcao: Promocao["opcoes"][number]) {
     onAbrirItem({ ...opcao.item, preco: opcao.preco, imagemUrl: opcao.item.imagemUrl ?? promo.imagemUrl });
   }
 
+  /** Nome do item sem o prefixo da promoção ("Black Friday · Poke" -> "Poke"). */
+  function rotulo(nome: string) {
+    return nome.includes(" · ") ? nome.split(" · ").slice(1).join(" · ") : nome;
+  }
+
   return (
     <article
       className={`flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm ${
-        retrato ? "sm:flex-row" : ""
+        retrato ? "sm:mx-auto sm:w-fit sm:max-w-full sm:flex-row" : ""
       }`}
     >
       <div
@@ -186,64 +195,102 @@ function BannerCard({
         )}
       </div>
 
-      {opcoes.length === 0 ? null : unica ? (
-        <button
-          type="button"
-          onClick={() => abrir(unica)}
-          className={`flex min-h-[4.5rem] flex-1 items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60 active:bg-muted ${
-            retrato ? "sm:flex-col sm:items-start sm:justify-center sm:gap-5 sm:px-6" : ""
-          }`}
-        >
-          <div className="min-w-0">
-            <p className={`truncate text-sm font-semibold ${retrato ? "sm:whitespace-normal sm:text-lg" : ""}`}>
-              {unica.nome}
-            </p>
-            <p className={`num text-xs text-muted-foreground ${retrato ? "sm:text-sm" : ""}`}>
-              {fmtBRL(unica.preco)} na promoção
-            </p>
-          </div>
-          <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground shadow-sm">
-            <Plus className="size-3.5 stroke-[3]" />
-            Pedir
-          </span>
-        </button>
-      ) : (
-        <div
-          className={`flex min-h-[4.5rem] flex-1 gap-2 overflow-x-auto px-3 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
-            retrato ? "sm:flex-col sm:justify-center sm:overflow-visible sm:px-5 sm:py-5" : ""
-          }`}
-        >
-          {retrato && (
-            <p className="hidden text-[11px] font-bold uppercase tracking-wider text-muted-foreground sm:block">
-              Escolha uma opção
-            </p>
-          )}
-          {opcoes.map((opcao) => (
-            <button
-              key={opcao.id}
-              type="button"
-              onClick={() => abrir(opcao)}
-              draggable={false}
-              className={`flex w-32 shrink-0 flex-col justify-between gap-1 rounded-xl border border-border bg-background px-2.5 py-2 text-left transition-colors hover:border-primary/40 hover:bg-muted/60 active:bg-muted ${
-                retrato ? "sm:w-full sm:flex-row sm:items-center sm:gap-3 sm:px-4 sm:py-3" : ""
-              }`}
-            >
-              <span
-                className={`line-clamp-2 text-[11px] font-semibold leading-tight ${
-                  retrato ? "sm:min-w-0 sm:flex-1 sm:text-[13px]" : ""
-                }`}
+      {opcoes.length === 0 ? null : (
+        <>
+          {/* Empilhado: a faixa embaixo da arte. */}
+          <div className={`flex flex-1 flex-col ${retrato ? "sm:hidden" : ""}`}>
+            {unica ? (
+              <button
+                type="button"
+                onClick={() => abrir(unica)}
+                className="flex min-h-[4.5rem] flex-1 items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60 active:bg-muted"
               >
-                {opcao.nome.includes(" · ") ? opcao.nome.split(" · ").slice(1).join(" · ") : opcao.nome}
-              </span>
-              <span className={`flex items-center justify-between gap-1 ${retrato ? "sm:ml-auto sm:shrink-0 sm:gap-2" : ""}`}>
-                <span className={`num text-xs font-bold text-primary ${retrato ? "sm:text-sm" : ""}`}>{fmtBRL(opcao.preco)}</span>
-                <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground sm:size-6">
-                  <Plus className="size-3 stroke-[3]" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{unica.nome}</p>
+                  <p className="num text-xs text-muted-foreground">{fmtBRL(unica.preco)} na promoção</p>
+                </div>
+                <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground shadow-sm">
+                  <Plus className="size-3.5 stroke-[3]" />
+                  Pedir
                 </span>
-              </span>
-            </button>
-          ))}
-        </div>
+              </button>
+            ) : (
+              <div className="flex min-h-[4.5rem] flex-1 gap-2 overflow-x-auto px-3 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {opcoes.map((opcao) => (
+                  <button
+                    key={opcao.id}
+                    type="button"
+                    onClick={() => abrir(opcao)}
+                    draggable={false}
+                    className="flex w-32 shrink-0 flex-col justify-between gap-1 rounded-xl border border-border bg-background px-2.5 py-2 text-left transition-colors hover:border-primary/40 hover:bg-muted/60 active:bg-muted"
+                  >
+                    <span className="line-clamp-2 text-[11px] font-semibold leading-tight">{rotulo(opcao.nome)}</span>
+                    <span className="flex items-center justify-between gap-1">
+                      <span className="num text-xs font-bold text-primary">{fmtBRL(opcao.preco)}</span>
+                      <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                        <Plus className="size-3 stroke-[3]" />
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Duas colunas: o painel ao lado da arte, no desktop. */}
+          {retrato && (
+            <div className="hidden w-80 min-w-0 flex-col justify-center gap-4 p-6 sm:flex">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-primary">
+                {titulo ?? "Promoção"}
+              </p>
+
+              {unica ? (
+                <>
+                  <div className="space-y-2">
+                    <h2 className="text-lg font-bold leading-snug">{unica.nome}</h2>
+                    {unica.item.descricao && (
+                      <p className="line-clamp-4 text-sm leading-relaxed text-muted-foreground">
+                        {unica.item.descricao}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="num text-2xl font-black text-primary">{fmtBRL(unica.preco)}</span>
+                    <span className="text-xs text-muted-foreground">na promoção</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => abrir(unica)}
+                    className="flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-bold text-primary-foreground shadow-sm transition-colors hover:brightness-110"
+                  >
+                    <Plus className="size-4 stroke-[3]" />
+                    Pedir
+                  </button>
+                </>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {opcoes.map((opcao) => (
+                    <button
+                      key={opcao.id}
+                      type="button"
+                      onClick={() => abrir(opcao)}
+                      draggable={false}
+                      className="flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 text-left transition-colors hover:border-primary/40 hover:bg-muted/60 active:bg-muted"
+                    >
+                      <span className="min-w-0 flex-1 text-[13px] font-semibold leading-tight">
+                        {rotulo(opcao.nome)}
+                      </span>
+                      <span className="num shrink-0 text-sm font-bold text-primary">{fmtBRL(opcao.preco)}</span>
+                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                        <Plus className="size-3.5 stroke-[3]" />
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
     </article>
   );
