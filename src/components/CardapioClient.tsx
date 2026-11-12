@@ -24,45 +24,12 @@ export interface ZonaEntregaResumo {
 
 const NOMES_SURPRESA = ["surpresa"];
 
-const PRECO_ORIGINAL_KIDS: Record<string, number> = {
-  "15": 67.50,
-  "30": 122.50,
-  "50": 225.50,
-};
-
-const TIPOS_COMBO_HALLOWEEN = [
-  { tipo: "hot", nome: "Surpresa Hot" },
-  { tipo: "cru", nome: "Surpresa Cru" },
-  { tipo: "mista", nome: "Surpresa Mista" },
-] as const;
-
-function getCombosHalloween(itensPorCategoria: Record<string, ItemDoCardapio[]>) {
-  const todosItens = Object.values(itensPorCategoria).flat();
-
-  return TIPOS_COMBO_HALLOWEEN.flatMap((combo) => {
-    const item = todosItens.find((produto) => {
-      const nome = produto.nome.toLowerCase();
-      if (!nome.includes("surpresa")) return false;
-      if (combo.tipo === "mista") return /mist[ao]|cru.*hot|hot.*cru/.test(nome);
-      if (/\bmist[ao]\b/.test(nome)) return false;
-      return nome.includes(combo.tipo);
-    });
-
-    return item ? [{ ...combo, item }] : [];
-  });
-}
-
 function getCombosSurpresa(itensPorCategoria: Record<string, ItemDoCardapio[]>) {
   const todosItens = Object.entries(itensPorCategoria)
     .filter(([cat]) => cat !== "Black Friday")
     .flatMap(([, itens]) => itens);
-  const idsHalloween = new Set(getCombosHalloween(itensPorCategoria).map(({ item }) => item.id));
 
-  return todosItens.filter(
-    (item) =>
-      !idsHalloween.has(item.id) &&
-      NOMES_SURPRESA.some((kw) => item.nome.toLowerCase().includes(kw)),
-  );
+  return todosItens.filter((item) => NOMES_SURPRESA.some((kw) => item.nome.toLowerCase().includes(kw)));
 }
 
 function BannerSurpresa({
@@ -105,67 +72,6 @@ function BannerSurpresa({
   );
 }
 
-function BannerKids({
-  itensPorCategoria,
-  onAbrirItem,
-}: {
-  itensPorCategoria: Record<string, ItemDoCardapio[]>;
-  onAbrirItem: (item: ItemDoCardapio) => void;
-}) {
-  const itensKids = (itensPorCategoria["Especial Kids"] ?? []);
-  if (itensKids.length === 0) return null;
-
-  const tamanhos = ["15", "30", "50"];
-
-  function itemPorTipo(tam: string, tipo: "HOT" | "CRU") {
-    return itensKids.find((i) => i.nome.includes(tam) && i.nome.toUpperCase().includes(tipo)) ?? null;
-  }
-
-  return (
-    <div className="overflow-hidden" style={{ background: "#f5f0e8" }}>
-      <div className="px-4 py-3" style={{ borderBottom: "2px solid #e8dfc8" }}>
-        <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "#9ca3af", marginBottom: 4 }}>Especial Kids</p>
-        <div className="flex gap-1.5 font-heading text-2xl font-black leading-none">
-          <span style={{ color: "#16a34a" }}>DIAS</span>
-          <span style={{ color: "#d97706" }}>DAS</span>
-          <span style={{ color: "#2563eb" }}>CRIANÇAS</span>
-        </div>
-      </div>
-      {(["HOT", "CRU"] as const).map((tipo) => (
-        <div key={tipo} style={{ gap: 1, background: "#e8dfc8", padding: "1px", display: "grid", gridTemplateColumns: "auto 1fr 1fr 1fr" }}>
-          <div className="flex items-center justify-center px-3" style={{ background: "#faf7f0" }}>
-            <span className="text-xs font-black uppercase tracking-wide" style={{ color: tipo === "HOT" ? "#dc2626" : "#2563eb", writingMode: "vertical-rl", transform: "rotate(180deg)" }}>
-              {tipo}
-            </span>
-          </div>
-          {tamanhos.map((tam) => {
-            const item = itemPorTipo(tam, tipo);
-            const precoOriginal = PRECO_ORIGINAL_KIDS[tam];
-            return (
-              <button
-                key={tam}
-                type="button"
-                disabled={!item}
-                onClick={() => item && onAbrirItem({ ...item, imagemUrl: item.imagemUrl ?? "/banner-kids.png" })}
-                className="flex flex-col items-center gap-1 py-3 transition-colors"
-                style={{ background: "#faf7f0" }}
-              >
-                <span className="font-heading text-sm font-black" style={{ color: "#1a1a1a" }}>{tam} peças</span>
-                <span className="num text-xs" style={{ color: "#9ca3af", textDecoration: "line-through" }}>
-                  {fmtBRL(precoOriginal)}
-                </span>
-                <span className="num rounded-md px-2 py-1 text-sm font-black" style={{ background: "#fbbf24", color: "#1a1a1a" }}>
-                  {item ? fmtBRL(item.preco) : "—"}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 type BannerDaDona = {
   id: string;
   imagemUrl: string;
@@ -204,11 +110,16 @@ function BannerDona({
           }
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={banner.imagemUrl}
-          alt={banner.titulo ?? "Promoção"}
-          className="mx-auto block h-auto max-h-[520px] w-full object-contain bg-zinc-950"
+        <div
+          role="img"
+          aria-label={banner.titulo ?? "Promoção"}
+          className="w-full bg-zinc-950 bg-cover bg-center"
+          style={{
+            aspectRatio: "768 / 240",
+            backgroundImage: `url('${banner.imagemUrl}')`,
+            backgroundPosition: "center center",
+            backgroundSize: "cover",
+          }}
         />
         {banner.titulo && (
           <>
@@ -227,7 +138,7 @@ function BannerDona({
             const { banner: b, item } = opcoes[0];
             onAbrirItem({ ...item, preco: b.precoPromocional, imagemUrl: item.imagemUrl ?? banner.imagemUrl });
           }}
-          className="flex w-full items-center justify-between gap-3 bg-zinc-900 px-4 py-3 text-left transition-colors hover:bg-zinc-800 active:bg-zinc-700"
+          className="flex min-h-16 w-full items-center justify-between gap-3 bg-zinc-900 px-4 py-3 text-left transition-colors hover:bg-zinc-800 active:bg-zinc-700"
         >
           <div>
             <span className="text-xs font-bold text-red-400">{opcoes[0].banner.nome}</span>
@@ -248,7 +159,7 @@ function BannerDona({
               key={b.id}
               type="button"
               onClick={() => onAbrirItem({ ...item, preco: b.precoPromocional, imagemUrl: item.imagemUrl ?? banner.imagemUrl })}
-              className="flex flex-col items-center gap-1 bg-zinc-900 px-2 py-3 text-center transition-colors hover:bg-zinc-800 active:bg-zinc-700"
+              className="flex min-h-20 flex-col items-center justify-center gap-1 bg-zinc-900 px-2 py-2.5 text-center transition-colors hover:bg-zinc-800 active:bg-zinc-700"
             >
               <span className="line-clamp-2 text-[10px] font-bold leading-tight text-red-400">
                 {b.nome.includes(" · ") ? b.nome.split(" · ").slice(1).join(" · ") : b.nome}
@@ -259,50 +170,6 @@ function BannerDona({
           ))}
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function BannerHalloween({
-  itensPorCategoria,
-  onAbrirItem,
-}: {
-  itensPorCategoria: Record<string, ItemDoCardapio[]>;
-  onAbrirItem: (item: ItemDoCardapio) => void;
-}) {
-  const combos = getCombosHalloween(itensPorCategoria);
-  if (combos.length === 0) return null;
-
-  return (
-    <div className="overflow-hidden bg-zinc-900">
-      <div
-        role="img"
-        aria-label="Promoção de Halloween"
-        className="w-full overflow-hidden bg-zinc-950"
-        style={{
-          aspectRatio: "768 / 190",
-          backgroundImage: "url('/banner-halloween.png')",
-          backgroundPosition: "center top",
-          backgroundSize: "100% auto",
-        }}
-      />
-      <div className="grid gap-px bg-zinc-700 p-px" style={{ gridTemplateColumns: `repeat(${combos.length}, minmax(0, 1fr))` }}>
-        {combos.map(({ tipo, nome, item }) => (
-          <button
-            key={tipo}
-            type="button"
-            onClick={() => onAbrirItem(item)}
-            aria-label={`Pedir ${nome}, ${fmtBRL(item.preco)}`}
-            className="flex min-h-24 flex-col items-center justify-center gap-1 bg-zinc-900 px-1.5 py-2 text-center transition-colors hover:bg-zinc-800 active:bg-zinc-700"
-          >
-            <span className="line-clamp-2 text-[10px] font-bold leading-tight text-red-400">
-              {nome} ({item.descricao?.match(/\d+\s*peças?/i)?.[0] ?? item.nome.match(/\d+\s*peças?/i)?.[0] ?? "combo"})
-            </span>
-            <span className="num text-sm font-black text-white">{fmtBRL(item.preco)}</span>
-            <span className="mt-0.5 rounded bg-red-700 px-2 py-0.5 text-[10px] font-semibold text-white">Pedir</span>
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
@@ -323,10 +190,14 @@ function BannerCarousel({
   const isDraggingRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const temSurpresa = getCombosSurpresa(itensPorCategoria).length > 0;
-  const temKids = (itensPorCategoria["Especial Kids"] ?? []).length > 0;
-  const temHalloween = getCombosHalloween(itensPorCategoria).length > 0;
-  const total = bannersDona.length + [temSurpresa, temKids, temHalloween].filter(Boolean).length;
+  const slides = bannersDona.length > 0
+    ? bannersDona.map((b) => (
+        <BannerDona key={b.id} banner={b} itensPorCategoria={itensPorCategoria} onAbrirItem={setItemAberto} />
+      ))
+    : (getCombosSurpresa(itensPorCategoria).length > 0
+        ? [<BannerSurpresa key="surpresa" itensPorCategoria={itensPorCategoria} onAbrirItem={setItemAberto} />]
+        : []);
+  const total = slides.length;
 
   function goTo(idx: number) {
     const next = Math.max(0, Math.min(idx, total - 1));
@@ -391,15 +262,6 @@ function BannerCarousel({
   }, [slide, total]);
 
   if (total === 0) return null;
-
-  const slides = [
-    ...bannersDona.map((b) => (
-      <BannerDona key={b.id} banner={b} itensPorCategoria={itensPorCategoria} onAbrirItem={setItemAberto} />
-    )),
-    temSurpresa && <BannerSurpresa key="surpresa" itensPorCategoria={itensPorCategoria} onAbrirItem={setItemAberto} />,
-    temKids && <BannerKids key="kids" itensPorCategoria={itensPorCategoria} onAbrirItem={setItemAberto} />,
-    temHalloween && <BannerHalloween key="halloween" itensPorCategoria={itensPorCategoria} onAbrirItem={setItemAberto} />,
-  ].filter(Boolean);
 
   const isDragging = dragOffset !== 0;
 
