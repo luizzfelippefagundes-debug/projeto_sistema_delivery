@@ -53,11 +53,15 @@ function getCombosHalloween(itensPorCategoria: Record<string, ItemDoCardapio[]>)
 }
 
 function getCombosSurpresa(itensPorCategoria: Record<string, ItemDoCardapio[]>) {
-  const todosItens = Object.values(itensPorCategoria).flat();
+  const todosItens = Object.entries(itensPorCategoria)
+    .filter(([cat]) => cat !== "Black Friday")
+    .flatMap(([, itens]) => itens);
   const idsHalloween = new Set(getCombosHalloween(itensPorCategoria).map(({ item }) => item.id));
 
   return todosItens.filter(
-    (item) => !idsHalloween.has(item.id) && NOMES_SURPRESA.some((kw) => item.nome.toLowerCase().includes(kw)),
+    (item) =>
+      !idsHalloween.has(item.id) &&
+      NOMES_SURPRESA.some((kw) => item.nome.toLowerCase().includes(kw)),
   );
 }
 
@@ -187,11 +191,25 @@ function BannerDona({
     .map((b) => ({ banner: b, item: todosItens.find((i) => i.nome === b.nome) }))
     .filter((o): o is { banner: BannerDaDona["itens"][number]; item: ItemDoCardapio } => o.item != null);
 
+  const temItemUnico = opcoes.length === 1;
+
   return (
     <div className="overflow-hidden bg-zinc-900">
-      <div className="relative">
+      <div
+        className={`relative ${temItemUnico ? "cursor-pointer" : ""}`}
+        onClick={() => {
+          if (temItemUnico) {
+            const { banner: b, item } = opcoes[0];
+            onAbrirItem({ ...item, preco: b.precoPromocional, imagemUrl: item.imagemUrl ?? banner.imagemUrl });
+          }
+        }}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={banner.imagemUrl} alt={banner.titulo ?? ""} className="h-56 w-full object-cover" />
+        <img
+          src={banner.imagemUrl}
+          alt={banner.titulo ?? "Promoção"}
+          className="mx-auto block h-auto max-h-[520px] w-full object-contain bg-zinc-950"
+        />
         {banner.titulo && (
           <>
             <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/95 via-zinc-900/20 to-transparent" />
@@ -202,7 +220,25 @@ function BannerDona({
           </>
         )}
       </div>
-      {opcoes.length > 0 && (
+      {opcoes.length === 1 ? (
+        <button
+          type="button"
+          onClick={() => {
+            const { banner: b, item } = opcoes[0];
+            onAbrirItem({ ...item, preco: b.precoPromocional, imagemUrl: item.imagemUrl ?? banner.imagemUrl });
+          }}
+          className="flex w-full items-center justify-between gap-3 bg-zinc-900 px-4 py-3 text-left transition-colors hover:bg-zinc-800 active:bg-zinc-700"
+        >
+          <div>
+            <span className="text-xs font-bold text-red-400">{opcoes[0].banner.nome}</span>
+            <span className="block text-[11px] text-zinc-400">Promoção de Black Friday</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="num text-base font-black text-white">{fmtBRL(opcoes[0].banner.precoPromocional)}</span>
+            <span className="rounded bg-red-700 px-3 py-1 text-xs font-semibold text-white">Pedir</span>
+          </div>
+        </button>
+      ) : opcoes.length > 1 ? (
         <div
           className="grid gap-px bg-zinc-700 p-px"
           style={{ gridTemplateColumns: `repeat(${Math.min(opcoes.length, 3)}, minmax(0, 1fr))` }}
@@ -211,10 +247,10 @@ function BannerDona({
             <button
               key={b.id}
               type="button"
-              onClick={() => onAbrirItem({ ...item, imagemUrl: item.imagemUrl ?? banner.imagemUrl })}
+              onClick={() => onAbrirItem({ ...item, preco: b.precoPromocional, imagemUrl: item.imagemUrl ?? banner.imagemUrl })}
               className="flex flex-col items-center gap-1 bg-zinc-900 px-2 py-3 text-center transition-colors hover:bg-zinc-800 active:bg-zinc-700"
             >
-              <span className="text-[10px] font-bold leading-tight text-red-400">
+              <span className="line-clamp-2 text-[10px] font-bold leading-tight text-red-400">
                 {b.nome.includes(" · ") ? b.nome.split(" · ").slice(1).join(" · ") : b.nome}
               </span>
               <span className="num text-sm font-black text-white">{fmtBRL(b.precoPromocional)}</span>
@@ -222,7 +258,7 @@ function BannerDona({
             </button>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

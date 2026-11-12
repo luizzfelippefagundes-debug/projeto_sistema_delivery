@@ -1,4 +1,4 @@
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "../index";
 import { bannerItens, banners } from "../schema";
 
@@ -6,7 +6,7 @@ export async function getBannersAtivos(restauranteId: string) {
   const rows = await getDb()
     .select()
     .from(banners)
-    .where(eq(banners.restauranteId, restauranteId))
+    .where(and(eq(banners.restauranteId, restauranteId), eq(banners.ativo, true)))
     .orderBy(asc(banners.ordem), asc(banners.criadoEm));
 
   if (rows.length === 0) return [];

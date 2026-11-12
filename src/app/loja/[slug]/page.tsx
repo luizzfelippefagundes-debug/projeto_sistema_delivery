@@ -65,6 +65,14 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
   const soPixOnline = online || pixInterAtivo();
   const taxaCartaoOnline = null;
   const itensPorCategoria: Record<string, ItemDoCardapio[]> = {};
+  const prioridadeCats = ["Black Friday", "Promoções", "Especial"];
+  const categoriasOrdenadas = [
+    ...prioridadeCats.filter((cat) => itens.some((i) => i.categoria === cat)),
+    ...Array.from(new Set(itens.map((i) => i.categoria))).filter((cat) => !prioridadeCats.includes(cat)),
+  ];
+  for (const cat of categoriasOrdenadas) {
+    itensPorCategoria[cat] = [];
+  }
   for (const item of itens) {
     (itensPorCategoria[item.categoria] ??= []).push({
       id: item.id,
