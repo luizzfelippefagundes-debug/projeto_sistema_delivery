@@ -139,6 +139,40 @@ function ArteDoBanner({
   );
 }
 
+/** Os itens da promoção, um por linha. Em pé e não deitado: a fila que rolava
+ * na horizontal cortava o último item no celular, e ninguém adivinha que
+ * precisa arrastar pro lado pra ver o resto. */
+function ItensDaPromocao({
+  opcoes,
+  onEscolher,
+}: {
+  opcoes: Promocao["opcoes"];
+  onEscolher: (opcao: Promocao["opcoes"][number]) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      {opcoes.map((opcao) => (
+        <button
+          key={opcao.id}
+          type="button"
+          onClick={() => onEscolher(opcao)}
+          draggable={false}
+          className="flex items-center gap-3 rounded-xl border border-border bg-background px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-muted/60 active:bg-muted"
+        >
+          <span className="min-w-0 flex-1 text-[13px] font-semibold leading-tight">
+            {/* "Black Friday · Poke" vira só "Poke" */}
+            {opcao.nome.includes(" · ") ? opcao.nome.split(" · ").slice(1).join(" · ") : opcao.nome}
+          </span>
+          <span className="num shrink-0 text-sm font-bold text-primary">{fmtBRL(opcao.preco)}</span>
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <Plus className="size-3.5 stroke-[3]" />
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /** Um slide do carrossel: a arte da promoção e os itens que ela vende.
  *
  * São dois arranjos de verdade, não um só espremido: empilhado (celular, e
@@ -164,11 +198,6 @@ function BannerCard({
 
   function abrir(opcao: Promocao["opcoes"][number]) {
     onAbrirItem({ ...opcao.item, preco: opcao.preco, imagemUrl: opcao.item.imagemUrl ?? promo.imagemUrl });
-  }
-
-  /** Nome do item sem o prefixo da promoção ("Black Friday · Poke" -> "Poke"). */
-  function rotulo(nome: string) {
-    return nome.includes(" · ") ? nome.split(" · ").slice(1).join(" · ") : nome;
   }
 
   return (
@@ -215,24 +244,8 @@ function BannerCard({
                 </span>
               </button>
             ) : (
-              <div className="flex min-h-[4.5rem] flex-1 gap-2 overflow-x-auto px-3 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {opcoes.map((opcao) => (
-                  <button
-                    key={opcao.id}
-                    type="button"
-                    onClick={() => abrir(opcao)}
-                    draggable={false}
-                    className="flex w-32 shrink-0 flex-col justify-between gap-1 rounded-xl border border-border bg-background px-2.5 py-2 text-left transition-colors hover:border-primary/40 hover:bg-muted/60 active:bg-muted"
-                  >
-                    <span className="line-clamp-2 text-[11px] font-semibold leading-tight">{rotulo(opcao.nome)}</span>
-                    <span className="flex items-center justify-between gap-1">
-                      <span className="num text-xs font-bold text-primary">{fmtBRL(opcao.preco)}</span>
-                      <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                        <Plus className="size-3 stroke-[3]" />
-                      </span>
-                    </span>
-                  </button>
-                ))}
+              <div className="flex-1 p-3">
+                <ItensDaPromocao opcoes={opcoes} onEscolher={abrir} />
               </div>
             )}
           </div>
@@ -268,25 +281,7 @@ function BannerCard({
                   </button>
                 </>
               ) : (
-                <div className="flex flex-col gap-2">
-                  {opcoes.map((opcao) => (
-                    <button
-                      key={opcao.id}
-                      type="button"
-                      onClick={() => abrir(opcao)}
-                      draggable={false}
-                      className="flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 text-left transition-colors hover:border-primary/40 hover:bg-muted/60 active:bg-muted"
-                    >
-                      <span className="min-w-0 flex-1 text-[13px] font-semibold leading-tight">
-                        {rotulo(opcao.nome)}
-                      </span>
-                      <span className="num shrink-0 text-sm font-bold text-primary">{fmtBRL(opcao.preco)}</span>
-                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                        <Plus className="size-3.5 stroke-[3]" />
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                <ItensDaPromocao opcoes={opcoes} onEscolher={abrir} />
               )}
             </div>
           )}
