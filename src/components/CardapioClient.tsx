@@ -96,15 +96,17 @@ function ArteDoBanner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imagemUrl]);
 
-  /* No celular a arte ocupa a largura do card e todos os slides dividem a
-   * mesma moldura, senão o carrossel pularia de altura a cada troca; o que
-   * não encaixa nela aparece inteiro sobre o fundo desfocado.
+  /* No celular todos os slides dividem a mesma moldura, senão o carrossel
+   * pularia de altura a cada troca, e o que não encaixa nela aparece inteiro
+   * sobre o fundo desfocado. A altura é limitada a 38vh: com um cartaz em pé
+   * ocupando a largura toda, o card comia a tela inteira e escondia as
+   * opções e o resto do cardápio de quem não pensa em rolar a página.
    *
    * No desktop, com a arte em pé, quem manda é a altura: a largura sai da
    * proporção da própria arte, então cada cartaz preenche a coluna dele sem
    * tarja nenhuma, e a altura continua igual em todos os slides. */
   const medidas = retrato
-    ? "w-full [max-height:70vh] [aspect-ratio:var(--r-moldura)] sm:h-[22rem] sm:max-h-none sm:w-auto sm:[aspect-ratio:var(--r-arte)]"
+    ? "w-full [max-height:38vh] [aspect-ratio:var(--r-moldura)] sm:h-[22rem] sm:max-h-none sm:w-auto sm:[aspect-ratio:var(--r-arte)]"
     : "w-full [max-height:70vh] [aspect-ratio:var(--r-moldura)] sm:[max-height:26rem]";
 
   return (
