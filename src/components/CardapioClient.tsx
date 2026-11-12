@@ -65,11 +65,14 @@ function ArteDoBanner({
   imagemUrl,
   alt,
   frameRatio,
+  retrato,
   onRatio,
 }: {
   imagemUrl: string;
   alt: string;
   frameRatio: number;
+  /** Arte em pé: no desktop ela vira a coluna da esquerda do card. */
+  retrato: boolean;
   onRatio: (ratio: number) => void;
 }) {
   const [ratio, setRatio] = useState<number | null>(null);
@@ -93,12 +96,21 @@ function ArteDoBanner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imagemUrl]);
 
+  /* No celular a arte ocupa a largura do card e todos os slides dividem a
+   * mesma moldura, senão o carrossel pularia de altura a cada troca; o que
+   * não encaixa nela aparece inteiro sobre o fundo desfocado.
+   *
+   * No desktop, com a arte em pé, quem manda é a altura: a largura sai da
+   * proporção da própria arte, então cada cartaz preenche a coluna dele sem
+   * tarja nenhuma, e a altura continua igual em todos os slides. */
+  const medidas = retrato
+    ? "w-full [max-height:70vh] [aspect-ratio:var(--r-moldura)] sm:h-[22rem] sm:max-h-none sm:w-auto sm:[aspect-ratio:var(--r-arte)]"
+    : "w-full [max-height:70vh] [aspect-ratio:var(--r-moldura)] sm:[max-height:26rem]";
+
   return (
-    /* O teto de altura impede que um cartaz em pé ocupe a tela inteira — no
-     * celular ele quase nunca pega, no desktop (card largo) é o que segura. */
     <div
-      className="relative w-full overflow-hidden bg-muted [max-height:70vh] sm:[max-height:26rem]"
-      style={{ aspectRatio: frameRatio }}
+      className={`relative overflow-hidden bg-muted ${medidas}`}
+      style={{ "--r-moldura": frameRatio, "--r-arte": ratio ?? frameRatio } as React.CSSProperties}
     >
       {!preenche && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -107,7 +119,9 @@ function ArteDoBanner({
           alt=""
           aria-hidden
           draggable={false}
-          className="absolute inset-0 h-full w-full scale-110 object-cover blur-xl brightness-[.65] saturate-150"
+          className={`absolute inset-0 h-full w-full scale-110 object-cover blur-xl brightness-[.65] saturate-150 ${
+            retrato ? "sm:hidden" : ""
+          }`}
         />
       )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -117,7 +131,9 @@ function ArteDoBanner({
         alt={alt}
         draggable={false}
         onLoad={(e) => medir(e.currentTarget)}
-        className={`absolute inset-0 h-full w-full ${preenche ? "object-cover" : "object-contain"}`}
+        className={`absolute inset-0 h-full w-full ${preenche ? "object-cover" : "object-contain"} ${
+          retrato ? "sm:object-cover" : ""
+        }`}
       />
     </div>
   );
@@ -138,21 +154,29 @@ function BannerCard({
 }) {
   const { opcoes, titulo } = promo;
   const unica = opcoes.length === 1 ? opcoes[0] : null;
+  /* Cartaz em pé num card largo deixava duas tarjas desfocadas enormes nas
+   * laterais. No desktop ele vira coluna e os itens vão pro lado. */
+  const retrato = frameRatio < 1.2;
 
   function abrir(opcao: Promocao["opcoes"][number]) {
     onAbrirItem({ ...opcao.item, preco: opcao.preco, imagemUrl: opcao.item.imagemUrl ?? promo.imagemUrl });
   }
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+    <article
+      className={`flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm ${
+        retrato ? "sm:flex-row" : ""
+      }`}
+    >
       <div
-        className={`relative ${unica ? "cursor-pointer" : ""}`}
+        className={`relative ${retrato ? "sm:shrink-0" : ""} ${unica ? "cursor-pointer" : ""}`}
         onClick={unica ? () => abrir(unica) : undefined}
       >
         <ArteDoBanner
           imagemUrl={promo.imagemUrl}
           alt={titulo ?? "Promoção"}
           frameRatio={frameRatio}
+          retrato={retrato}
           onRatio={onRatio}
         />
         {titulo && (
@@ -166,11 +190,15 @@ function BannerCard({
         <button
           type="button"
           onClick={() => abrir(unica)}
-          className="flex min-h-[4.5rem] flex-1 items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60 active:bg-muted"
+          className={`flex min-h-[4.5rem] flex-1 items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60 active:bg-muted ${
+            retrato ? "sm:flex-col sm:items-start sm:justify-center sm:gap-5 sm:px-6" : ""
+          }`}
         >
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">{unica.nome}</p>
-            <p className="num text-xs text-muted-foreground">
+            <p className={`truncate text-sm font-semibold ${retrato ? "sm:whitespace-normal sm:text-lg" : ""}`}>
+              {unica.nome}
+            </p>
+            <p className={`num text-xs text-muted-foreground ${retrato ? "sm:text-sm" : ""}`}>
               {fmtBRL(unica.preco)} na promoção
             </p>
           </div>
@@ -180,21 +208,36 @@ function BannerCard({
           </span>
         </button>
       ) : (
-        <div className="flex min-h-[4.5rem] flex-1 gap-2 overflow-x-auto px-3 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div
+          className={`flex min-h-[4.5rem] flex-1 gap-2 overflow-x-auto px-3 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+            retrato ? "sm:flex-col sm:justify-center sm:overflow-visible sm:px-5 sm:py-5" : ""
+          }`}
+        >
+          {retrato && (
+            <p className="hidden text-[11px] font-bold uppercase tracking-wider text-muted-foreground sm:block">
+              Escolha uma opção
+            </p>
+          )}
           {opcoes.map((opcao) => (
             <button
               key={opcao.id}
               type="button"
               onClick={() => abrir(opcao)}
               draggable={false}
-              className="flex w-32 shrink-0 flex-col justify-between gap-1 rounded-xl border border-border bg-background px-2.5 py-2 text-left transition-colors hover:border-primary/40 hover:bg-muted/60 active:bg-muted"
+              className={`flex w-32 shrink-0 flex-col justify-between gap-1 rounded-xl border border-border bg-background px-2.5 py-2 text-left transition-colors hover:border-primary/40 hover:bg-muted/60 active:bg-muted ${
+                retrato ? "sm:w-full sm:flex-row sm:items-center sm:gap-3 sm:px-4 sm:py-3" : ""
+              }`}
             >
-              <span className="line-clamp-2 text-[11px] font-semibold leading-tight">
+              <span
+                className={`line-clamp-2 text-[11px] font-semibold leading-tight ${
+                  retrato ? "sm:min-w-0 sm:flex-1 sm:text-[13px]" : ""
+                }`}
+              >
                 {opcao.nome.includes(" · ") ? opcao.nome.split(" · ").slice(1).join(" · ") : opcao.nome}
               </span>
-              <span className="flex items-center justify-between gap-1">
-                <span className="num text-xs font-bold text-primary">{fmtBRL(opcao.preco)}</span>
-                <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <span className={`flex items-center justify-between gap-1 ${retrato ? "sm:ml-auto sm:shrink-0 sm:gap-2" : ""}`}>
+                <span className={`num text-xs font-bold text-primary ${retrato ? "sm:text-sm" : ""}`}>{fmtBRL(opcao.preco)}</span>
+                <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground sm:size-6">
                   <Plus className="size-3 stroke-[3]" />
                 </span>
               </span>
@@ -361,42 +404,42 @@ function BannerCarousel({
 
         </div>
 
-        {/* Fora do card: em cima da arte as bolinhas brigavam com o preço. */}
+        {/* Controles embaixo do card: sobre a arte as bolinhas brigavam com o
+         * preço, e no desktop a seta da direita caía em cima dos itens. */}
         {total > 1 && (
-          <div className="flex justify-center gap-1.5 pt-2.5">
-            {promocoes.map((promo, i) => (
-              <button
-                key={promo.key}
-                type="button"
-                onClick={() => goTo(i)}
-                aria-label={`Ir para a promoção ${i + 1} de ${total}`}
-                aria-current={slide === i}
-                className={`h-1.5 rounded-full transition-all ${slide === i ? "bg-primary" : "bg-border"}`}
-                style={{ width: slide === i ? 20 : 6 }}
-              />
-            ))}
-          </div>
-        )}
-
-        {total > 1 && (
-          <>
+          <div className="flex items-center justify-center gap-3 pt-2.5">
             <button
               type="button"
               onClick={() => goTo(slide - 1)}
               aria-label="Promoção anterior"
-              className="absolute left-6 top-[38%] hidden size-9 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 text-foreground shadow-md ring-1 ring-border backdrop-blur transition-colors hover:bg-card sm:flex md:left-8"
+              className="hidden size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:flex"
             >
               <ChevronLeft className="size-5" />
             </button>
+
+            <div className="flex items-center gap-1.5">
+              {promocoes.map((promo, i) => (
+                <button
+                  key={promo.key}
+                  type="button"
+                  onClick={() => goTo(i)}
+                  aria-label={`Ir para a promoção ${i + 1} de ${total}`}
+                  aria-current={slide === i}
+                  className={`h-1.5 rounded-full transition-all ${slide === i ? "bg-primary" : "bg-border"}`}
+                  style={{ width: slide === i ? 20 : 6 }}
+                />
+              ))}
+            </div>
+
             <button
               type="button"
               onClick={() => goTo(slide + 1)}
               aria-label="Próxima promoção"
-              className="absolute right-6 top-[38%] hidden size-9 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 text-foreground shadow-md ring-1 ring-border backdrop-blur transition-colors hover:bg-card sm:flex md:right-8"
+              className="hidden size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:flex"
             >
               <ChevronRight className="size-5" />
             </button>
-          </>
+          </div>
         )}
       </div>
 
