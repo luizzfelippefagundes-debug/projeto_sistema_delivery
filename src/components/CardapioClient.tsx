@@ -1,7 +1,7 @@
 "use client";
 
-import { Package, Plus, Search, ShoppingBag, X } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Package, Plus, Search, ShoppingBag, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import AvisoFuncionamento from "@/components/AvisoFuncionamento";
 import type { Horarios } from "@/lib/horario";
 import CartDrawer from "@/components/CartDrawer";
@@ -32,46 +32,6 @@ function getCombosSurpresa(itensPorCategoria: Record<string, ItemDoCardapio[]>) 
   return todosItens.filter((item) => NOMES_SURPRESA.some((kw) => item.nome.toLowerCase().includes(kw)));
 }
 
-function BannerSurpresa({
-  itensPorCategoria,
-  onAbrirItem,
-}: {
-  itensPorCategoria: Record<string, ItemDoCardapio[]>;
-  onAbrirItem: (item: ItemDoCardapio) => void;
-}) {
-  const combos = getCombosSurpresa(itensPorCategoria);
-  if (combos.length === 0) return null;
-  return (
-    <div className="overflow-hidden bg-zinc-900">
-      <div className="relative">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/banner-combo-surpresa.png" alt="Promo Combo Surpresa" className="h-48 w-full object-cover object-top" />
-        <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/95 via-zinc-900/20 to-transparent" />
-        <div className="absolute bottom-3 left-4">
-          <p className="text-[9px] font-bold uppercase tracking-widest text-red-400">Promoção especial</p>
-          <h2 className="font-heading text-2xl font-black leading-none text-white">COMBO SURPRESA</h2>
-        </div>
-      </div>
-      <div className="grid grid-cols-3 gap-px bg-zinc-700 p-px">
-        {combos.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onAbrirItem({ ...item, imagemUrl: item.imagemUrl ?? "/banner-combo-surpresa.png" })}
-            className="flex flex-col items-center gap-1 bg-zinc-900 px-2 py-3 text-center transition-colors hover:bg-zinc-800 active:bg-zinc-700"
-          >
-            <span className="text-[10px] font-bold leading-tight text-red-400">
-              {item.nome.replace(/combo surpresa/i, "").trim() || item.nome}
-            </span>
-            <span className="num text-sm font-black text-white">{fmtBRL(item.preco)}</span>
-            <span className="mt-0.5 rounded bg-red-700 px-2 py-0.5 text-[10px] font-semibold text-white">Pedir</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 type BannerDaDona = {
   id: string;
   imagemUrl: string;
@@ -80,98 +40,207 @@ type BannerDaDona = {
   itens: { id: string; nome: string; precoPromocional: number }[];
 };
 
-/** Banner que a dona sobe pelo painel, no mesmo formato dos fixos: a arte em
- * cima e um "Pedir" por item ligado ao banner, que abre o item do cardápio
- * com o mesmo nome. */
-function BannerDona({
-  banner,
-  itensPorCategoria,
-  onAbrirItem,
-}: {
-  banner: BannerDaDona;
-  itensPorCategoria: Record<string, ItemDoCardapio[]>;
-  onAbrirItem: (item: ItemDoCardapio) => void;
-}) {
-  const todosItens = Object.values(itensPorCategoria).flat();
-  const opcoes = banner.itens
-    .map((b) => ({ banner: b, item: todosItens.find((i) => i.nome === b.nome) }))
-    .filter((o): o is { banner: BannerDaDona["itens"][number]; item: ItemDoCardapio } => o.item != null);
+/** Uma promoção pronta pra virar slide: a arte, um título opcional e os itens
+ * do cardápio que ela vende (já com o preço promocional). */
+type Promocao = {
+  key: string;
+  imagemUrl: string;
+  titulo: string | null;
+  opcoes: { id: string; nome: string; preco: number; item: ItemDoCardapio }[];
+};
 
-  const temItemUnico = opcoes.length === 1;
+/* A arte do banner não tem proporção garantida: a dona pode subir um banner
+ * largo (768x240, o formato que ela usa hoje) ou o cartaz quadrado que ela fez
+ * no celular. Então a moldura se adapta à arte em vez de cortá-la: o carrossel
+ * mede as artes e escolhe uma proporção única pra todos os slides, limitada
+ * entre um cartaz em pé (4:5) e um banner largo (768:240). */
+const RATIO_MIN = 4 / 5;
+const RATIO_MAX = 768 / 240;
+const RATIO_PADRAO = RATIO_MAX;
+
+/** Arte que cabe inteira na moldura: quando a proporção bate com a da moldura
+ * ela preenche tudo (`cover`, sem tarja); quando é bem diferente, aparece
+ * inteira sobre uma cópia desfocada dela mesma, sem cortar nem esticar. */
+function ArteDoBanner({
+  imagemUrl,
+  alt,
+  frameRatio,
+  onRatio,
+}: {
+  imagemUrl: string;
+  alt: string;
+  frameRatio: number;
+  onRatio: (ratio: number) => void;
+}) {
+  const [ratio, setRatio] = useState<number | null>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  /* Só preenche a moldura quando a arte praticamente já tem a proporção dela:
+   * acima disso o `cover` come um pedaço visível do cartaz, e aí é melhor
+   * mostrar a arte inteira sobre o fundo desfocado. */
+  const preenche = ratio == null || Math.abs(ratio - frameRatio) / frameRatio < 0.03;
+
+  function medir(img: HTMLImageElement | null) {
+    if (!img?.naturalWidth || !img.naturalHeight) return;
+    const r = img.naturalWidth / img.naturalHeight;
+    setRatio(r);
+    onRatio(r);
+  }
+
+  /* A arte vem no HTML do servidor e costuma estar pronta antes do React
+   * hidratar — aí o `onLoad` nunca dispara e a moldura ficaria no padrão. */
+  useEffect(() => {
+    if (imgRef.current?.complete) medir(imgRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imagemUrl]);
 
   return (
-    <div className="overflow-hidden bg-zinc-900">
-      <div
-        className={`relative ${temItemUnico ? "cursor-pointer" : ""}`}
-        onClick={() => {
-          if (temItemUnico) {
-            const { banner: b, item } = opcoes[0];
-            onAbrirItem({ ...item, preco: b.precoPromocional, imagemUrl: item.imagemUrl ?? banner.imagemUrl });
-          }
-        }}
-      >
-        <div
-          role="img"
-          aria-label={banner.titulo ?? "Promoção"}
-          className="w-full bg-zinc-950 bg-cover bg-center"
-          style={{
-            aspectRatio: "768 / 240",
-            backgroundImage: `url('${banner.imagemUrl}')`,
-            backgroundPosition: "center center",
-            backgroundSize: "cover",
-          }}
+    /* O teto de altura impede que um cartaz em pé ocupe a tela inteira — no
+     * celular ele quase nunca pega, no desktop (card largo) é o que segura. */
+    <div
+      className="relative w-full overflow-hidden bg-muted [max-height:70vh] sm:[max-height:26rem]"
+      style={{ aspectRatio: frameRatio }}
+    >
+      {!preenche && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imagemUrl}
+          alt=""
+          aria-hidden
+          draggable={false}
+          className="absolute inset-0 h-full w-full scale-110 object-cover blur-xl brightness-[.65] saturate-150"
         />
-        {banner.titulo && (
-          <>
-            <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/95 via-zinc-900/20 to-transparent" />
-            <div className="absolute bottom-3 left-4">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-red-400">Promoção especial</p>
-              <h2 className="font-heading text-2xl font-black leading-none text-white">{banner.titulo}</h2>
-            </div>
-          </>
+      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        ref={imgRef}
+        src={imagemUrl}
+        alt={alt}
+        draggable={false}
+        onLoad={(e) => medir(e.currentTarget)}
+        className={`absolute inset-0 h-full w-full ${preenche ? "object-cover" : "object-contain"}`}
+      />
+    </div>
+  );
+}
+
+/** Um slide do carrossel: arte em cima, e embaixo os itens da promoção com o
+ * preço e o botão de pedir, no mesmo visual dos cards do cardápio. */
+function BannerCard({
+  promo,
+  frameRatio,
+  onRatio,
+  onAbrirItem,
+}: {
+  promo: Promocao;
+  frameRatio: number;
+  onRatio: (ratio: number) => void;
+  onAbrirItem: (item: ItemDoCardapio) => void;
+}) {
+  const { opcoes, titulo } = promo;
+  const unica = opcoes.length === 1 ? opcoes[0] : null;
+
+  function abrir(opcao: Promocao["opcoes"][number]) {
+    onAbrirItem({ ...opcao.item, preco: opcao.preco, imagemUrl: opcao.item.imagemUrl ?? promo.imagemUrl });
+  }
+
+  return (
+    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <div
+        className={`relative ${unica ? "cursor-pointer" : ""}`}
+        onClick={unica ? () => abrir(unica) : undefined}
+      >
+        <ArteDoBanner
+          imagemUrl={promo.imagemUrl}
+          alt={titulo ?? "Promoção"}
+          frameRatio={frameRatio}
+          onRatio={onRatio}
+        />
+        {titulo && (
+          <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-sm">
+            {titulo}
+          </span>
         )}
       </div>
-      {opcoes.length === 1 ? (
+
+      {opcoes.length === 0 ? null : unica ? (
         <button
           type="button"
-          onClick={() => {
-            const { banner: b, item } = opcoes[0];
-            onAbrirItem({ ...item, preco: b.precoPromocional, imagemUrl: item.imagemUrl ?? banner.imagemUrl });
-          }}
-          className="flex min-h-16 w-full items-center justify-between gap-3 bg-zinc-900 px-4 py-3 text-left transition-colors hover:bg-zinc-800 active:bg-zinc-700"
+          onClick={() => abrir(unica)}
+          className="flex min-h-[4.5rem] flex-1 items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60 active:bg-muted"
         >
-          <div>
-            <span className="text-xs font-bold text-red-400">{opcoes[0].banner.nome}</span>
-            <span className="block text-[11px] text-zinc-400">Promoção de Black Friday</span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">{unica.nome}</p>
+            <p className="num text-xs text-muted-foreground">
+              {fmtBRL(unica.preco)} na promoção
+            </p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="num text-base font-black text-white">{fmtBRL(opcoes[0].banner.precoPromocional)}</span>
-            <span className="rounded bg-red-700 px-3 py-1 text-xs font-semibold text-white">Pedir</span>
-          </div>
+          <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground shadow-sm">
+            <Plus className="size-3.5 stroke-[3]" />
+            Pedir
+          </span>
         </button>
-      ) : opcoes.length > 1 ? (
-        <div
-          className="grid gap-px bg-zinc-700 p-px"
-          style={{ gridTemplateColumns: `repeat(${Math.min(opcoes.length, 3)}, minmax(0, 1fr))` }}
-        >
-          {opcoes.map(({ banner: b, item }) => (
+      ) : (
+        <div className="flex min-h-[4.5rem] flex-1 gap-2 overflow-x-auto px-3 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {opcoes.map((opcao) => (
             <button
-              key={b.id}
+              key={opcao.id}
               type="button"
-              onClick={() => onAbrirItem({ ...item, preco: b.precoPromocional, imagemUrl: item.imagemUrl ?? banner.imagemUrl })}
-              className="flex min-h-20 flex-col items-center justify-center gap-1 bg-zinc-900 px-2 py-2.5 text-center transition-colors hover:bg-zinc-800 active:bg-zinc-700"
+              onClick={() => abrir(opcao)}
+              draggable={false}
+              className="flex w-32 shrink-0 flex-col justify-between gap-1 rounded-xl border border-border bg-background px-2.5 py-2 text-left transition-colors hover:border-primary/40 hover:bg-muted/60 active:bg-muted"
             >
-              <span className="line-clamp-2 text-[10px] font-bold leading-tight text-red-400">
-                {b.nome.includes(" · ") ? b.nome.split(" · ").slice(1).join(" · ") : b.nome}
+              <span className="line-clamp-2 text-[11px] font-semibold leading-tight">
+                {opcao.nome.includes(" · ") ? opcao.nome.split(" · ").slice(1).join(" · ") : opcao.nome}
               </span>
-              <span className="num text-sm font-black text-white">{fmtBRL(b.precoPromocional)}</span>
-              <span className="mt-0.5 rounded bg-red-700 px-2 py-0.5 text-[10px] font-semibold text-white">Pedir</span>
+              <span className="flex items-center justify-between gap-1">
+                <span className="num text-xs font-bold text-primary">{fmtBRL(opcao.preco)}</span>
+                <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <Plus className="size-3 stroke-[3]" />
+                </span>
+              </span>
             </button>
           ))}
         </div>
-      ) : null}
-    </div>
+      )}
+    </article>
   );
+}
+
+/** Monta as promoções a mostrar: as que a dona cadastrou e, se não houver
+ * nenhuma, o combo surpresa fixo como vitrine de reserva. */
+function getPromocoes(
+  bannersDona: BannerDaDona[],
+  itensPorCategoria: Record<string, ItemDoCardapio[]>,
+): Promocao[] {
+  const todosItens = Object.values(itensPorCategoria).flat();
+
+  if (bannersDona.length > 0) {
+    return bannersDona.map((b) => ({
+      key: b.id,
+      imagemUrl: b.imagemUrl,
+      titulo: b.titulo,
+      opcoes: b.itens.flatMap((bi) => {
+        const item = todosItens.find((i) => i.nome === bi.nome);
+        return item ? [{ id: bi.id, nome: bi.nome, preco: bi.precoPromocional, item }] : [];
+      }),
+    }));
+  }
+
+  const combos = getCombosSurpresa(itensPorCategoria);
+  if (combos.length === 0) return [];
+  return [
+    {
+      key: "surpresa",
+      imagemUrl: "/banner-combo-surpresa.png",
+      titulo: "Combo surpresa",
+      opcoes: combos.map((item) => ({
+        id: item.id,
+        nome: item.nome.replace(/combo surpresa/i, "").trim() || item.nome,
+        preco: item.preco,
+        item,
+      })),
+    },
+  ];
 }
 
 function BannerCarousel({
@@ -184,37 +253,35 @@ function BannerCarousel({
   const [itemAberto, setItemAberto] = useState<ItemDoCardapio | null>(null);
   const [slide, setSlide] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
-  const [slideHeight, setSlideHeight] = useState<number | null>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
+  const [pausado, setPausado] = useState(false);
+  const [ratios, setRatios] = useState<Record<string, number>>({});
   const startXRef = useRef(0);
   const isDraggingRef = useRef(false);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const slides = bannersDona.length > 0
-    ? bannersDona.map((b) => (
-        <BannerDona key={b.id} banner={b} itensPorCategoria={itensPorCategoria} onAbrirItem={setItemAberto} />
-      ))
-    : (getCombosSurpresa(itensPorCategoria).length > 0
-        ? [<BannerSurpresa key="surpresa" itensPorCategoria={itensPorCategoria} onAbrirItem={setItemAberto} />]
-        : []);
-  const total = slides.length;
+  const promocoes = getPromocoes(bannersDona, itensPorCategoria);
+  const total = promocoes.length;
 
-  function goTo(idx: number) {
-    const next = Math.max(0, Math.min(idx, total - 1));
-    setSlide(next);
-    setDragOffset(0);
+  /* Uma moldura só pra todos os slides (senão o carrossel pula de altura a
+   * cada troca), pela mediana das artes já medidas. */
+  const medidas = Object.values(ratios).sort((a, b) => a - b);
+  const frameRatio = medidas.length === 0
+    ? RATIO_PADRAO
+    : Math.min(RATIO_MAX, Math.max(RATIO_MIN, medidas[Math.floor(medidas.length / 2)]));
+
+  function registrarRatio(key: string, ratio: number) {
+    setRatios((atual) => (atual[key] === ratio ? atual : { ...atual, [key]: ratio }));
   }
 
-  function resetTimer() {
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => setSlide((s) => (s + 1) % total), 4500);
+  function goTo(idx: number) {
+    if (total === 0) return;
+    setSlide(((idx % total) + total) % total);
+    setDragOffset(0);
   }
 
   function onDragStart(x: number) {
     isDraggingRef.current = true;
     startXRef.current = x;
     setDragOffset(0);
-    resetTimer();
   }
 
   function onDragMove(x: number) {
@@ -242,75 +309,95 @@ function BannerCarousel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slide]);
 
+  /* Passa sozinho, mas para enquanto a pessoa está olhando de perto (mouse em
+   * cima, arrastando) ou se o sistema pede menos animação. */
   useEffect(() => {
-    if (total <= 1) return;
-    resetTimer();
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [total]);
-
-  useLayoutEffect(() => {
-    if (total <= 1) return;
-    const activeSlide = trackRef.current?.children.item(slide);
-    if (!activeSlide) return;
-
-    const updateHeight = () => setSlideHeight(activeSlide.getBoundingClientRect().height);
-    const observer = new ResizeObserver(updateHeight);
-    observer.observe(activeSlide);
-    updateHeight();
-    return () => observer.disconnect();
-  }, [slide, total]);
+    if (total <= 1 || pausado) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = setInterval(() => setSlide((s) => (s + 1) % total), 5500);
+    return () => clearInterval(id);
+  }, [total, pausado, slide]);
 
   if (total === 0) return null;
 
-  const isDragging = dragOffset !== 0;
+  const arrastando = dragOffset !== 0;
 
   return (
     <>
-      <div className="mx-auto w-full max-w-2xl pt-4">
-        <div className="overflow-hidden rounded-2xl shadow-lg">
-          {total === 1 ? (
-            slides[0]
-          ) : (
-            <>
+      <div
+        className="relative mx-auto w-full max-w-2xl px-4 pt-4 md:px-6"
+        onMouseEnter={() => setPausado(true)}
+        onMouseLeave={() => setPausado(false)}
+      >
+        <div className="relative overflow-hidden rounded-2xl">
+          <div
+            className="flex select-none items-stretch"
+            style={{
+              transform: `translateX(calc(-${slide * 100}% + ${dragOffset}px))`,
+              transition: arrastando ? "none" : "transform .45s cubic-bezier(.4,0,.2,1)",
+              cursor: total > 1 ? (arrastando ? "grabbing" : "grab") : undefined,
+            }}
+            onTouchStart={(e) => { setPausado(true); onDragStart(e.touches[0].clientX); }}
+            onTouchMove={(e) => onDragMove(e.touches[0].clientX)}
+            onTouchEnd={(e) => { onDragEnd(e.changedTouches[0].clientX); setPausado(false); }}
+            onMouseDown={(e) => { if (total > 1) { e.preventDefault(); onDragStart(e.clientX); } }}
+          >
+            {promocoes.map((promo, i) => (
               <div
-                ref={trackRef}
-                className="flex select-none items-start"
-                style={{
-                  height: slideHeight ? `${slideHeight}px` : undefined,
-                  transform: `translateX(calc(-${slide * 100}% + ${dragOffset}px))`,
-                  transition: isDragging ? "none" : "transform .4s cubic-bezier(.4,0,.2,1), height .25s ease",
-                  cursor: isDragging ? "grabbing" : "grab",
-                }}
-                onTouchStart={(e) => onDragStart(e.touches[0].clientX)}
-                onTouchMove={(e) => onDragMove(e.touches[0].clientX)}
-                onTouchEnd={(e) => onDragEnd(e.changedTouches[0].clientX)}
-                onMouseDown={(e) => { e.preventDefault(); onDragStart(e.clientX); }}
+                key={promo.key}
+                className="w-full shrink-0"
+                aria-hidden={i !== slide}
+                style={{ pointerEvents: arrastando || i !== slide ? "none" : "auto" }}
               >
-                {slides.map((s, i) => (
-                  <div key={i} className="w-full shrink-0 pointer-events-none" style={{ pointerEvents: isDragging ? "none" : "auto" }}>
-                    {s}
-                  </div>
-                ))}
+                <BannerCard
+                  promo={promo}
+                  frameRatio={frameRatio}
+                  onRatio={(r) => registrarRatio(promo.key, r)}
+                  onAbrirItem={setItemAberto}
+                />
               </div>
-              <div className="flex justify-center gap-1.5 bg-zinc-900 pb-2 pt-2">
-                {slides.map((_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => { goTo(i); resetTimer(); }}
-                    aria-label={`Slide ${i + 1}`}
-                    className="h-1.5 rounded-full transition-all"
-                    style={{
-                      width: slide === i ? 18 : 6,
-                      background: slide === i ? "#fff" : "rgba(255,255,255,.3)",
-                    }}
-                  />
-                ))}
-              </div>
-            </>
-          )}
+            ))}
+          </div>
+
         </div>
+
+        {/* Fora do card: em cima da arte as bolinhas brigavam com o preço. */}
+        {total > 1 && (
+          <div className="flex justify-center gap-1.5 pt-2.5">
+            {promocoes.map((promo, i) => (
+              <button
+                key={promo.key}
+                type="button"
+                onClick={() => goTo(i)}
+                aria-label={`Ir para a promoção ${i + 1} de ${total}`}
+                aria-current={slide === i}
+                className={`h-1.5 rounded-full transition-all ${slide === i ? "bg-primary" : "bg-border"}`}
+                style={{ width: slide === i ? 20 : 6 }}
+              />
+            ))}
+          </div>
+        )}
+
+        {total > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={() => goTo(slide - 1)}
+              aria-label="Promoção anterior"
+              className="absolute left-6 top-[38%] hidden size-9 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 text-foreground shadow-md ring-1 ring-border backdrop-blur transition-colors hover:bg-card sm:flex md:left-8"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => goTo(slide + 1)}
+              aria-label="Próxima promoção"
+              className="absolute right-6 top-[38%] hidden size-9 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 text-foreground shadow-md ring-1 ring-border backdrop-blur transition-colors hover:bg-card sm:flex md:right-8"
+            >
+              <ChevronRight className="size-5" />
+            </button>
+          </>
+        )}
       </div>
 
       <ItemDetalheDialog
